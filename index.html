@@ -468,6 +468,9 @@
         // Flow movement data - stores random offsets for each particle
         let flowOffsets = null;
 
+        // Info mode - detailed screen information
+        let infoMode = false;
+
         // Performance optimization: Reusable objects to avoid GC pressure
         const reusableMatrix = new THREE.Matrix4();
         const reusableColor = new THREE.Color();
@@ -672,13 +675,230 @@
             video.currentTime = pos * video.duration;
         }
 
-        // Spacebar to play/pause
+        // Spacebar to play/pause, I key for info mode
         document.addEventListener('keydown', function(e) {
             if (e.code === 'Space' && currentVideo) {
                 e.preventDefault();
                 toggleVideo();
             }
+            // I key to toggle detailed info mode
+            if (e.code === 'KeyI') {
+                e.preventDefault();
+                toggleInfoMode();
+            }
         });
+
+        // Toggle detailed info mode - comprehensive screen analysis
+        function toggleInfoMode() {
+            infoMode = !infoMode;
+
+            if (infoMode) {
+                console.clear();
+                console.log('╔═══════════════════════════════════════════════════════════════╗');
+                console.log('║         DETAILED SCREEN INFORMATION MODE - ENABLED           ║');
+                console.log('╚═══════════════════════════════════════════════════════════════╝');
+                console.log('');
+
+                if (screensGroup && screensGroup.children.length > 0) {
+                    screensGroup.updateMatrixWorld(true);
+
+                    // Get screen dimensions from first screen
+                    const TARGET_WIDTH = 800;
+                    const TARGET_HEIGHT = 450;
+                    const scaleFactor = 0.5;
+                    const screenW = TARGET_WIDTH * scaleFactor;
+                    const screenH = TARGET_HEIGHT * scaleFactor;
+
+                    console.log('📐 REFERENCE DIMENSIONS (invariant to depthSpread):');
+                    console.log('   screenW:', screenW.toFixed(2));
+                    console.log('   screenH:', screenH.toFixed(2));
+                    console.log('   depthMultiplier:', depthMultiplier.toFixed(2));
+                    console.log('');
+
+                    // Analyze each screen
+                    screensGroup.children.forEach((screen, index) => {
+                        const screenNum = index + 1;
+                        console.log(`┌─────────────────────────────────────────────────────────────┐`);
+                        console.log(`│ ÉCRAN #${screenNum} ${getScreenName(index).padEnd(50)}│`);
+                        console.log(`└─────────────────────────────────────────────────────────────┘`);
+
+                        // Position
+                        const pos = screen.position;
+                        console.log('  📍 POSITION (world):');
+                        console.log(`     X: ${pos.x.toFixed(3).padStart(8)} (${getXDescription(pos.x, screenW)})`);
+                        console.log(`     Y: ${pos.y.toFixed(3).padStart(8)} (${getYDescription(pos.y, screenH)})`);
+                        console.log(`     Z: ${pos.z.toFixed(3).padStart(8)} (${getZDescription(pos.z, screenH)})`);
+
+                        // Rotation (in degrees)
+                        const rot = screen.rotation;
+                        console.log('  🔄 ROTATION (degrees):');
+                        console.log(`     X: ${(rot.x * 180 / Math.PI).toFixed(1).padStart(7)}° (${getRotXDescription(rot.x)})`);
+                        console.log(`     Y: ${(rot.y * 180 / Math.PI).toFixed(1).padStart(7)}° (${getRotYDescription(rot.y)})`);
+                        console.log(`     Z: ${(rot.z * 180 / Math.PI).toFixed(1).padStart(7)}° (${getRotZDescription(rot.z)})`);
+
+                        // Scale
+                        const scale = screen.scale;
+                        console.log('  📏 SCALE:');
+                        console.log(`     X: ${scale.x.toFixed(3)}`);
+                        console.log(`     Y: ${scale.y.toFixed(3)}`);
+                        console.log(`     Z: ${scale.z.toFixed(3)}`);
+
+                        // Bounding Box
+                        const box = new THREE.Box3().setFromObject(screen);
+                        console.log('  📦 BOUNDING BOX (world space):');
+                        console.log(`     Min: (${box.min.x.toFixed(2)}, ${box.min.y.toFixed(2)}, ${box.min.z.toFixed(2)})`);
+                        console.log(`     Max: (${box.max.x.toFixed(2)}, ${box.max.y.toFixed(2)}, ${box.max.z.toFixed(2)})`);
+
+                        // Edges
+                        console.log('  🔷 EDGES (world coordinates):');
+                        console.log(`     TOP    edge: Y = ${box.max.y.toFixed(3)}`);
+                        console.log(`     BOTTOM edge: Y = ${box.min.y.toFixed(3)}`);
+                        console.log(`     LEFT   edge: X = ${box.min.x.toFixed(3)}`);
+                        console.log(`     RIGHT  edge: X = ${box.max.x.toFixed(3)}`);
+                        console.log(`     FRONT  edge: Z = ${box.max.z.toFixed(3)}`);
+                        console.log(`     BACK   edge: Z = ${box.min.z.toFixed(3)}`);
+
+                        // Orientation
+                        console.log('  🧭 ORIENTATION:');
+                        console.log(`     Face direction: ${getFaceDirection(rot)}`);
+                        console.log(`     Screen type: ${getScreenType(rot)}`);
+
+                        console.log('');
+                    });
+
+                    // Analyze hinges
+                    console.log('═══════════════════════════════════════════════════════════════');
+                    console.log('🔗 CHARNIÈRES (HINGES) ANALYSIS:');
+                    console.log('═══════════════════════════════════════════════════════════════');
+                    analyzeHinges(screensGroup);
+
+                } else {
+                    console.log('⚠️  No screens found in screensGroup');
+                }
+
+                console.log('');
+                console.log('💡 Press I again to hide this information');
+
+            } else {
+                console.log('[INFO MODE] DISABLED');
+            }
+        }
+
+        // Helper functions for descriptions
+        function getScreenName(index) {
+            const names = [
+                'Wall Back Left (particles)',
+                'Wall Back Right (particlesRight)',
+                'Floor Left (floorLeft)',
+                'Floor Right (floorRight)',
+                'Wall Front Left (wallOppA)',
+                'Wall Front Right (wallOppB)'
+            ];
+            return names[index] || `Screen ${index + 1}`;
+        }
+
+        function getXDescription(x, screenW) {
+            if (Math.abs(x) < 0.01) return 'left edge';
+            if (Math.abs(x - screenW) < 0.01) return 'right edge';
+            if (Math.abs(x - screenW/2) < 0.01) return 'centered';
+            return x < screenW/2 ? 'left side' : 'right side';
+        }
+
+        function getYDescription(y, screenH) {
+            if (Math.abs(y) < 0.01) return 'centered vertically';
+            if (Math.abs(y + screenH/2) < 0.01) return 'bottom edge';
+            if (Math.abs(y - screenH/2) < 0.01) return 'top edge';
+            return y < 0 ? 'below center' : 'above center';
+        }
+
+        function getZDescription(z, screenH) {
+            if (Math.abs(z) < 0.01) return 'back wall';
+            if (Math.abs(z - screenH) < 0.01) return 'front wall';
+            if (Math.abs(z - screenH/2) < 0.01) return 'middle depth';
+            return z < screenH/2 ? 'closer to back' : 'closer to front';
+        }
+
+        function getRotXDescription(radians) {
+            const deg = radians * 180 / Math.PI;
+            if (Math.abs(deg) < 1) return 'vertical (no tilt)';
+            if (Math.abs(deg + 90) < 1) return 'horizontal (floor)';
+            if (Math.abs(deg - 90) < 1) return 'horizontal (ceiling)';
+            return deg < 0 ? 'tilted down' : 'tilted up';
+        }
+
+        function getRotYDescription(radians) {
+            const deg = radians * 180 / Math.PI;
+            if (Math.abs(deg) < 1) return 'facing +Z (forward)';
+            if (Math.abs(deg - 90) < 1) return 'facing +X (right)';
+            if (Math.abs(deg + 90) < 1) return 'facing -X (left)';
+            if (Math.abs(Math.abs(deg) - 180) < 1) return 'facing -Z (backward)';
+            return 'angled';
+        }
+
+        function getRotZDescription(radians) {
+            const deg = radians * 180 / Math.PI;
+            if (Math.abs(deg) < 1) return 'not rolled';
+            return 'rolled ' + deg.toFixed(1) + '°';
+        }
+
+        function getFaceDirection(rotation) {
+            const y = rotation.y * 180 / Math.PI;
+            if (Math.abs(y) < 45) return '+Z (forward)';
+            if (Math.abs(y - 90) < 45) return '+X (right)';
+            if (Math.abs(y + 90) < 45) return '-X (left)';
+            if (Math.abs(Math.abs(y) - 180) < 45) return '-Z (backward)';
+            return 'angled';
+        }
+
+        function getScreenType(rotation) {
+            const x = Math.abs(rotation.x * 180 / Math.PI);
+            if (x < 45) return 'VERTICAL WALL';
+            if (x > 135) return 'VERTICAL WALL (inverted)';
+            return 'HORIZONTAL (floor/ceiling)';
+        }
+
+        function analyzeHinges(group) {
+            const screens = group.children;
+            if (screens.length < 2) return;
+
+            // Common hinges to check
+            const hingeChecks = [
+                { name: 'Wall-Floor Hinge (left)', screen1: 0, screen2: 2, edge1: 'bottom', edge2: 'top', axis: 'Y' },
+                { name: 'Wall-Floor Hinge (right)', screen1: 1, screen2: 3, edge1: 'bottom', edge2: 'top', axis: 'Y' },
+                { name: 'Floor-FrontWall Hinge (left)', screen1: 2, screen2: 4, edge1: 'front', edge2: 'bottom', axis: 'Y' },
+                { name: 'Floor-FrontWall Hinge (right)', screen1: 3, screen2: 5, edge1: 'front', edge2: 'bottom', axis: 'Y' },
+                { name: 'BackWall Left-Right', screen1: 0, screen2: 1, edge1: 'right', edge2: 'left', axis: 'X' },
+                { name: 'FrontWall Left-Right', screen1: 4, screen2: 5, edge1: 'right', edge2: 'left', axis: 'X' }
+            ];
+
+            hingeChecks.forEach(check => {
+                if (check.screen1 < screens.length && check.screen2 < screens.length) {
+                    const box1 = new THREE.Box3().setFromObject(screens[check.screen1]);
+                    const box2 = new THREE.Box3().setFromObject(screens[check.screen2]);
+
+                    let val1, val2, gap;
+                    if (check.axis === 'Y') {
+                        val1 = check.edge1 === 'bottom' ? box1.min.y : (check.edge1 === 'top' ? box1.max.y : box1.max.z);
+                        val2 = check.edge2 === 'top' ? box2.max.y : (check.edge2 === 'bottom' ? box2.min.y : box2.min.y);
+                    } else if (check.axis === 'X') {
+                        val1 = check.edge1 === 'right' ? box1.max.x : box1.min.x;
+                        val2 = check.edge2 === 'left' ? box2.min.x : box2.max.x;
+                    } else {
+                        val1 = box1.max.z;
+                        val2 = box2.min.z;
+                    }
+
+                    gap = Math.abs(val1 - val2);
+                    const status = gap < 0.1 ? '✅ GOOD' : (gap < 1 ? '⚠️  SMALL GAP' : '❌ GAP');
+
+                    console.log(`  ${check.name}:`);
+                    console.log(`    Edge 1 (${getScreenName(check.screen1)}): ${val1.toFixed(3)}`);
+                    console.log(`    Edge 2 (${getScreenName(check.screen2)}): ${val2.toFixed(3)}`);
+                    console.log(`    Gap: ${gap.toFixed(6)} ${status}`);
+                    console.log('');
+                }
+            });
+        }
 
         // Shape texture generators
         function createCircleTexture() {
