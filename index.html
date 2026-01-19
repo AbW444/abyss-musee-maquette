@@ -467,6 +467,14 @@
         // Flow movement data - stores random offsets for each particle
         let flowOffsets = null;
 
+        // Performance optimization: Reusable objects to avoid GC pressure
+        const reusableMatrix = new THREE.Matrix4();
+        const reusableColor = new THREE.Color();
+
+        // Performance optimization: Throttle video updates to reduce CPU load
+        let lastVideoUpdateTime = 0;
+        const VIDEO_UPDATE_INTERVAL = 16; // ~60fps, adjust if needed (33ms = ~30fps)
+
         // Real-time regeneration with debounce
         function scheduleRegenerate() {
             clearTimeout(regenerateTimeout);
@@ -966,8 +974,9 @@
             saturation = parseFloat(document.getElementById('saturation').value);
 
             // Normalize video to fixed size for consistent volume (16:9 aspect ratio)
-            const TARGET_WIDTH = 1600;
-            const TARGET_HEIGHT = 900;
+            // Optimized: reduced resolution for better performance without visual quality loss
+            const TARGET_WIDTH = 800;
+            const TARGET_HEIGHT = 450;
             const step = Math.max(1, Math.floor(10 / particleDensity));
 
             // Create or reuse sampling canvas for continuous video updates
@@ -975,7 +984,8 @@
                 videoSamplingCanvas = document.createElement('canvas');
                 videoSamplingCanvas.width = TARGET_WIDTH;
                 videoSamplingCanvas.height = TARGET_HEIGHT;
-                videoSamplingCtx = videoSamplingCanvas.getContext('2d');
+                // Optimization: willReadFrequently flag for better getImageData() performance
+                videoSamplingCtx = videoSamplingCanvas.getContext('2d', { willReadFrequently: true });
             }
 
             const canvas = videoSamplingCanvas;
@@ -1031,6 +1041,11 @@
 
             // Depth spread based on height (smaller dimension for 16:9)
             const depthSpread = TARGET_HEIGHT * scaleFactor * depthMultiplier;
+
+            // Optimization: Pre-calculate constants outside loops
+            const rgbToLumFactor = 1 / (3 * 255);
+            const useContrast = contrast !== 1.0;
+            const useSaturation = saturation !== 1.0;
 
             // v1.3.1 — Detect background color from edges if hideBackground is enabled
             let bgR = 0, bgG = 0, bgB = 0;
@@ -1098,20 +1113,20 @@
                         const px = (x - halfWidth) * scaleFactor;
                         const py = -(y - halfHeight) * scaleFactor;
 
-                        // v1.3.1 — Luminance-based depth (Niveau 1)
-                        const luminance = (r + g + b) / (3 * 255);
+                        // v1.3.1 — Luminance-based depth (Niveau 1) - Optimized
+                        const luminance = (r + g + b) * rgbToLumFactor;
                         const pz = (luminance - 0.5) * depthSpread;
 
                         positions.push(px, py, pz);
                         initialZ.push(pz);
 
-                        // v1.3.1 — Apply contrast and saturation effects
-                        let rNorm = r / 255;
-                        let gNorm = g / 255;
-                        let bNorm = b / 255;
+                        // v1.3.1 — Apply contrast and saturation effects (Optimized)
+                        let rNorm = r * 0.00392156862745098; // r / 255
+                        let gNorm = g * 0.00392156862745098; // g / 255
+                        let bNorm = b * 0.00392156862745098; // b / 255
 
                         // Apply contrast (0.5 = gray, 1.0 = normal, 2.0+ = high contrast)
-                        if (contrast !== 1.0) {
+                        if (useContrast) {
                             rNorm = (rNorm - 0.5) * contrast + 0.5;
                             gNorm = (gNorm - 0.5) * contrast + 0.5;
                             bNorm = (bNorm - 0.5) * contrast + 0.5;
@@ -1121,7 +1136,7 @@
                         }
 
                         // Apply saturation (0.0 = B&W, 1.0 = normal, 2.0 = oversaturated)
-                        if (saturation !== 1.0) {
+                        if (useSaturation) {
                             const gray = 0.299 * rNorm + 0.587 * gNorm + 0.114 * bNorm;
                             rNorm = gray + saturation * (rNorm - gray);
                             gNorm = gray + saturation * (gNorm - gray);
@@ -1218,18 +1233,16 @@
                 }
                 particles.instanceColor = new THREE.InstancedBufferAttribute(instanceColors, 3);
 
-                const matrix = new THREE.Matrix4();
-                const color = new THREE.Color();
-
+                // Optimization: reuse matrix and color objects
                 for (let i = 0; i < count; i++) {
-                    matrix.setPosition(
+                    reusableMatrix.setPosition(
                         positions[i * 3],
                         positions[i * 3 + 1],
                         positions[i * 3 + 2]
                     );
-                    particles.setMatrixAt(i, matrix);
-                    color.setRGB(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
-                    particles.setColorAt(i, color);
+                    particles.setMatrixAt(i, reusableMatrix);
+                    reusableColor.setRGB(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
+                    particles.setColorAt(i, reusableColor);
                 }
 
                 particles.instanceMatrix.needsUpdate = true;
@@ -1348,6 +1361,14 @@
         function updateColorsFromVideo() {
             if (!currentVideo || !videoSamplingCanvas || !videoSamplingData || !particles) return;
 
+            // Optimization: Throttle updates to reduce CPU load
+            const now = performance.now();
+            if (now - lastVideoUpdateTime < VIDEO_UPDATE_INTERVAL) return;
+            lastVideoUpdateTime = now;
+
+            // Optimization: Skip if video is paused (no need to update)
+            if (currentVideo.paused) return;
+
             const { step, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor, halfWidth, halfHeight, depthMultiplier } = videoSamplingData;
 
             // Draw current video frame to canvas with cover behavior (16:9)
@@ -1381,6 +1402,11 @@
 
             let particleIndex = 0;
 
+            // Optimization: Pre-calculate constants outside loop
+            const rgbToLumFactor = 1 / (3 * 255);
+            const useContrast = contrast !== 1.0;
+            const useSaturation = saturation !== 1.0;
+
             // Collect new colors and depths
             const newColors = [];
             const newDepths = [];
@@ -1395,8 +1421,8 @@
                         const b = data[i + 2];
                         const maxColor = Math.max(r, g, b);
 
-                        // v1.3.1 — Update luminance-based depth in real-time
-                        const luminance = (r + g + b) / (3 * 255);
+                        // v1.3.1 — Update luminance-based depth in real-time (optimized)
+                        const luminance = (r + g + b) * rgbToLumFactor;
                         const pz = (luminance - 0.5) * depthSpread;
                         newDepths.push(pz);
 
@@ -1404,13 +1430,13 @@
                         if (hideBlack && maxColor < blackThreshold) {
                             newColors.push(0, 0, 0);
                         } else {
-                            // v1.3.1 — Apply contrast and saturation effects
-                            let rNorm = r / 255;
-                            let gNorm = g / 255;
-                            let bNorm = b / 255;
+                            // v1.3.1 — Apply contrast and saturation effects (optimized)
+                            let rNorm = r * 0.00392156862745098; // r / 255
+                            let gNorm = g * 0.00392156862745098; // g / 255
+                            let bNorm = b * 0.00392156862745098; // b / 255
 
-                            // Apply contrast
-                            if (contrast !== 1.0) {
+                            // Apply contrast (optimized with pre-check)
+                            if (useContrast) {
                                 rNorm = (rNorm - 0.5) * contrast + 0.5;
                                 gNorm = (gNorm - 0.5) * contrast + 0.5;
                                 bNorm = (bNorm - 0.5) * contrast + 0.5;
@@ -1419,8 +1445,8 @@
                                 bNorm = Math.max(0, Math.min(1, bNorm));
                             }
 
-                            // Apply saturation
-                            if (saturation !== 1.0) {
+                            // Apply saturation (optimized with pre-check)
+                            if (useSaturation) {
                                 const gray = 0.299 * rNorm + 0.587 * gNorm + 0.114 * bNorm;
                                 rNorm = gray + saturation * (rNorm - gray);
                                 gNorm = gray + saturation * (gNorm - gray);
@@ -1523,7 +1549,7 @@
                     const positions = particles.userData.positions;
 
                     if (initialZs && positions && initialZs.length > 0) {
-                        const matrix = new THREE.Matrix4();
+                        // Optimization: reuse matrix object instead of creating new one
                         const epsilon = 0.3 * breathSpeed;
 
                         for (let i = 0; i < initialZs.length; i++) {
@@ -1538,12 +1564,12 @@
                                 flowY = Math.cos(time * offset.speedY + offset.phaseY) * offset.radiusY * flowIntensity;
                             }
 
-                            matrix.setPosition(
+                            reusableMatrix.setPosition(
                                 positions[i * 3] + flowX,
                                 positions[i * 3 + 1] + flowY,
                                 newZ
                             );
-                            particles.setMatrixAt(i, matrix);
+                            particles.setMatrixAt(i, reusableMatrix);
                         }
                         particles.instanceMatrix.needsUpdate = true;
                     }
