@@ -1089,6 +1089,43 @@
                 bgB = Math.floor(bgB / edgeSamples.length);
             }
 
+            // FIRST PASS: Find minimum luminance to anchor the depth at z=0
+            let minLuminance = Infinity;
+            for (let y = 0; y < TARGET_HEIGHT; y += step) {
+                for (let x = 0; x < TARGET_WIDTH; x += step) {
+                    const i = (y * TARGET_WIDTH + x) * 4;
+                    const alpha = data[i + 3];
+
+                    if (alpha > 30) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const maxColor = Math.max(r, g, b);
+
+                        // Skip black particles if hideBlack is enabled
+                        if (hideBlack && maxColor < blackThreshold) {
+                            continue;
+                        }
+
+                        // v1.3.1 — Skip background particles if hideBackground is enabled
+                        if (hideBackground) {
+                            const colorDist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+                            if (colorDist < bgThreshold) {
+                                continue;
+                            }
+                        }
+
+                        // Calculate luminance
+                        const luminance = (r + g + b) * rgbToLumFactor;
+                        minLuminance = Math.min(minLuminance, luminance);
+                    }
+                }
+            }
+
+            // If no particles found, set minLuminance to 0
+            if (minLuminance === Infinity) minLuminance = 0;
+
+            // SECOND PASS: Create particles with depth anchored to minimum luminance
             for (let y = 0; y < TARGET_HEIGHT; y += step) {
                 for (let x = 0; x < TARGET_WIDTH; x += step) {
                     const i = (y * TARGET_WIDTH + x) * 4;
@@ -1118,10 +1155,10 @@
                         const px = (x - halfWidth) * scaleFactor;
                         const py = -(y - halfHeight) * scaleFactor;
 
-                        // v1.3.1 — Luminance-based depth (Niveau 1) - Optimized
-                        // Volumétrie unilatérale : extrusion positive uniquement (z >= 0)
+                        // v1.3.1 — Luminance-based depth anchored to minimum
+                        // Particules les moins lumineuses restent à z=0 (point fixe)
                         const luminance = (r + g + b) * rgbToLumFactor;
-                        const pz = luminance * depthSpread;
+                        const pz = (luminance - minLuminance) * depthSpread;
 
                         positions.push(px, py, pz);
                         initialZ.push(pz);
@@ -1472,7 +1509,34 @@
             const useContrast = contrast !== 1.0;
             const useSaturation = saturation !== 1.0;
 
-            // Collect new colors and depths
+            // FIRST PASS: Find minimum luminance
+            let minLuminance = Infinity;
+            for (let y = 0; y < TARGET_HEIGHT; y += step) {
+                for (let x = 0; x < TARGET_WIDTH; x += step) {
+                    const i = (y * TARGET_WIDTH + x) * 4;
+                    const alpha = data[i + 3];
+
+                    if (alpha > 30) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const maxColor = Math.max(r, g, b);
+
+                        // Skip if hideBlack and below threshold
+                        if (hideBlack && maxColor < blackThreshold) {
+                            continue;
+                        }
+
+                        const luminance = (r + g + b) * rgbToLumFactor;
+                        minLuminance = Math.min(minLuminance, luminance);
+                    }
+                }
+            }
+
+            // If no particles found, set minLuminance to 0
+            if (minLuminance === Infinity) minLuminance = 0;
+
+            // SECOND PASS: Collect new colors and depths
             const newColors = [];
             const newDepths = [];
             for (let y = 0; y < TARGET_HEIGHT; y += step) {
@@ -1486,10 +1550,10 @@
                         const b = data[i + 2];
                         const maxColor = Math.max(r, g, b);
 
-                        // v1.3.1 — Update luminance-based depth in real-time (optimized)
-                        // Volumétrie unilatérale : extrusion positive uniquement (z >= 0)
+                        // v1.3.1 — Update luminance-based depth anchored to minimum
+                        // Particules les moins lumineuses restent à z=0 (point fixe)
                         const luminance = (r + g + b) * rgbToLumFactor;
-                        const pz = luminance * depthSpread;
+                        const pz = (luminance - minLuminance) * depthSpread;
                         newDepths.push(pz);
 
                         // Skip if hideBlack and below threshold (but keep same particle count)
