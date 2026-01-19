@@ -1291,6 +1291,11 @@
             // Add first screen to group
             screensGroup.add(particles);
 
+            // Calculate screen dimensions from 16:9 grid (invariant to depth spread)
+            const screenW = TARGET_WIDTH * scaleFactor;
+            const screenH = TARGET_HEIGHT * scaleFactor;
+            const wallBottomY = -screenH / 2;
+
             // Clone and position second screen to the right
             const particlesRight = particles.clone();
 
@@ -1298,21 +1303,11 @@
             particlesRight.geometry = particles.geometry;
             particlesRight.material = particles.material;
 
-            // Calculate width of first screen using bounding box
-            const box = new THREE.Box3().setFromObject(particles);
-            const size = new THREE.Vector3();
-            box.getSize(size);
-            const w = size.x;
-
-            // Position second screen to the right, touching the first
-            particlesRight.position.set(w, 0, 0);
+            // Position second screen to the right, touching the first (fixed spacing)
+            particlesRight.position.set(screenW, 0, 0);
 
             // Add second screen to group
             screensGroup.add(particlesRight);
-
-            // Measure wall BEFORE rotation for floor positioning
-            const boxWall = new THREE.Box3().setFromObject(particles);
-            const wallBottomY = boxWall.min.y; // Y coord of bottom edge of wall
 
             // Create floor left as clone of particles
             const floorLeft = particles.clone();
@@ -1322,18 +1317,9 @@
             // Rotate to horizontal (lie flat on ground)
             floorLeft.rotation.x = -Math.PI / 2;
 
-            // Recalculate Box3 AFTER rotation to get floor depth
-            const floorBoxLeft = new THREE.Box3().setFromObject(floorLeft);
-            const floorSizeLeft = new THREE.Vector3();
-            floorBoxLeft.getSize(floorSizeLeft);
-            const floorDepthLeft = floorSizeLeft.z;
-
-            // Position: hinge top edge of floor to bottom edge of wall
-            floorLeft.position.set(
-                particles.position.x,
-                wallBottomY - floorDepthLeft / 2,
-                particles.position.z
-            );
+            // Position: hinge top edge of floor to bottom edge of wall (fixed)
+            // Floor extends from z=0 forward, so center is at z = +screenH / 2
+            floorLeft.position.set(0, wallBottomY, screenH / 2);
 
             // Add to group
             screensGroup.add(floorLeft);
@@ -1346,18 +1332,8 @@
             // Rotate to horizontal
             floorRight.rotation.x = -Math.PI / 2;
 
-            // Recalculate Box3 AFTER rotation to get floor depth
-            const floorBoxRight = new THREE.Box3().setFromObject(floorRight);
-            const floorSizeRight = new THREE.Vector3();
-            floorBoxRight.getSize(floorSizeRight);
-            const floorDepthRight = floorSizeRight.z;
-
-            // Position: hinge top edge of floor to bottom edge of wall
-            floorRight.position.set(
-                particlesRight.position.x,
-                wallBottomY - floorDepthRight / 2,
-                particlesRight.position.z
-            );
+            // Position: hinge top edge of floor to bottom edge of wall (fixed)
+            floorRight.position.set(screenW, wallBottomY, screenH / 2);
 
             // Add to group
             screensGroup.add(floorRight);
