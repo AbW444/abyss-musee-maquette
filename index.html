@@ -289,8 +289,8 @@
                     </div>
                 </div>
                 <div class="slider-wrapper">
-                    <input type="range" class="slider" id="depth" min="0.1" max="3.0" step="0.1" value="0.2">
-                    <div class="center-mark" style="left: 13.8%;"></div>
+                    <input type="range" class="slider" id="depth" min="0.0" max="3.0" step="0.1" value="0.2">
+                    <div class="center-mark" style="left: 6.7%;"></div>
                 </div>
             </div>
 
@@ -488,7 +488,7 @@
         const paramConfigs = {
             size: { min: 0.1, max: 2.0, step: 0.01, decimals: 2, suffix: '' },
             density: { min: 1, max: 15, step: 1, decimals: 0, suffix: 'X' },
-            depth: { min: 0.1, max: 3.0, step: 0.1, decimals: 1, suffix: 'X' },
+            depth: { min: 0.0, max: 3.0, step: 0.1, decimals: 1, suffix: 'X' },
             breath: { min: 0, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
             brightness: { min: 0.5, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
             flow: { min: 0, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
@@ -1380,6 +1380,33 @@
 
             // Add to group
             screensGroup.add(floorRight);
+
+            // --- Opposite wall (in front of right wall), hinged to the floor end ---
+
+            // Clone left wall screen for opposite wall A
+            const wallOppA = particles.clone();
+            wallOppA.geometry = particles.geometry;
+            wallOppA.material = particles.material;
+
+            // Place it at the end of the floor (z = screenH), same Y center as wall
+            wallOppA.position.set(0, 0, screenH);
+
+            // Make it face inward (toward -Z)
+            wallOppA.rotation.set(0, 0, 0);
+            wallOppA.rotateY(Math.PI);
+
+            screensGroup.add(wallOppA);
+
+            // Clone right wall screen for opposite wall B
+            const wallOppB = particlesRight.clone();
+            wallOppB.geometry = particles.geometry;
+            wallOppB.material = particles.material;
+
+            wallOppB.position.set(screenW, 0, screenH);
+            wallOppB.rotation.set(0, 0, 0);
+            wallOppB.rotateY(Math.PI);
+
+            screensGroup.add(wallOppB);
 
             // Initialize flow offsets - random circular movement for each particle
             const particleCount = positions.length / 3;
