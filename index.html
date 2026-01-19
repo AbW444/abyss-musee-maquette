@@ -1286,8 +1286,13 @@
                 particles = new THREE.Points(geometry, material);
             }
 
-            // Position first screen at origin
-            particles.position.set(0, 0, 0);
+            // Volumétrie unilatérale : décaler de -depthSpread/2 pour centrer le volume à z=0
+            // Les particules vont de 0 à depthSpread, donc centre à depthSpread/2
+            // On recule le mesh pour que le centre visuel reste à z=0
+            const zOffset = -depthSpread / 2;
+
+            // Position first screen at origin (with Z offset to center volume)
+            particles.position.set(0, 0, zOffset);
 
             // Add first screen to group
             screensGroup.add(particles);
@@ -1305,7 +1310,7 @@
             particlesRight.material = particles.material;
 
             // Position second screen to the right, touching the first (fixed spacing)
-            particlesRight.position.set(screenW, 0, 0);
+            particlesRight.position.set(screenW, 0, zOffset);
 
             // Add second screen to group
             screensGroup.add(particlesRight);
@@ -1318,9 +1323,9 @@
             // Rotate to horizontal (lie flat on ground)
             floorLeft.rotation.x = -Math.PI / 2;
 
-            // Position: hinge top edge of floor to bottom edge of wall (fixed)
-            // Floor extends from z=0 forward, so center is at z = +screenH / 2
-            floorLeft.position.set(0, wallBottomY, screenH / 2);
+            // Position: hinge top edge of floor to bottom edge of wall
+            // Adjusted with zOffset to follow wall displacement
+            floorLeft.position.set(0, wallBottomY, screenH / 2 + zOffset);
 
             // Add to group
             screensGroup.add(floorLeft);
@@ -1333,8 +1338,9 @@
             // Rotate to horizontal
             floorRight.rotation.x = -Math.PI / 2;
 
-            // Position: hinge top edge of floor to bottom edge of wall (fixed)
-            floorRight.position.set(screenW, wallBottomY, screenH / 2);
+            // Position: hinge top edge of floor to bottom edge of wall
+            // Adjusted with zOffset to follow wall displacement
+            floorRight.position.set(screenW, wallBottomY, screenH / 2 + zOffset);
 
             // Add to group
             screensGroup.add(floorRight);
