@@ -1310,6 +1310,41 @@
             // Add second screen to group
             screensGroup.add(particlesRight);
 
+            // Calculate wall dimensions for floor positioning
+            const boxWall = new THREE.Box3().setFromObject(particles);
+            const wallSize = new THREE.Vector3();
+            boxWall.getSize(wallSize);
+            const h = wallSize.y; // world height of wall
+            const yBottom = boxWall.min.y; // Y coord of bottom edge of wall
+
+            // Create floor left as clone of particles
+            const floorLeft = particles.clone();
+            floorLeft.geometry = particles.geometry;
+            floorLeft.material = particles.material;
+
+            // Rotate to horizontal (lie flat on ground)
+            floorLeft.rotation.x = -Math.PI / 2;
+
+            // Position: attach top edge of floor to bottom edge of wall
+            floorLeft.position.set(0, yBottom - (h / 2), 0);
+
+            // Add to group
+            screensGroup.add(floorLeft);
+
+            // Create floor right as clone of particlesRight
+            const floorRight = particlesRight.clone();
+            floorRight.geometry = particles.geometry;
+            floorRight.material = particles.material;
+
+            // Rotate to horizontal
+            floorRight.rotation.x = -Math.PI / 2;
+
+            // Position: directly under right wall
+            floorRight.position.set(w, yBottom - (h / 2), 0);
+
+            // Add to group
+            screensGroup.add(floorRight);
+
             // Initialize flow offsets - random circular movement for each particle
             const particleCount = positions.length / 3;
             flowOffsets = [];
