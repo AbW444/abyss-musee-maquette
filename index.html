@@ -9,7 +9,8 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                background: #000; color: #fff; overflow: hidden; }
 
-        #canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #canvas { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1; }
+        #canvas canvas { display: block; }
 
         #ui { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
               z-index: 100; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
@@ -252,12 +253,12 @@
                     <label>POINT SIZE</label>
                     <div class="param-controls">
                         <button class="arrow-btn" data-param="size" data-dir="down">▼</button>
-                        <span class="value" id="val-size" data-param="size">1.0</span>
+                        <span class="value" id="val-size" data-param="size">0.39</span>
                         <button class="arrow-btn" data-param="size" data-dir="up">▲</button>
                     </div>
                 </div>
                 <div class="slider-wrapper">
-                    <input type="range" class="slider" id="size" min="0.1" max="2.0" step="0.01" value="1.0">
+                    <input type="range" class="slider" id="size" min="0.1" max="2.0" step="0.01" value="0.39">
                     <div class="center-mark" id="size-mark-2d" style="left: 47.4%;"></div>
                     <div class="center-mark" id="size-mark-3d" style="left: 13.2%; display: none;"></div>
                 </div>
@@ -268,12 +269,12 @@
                     <label>PARTICLE DENSITY</label>
                     <div class="param-controls">
                         <button class="arrow-btn" data-param="density" data-dir="down">▼</button>
-                        <span class="value" id="val-density" data-param="density">7X</span>
+                        <span class="value" id="val-density" data-param="density">2X</span>
                         <button class="arrow-btn" data-param="density" data-dir="up">▲</button>
                     </div>
                 </div>
                 <div class="slider-wrapper">
-                    <input type="range" class="slider" id="density" min="1" max="15" step="1" value="7">
+                    <input type="range" class="slider" id="density" min="1" max="15" step="1" value="2">
                     <div class="center-mark" style="left: 42.9%;"></div>
                 </div>
             </div>
@@ -283,12 +284,12 @@
                     <label>DEPTH SPREAD</label>
                     <div class="param-controls">
                         <button class="arrow-btn" data-param="depth" data-dir="down">▼</button>
-                        <span class="value" id="val-depth" data-param="depth">0.5X</span>
+                        <span class="value" id="val-depth" data-param="depth">0.2X</span>
                         <button class="arrow-btn" data-param="depth" data-dir="up">▲</button>
                     </div>
                 </div>
                 <div class="slider-wrapper">
-                    <input type="range" class="slider" id="depth" min="0.1" max="3.0" step="0.1" value="0.5">
+                    <input type="range" class="slider" id="depth" min="0.1" max="3.0" step="0.1" value="0.2">
                     <div class="center-mark" style="left: 13.8%;"></div>
                 </div>
             </div>
@@ -298,12 +299,12 @@
                     <label>BREATH SPEED</label>
                     <div class="param-controls">
                         <button class="arrow-btn" data-param="breath" data-dir="down">▼</button>
-                        <span class="value" id="val-breath" data-param="breath">1.0</span>
+                        <span class="value" id="val-breath" data-param="breath">0.0</span>
                         <button class="arrow-btn" data-param="breath" data-dir="up">▲</button>
                     </div>
                 </div>
                 <div class="slider-wrapper">
-                    <input type="range" class="slider" id="breath" min="0" max="3.0" step="0.1" value="1.0">
+                    <input type="range" class="slider" id="breath" min="0" max="3.0" step="0.1" value="0.0">
                     <div class="center-mark" style="left: 33.3%;"></div>
                 </div>
             </div>
@@ -379,12 +380,12 @@
                     <label>CONTRAST</label>
                     <div class="param-controls">
                         <button class="arrow-btn" data-param="contrast" data-dir="down">▼</button>
-                        <span class="value" id="val-contrast" data-param="contrast">1.8</span>
+                        <span class="value" id="val-contrast" data-param="contrast">1.1</span>
                         <button class="arrow-btn" data-param="contrast" data-dir="up">▲</button>
                     </div>
                 </div>
                 <div class="slider-wrapper">
-                    <input type="range" class="slider" id="contrast" min="0.0" max="3.0" step="0.1" value="1.8">
+                    <input type="range" class="slider" id="contrast" min="0.0" max="3.0" step="0.1" value="1.1">
                     <div class="center-mark" style="left: 60%;"></div>
                 </div>
             </div>
@@ -394,12 +395,12 @@
                     <label>SATURATION</label>
                     <div class="param-controls">
                         <button class="arrow-btn" data-param="saturation" data-dir="down">▼</button>
-                        <span class="value" id="val-saturation" data-param="saturation">1.10</span>
+                        <span class="value" id="val-saturation" data-param="saturation">0.80</span>
                         <button class="arrow-btn" data-param="saturation" data-dir="up">▲</button>
                     </div>
                 </div>
                 <div class="slider-wrapper">
-                    <input type="range" class="slider" id="saturation" min="0.0" max="2.0" step="0.05" value="1.10">
+                    <input type="range" class="slider" id="saturation" min="0.0" max="2.0" step="0.05" value="0.80">
                     <div class="center-mark" style="left: 55%;"></div>
                 </div>
             </div>
@@ -435,10 +436,10 @@
     <script>
         let scene, camera, renderer, particles;
         let geometry, material;
-        let breathSpeed = 0.5;
-        let depthMultiplier = 1.0;
-        let pointSize = 2.0;
-        let particleDensity = 1;
+        let breathSpeed = 0.0;
+        let depthMultiplier = 0.2;
+        let pointSize = 0.39;
+        let particleDensity = 2;
         let brightness = 1.8;
         let hideBlack = false;
         let blackThreshold = 30;
@@ -453,8 +454,8 @@
         // New v1.3.1 parameters
         let enableDepthCull = true;
         let depthCullPower = 0.4;
-        let contrast = 1.8;
-        let saturation = 1.10;
+        let contrast = 1.1;
+        let saturation = 0.80;
         let hideBackground = false;
         let bgThreshold = 40;
 
@@ -768,11 +769,25 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000);
 
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+            // Calculate 16:9 aspect ratio dimensions
+            const aspectRatio = 16 / 9;
+            let canvasWidth, canvasHeight;
+
+            if (window.innerWidth / window.innerHeight > aspectRatio) {
+                // Window is wider than 16:9, fit to height
+                canvasHeight = window.innerHeight;
+                canvasWidth = canvasHeight * aspectRatio;
+            } else {
+                // Window is taller than 16:9, fit to width
+                canvasWidth = window.innerWidth;
+                canvasHeight = canvasWidth / aspectRatio;
+            }
+
+            camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 10000);
             camera.position.z = 300;
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(canvasWidth, canvasHeight);
             document.getElementById('canvas').appendChild(renderer.domElement);
 
             // Add lighting for 3D mode
@@ -850,10 +865,10 @@
 
                 // Reset sliders to default ONLY on first load
                 if (isFirstLoad) {
-                    document.getElementById('size').value = 1.0;
-                    document.getElementById('density').value = 7;
-                    document.getElementById('depth').value = 0.5;
-                    document.getElementById('breath').value = 1.0;
+                    document.getElementById('size').value = 0.39;
+                    document.getElementById('density').value = 2;
+                    document.getElementById('depth').value = 0.2;
+                    document.getElementById('breath').value = 0.0;
                     document.getElementById('brightness').value = 1.8;
 
                     updateValueDisplay('size');
@@ -974,15 +989,30 @@
                 depthMultiplier: depthMultiplier
             };
 
-            // Crop to center square and resize to TARGET_SIZE
+            // Cover behavior: scale video to fill canvas without stretching
             const videoWidth = video.videoWidth;
             const videoHeight = video.videoHeight;
-            const sourceSize = Math.min(videoWidth, videoHeight);
-            const offsetX = (videoWidth - sourceSize) / 2;
-            const offsetY = (videoHeight - sourceSize) / 2;
+            const videoAspect = videoWidth / videoHeight;
+            const targetAspect = 1; // Square target
+
+            let sourceWidth, sourceHeight, offsetX, offsetY;
+
+            if (videoAspect > targetAspect) {
+                // Video is wider, fit to height and crop sides
+                sourceHeight = videoHeight;
+                sourceWidth = videoHeight * targetAspect;
+                offsetX = (videoWidth - sourceWidth) / 2;
+                offsetY = 0;
+            } else {
+                // Video is taller, fit to width and crop top/bottom
+                sourceWidth = videoWidth;
+                sourceHeight = videoWidth / targetAspect;
+                offsetX = 0;
+                offsetY = (videoHeight - sourceHeight) / 2;
+            }
 
             // Draw current frame to sample pixels
-            ctx.drawImage(video, offsetX, offsetY, sourceSize, sourceSize, 0, 0, TARGET_SIZE, TARGET_SIZE);
+            ctx.drawImage(video, offsetX, offsetY, sourceWidth, sourceHeight, 0, 0, TARGET_SIZE, TARGET_SIZE);
 
             const imageData = ctx.getImageData(0, 0, TARGET_SIZE, TARGET_SIZE);
             const data = imageData.data;
@@ -1257,10 +1287,10 @@
         }
 
         function resetToDefaults() {
-            document.getElementById('size').value = 1.0;
-            document.getElementById('density').value = 7;
-            document.getElementById('depth').value = 0.5;
-            document.getElementById('breath').value = 1.0;
+            document.getElementById('size').value = 0.39;
+            document.getElementById('density').value = 2;
+            document.getElementById('depth').value = 0.2;
+            document.getElementById('breath').value = 0.0;
             document.getElementById('brightness').value = 1.8;
             document.getElementById('flow').value = 0.0;
             document.getElementById('blackThreshold').value = 30;
@@ -1269,15 +1299,15 @@
 
             // New v1.3.1 parameters
             document.getElementById('depthCullPower').value = 0.4;
-            document.getElementById('contrast').value = 1.8;
-            document.getElementById('saturation').value = 1.10;
+            document.getElementById('contrast').value = 1.1;
+            document.getElementById('saturation').value = 0.80;
             document.getElementById('bgThreshold').value = 40;
             document.getElementById('enable-depth-cull').checked = true;
             document.getElementById('hide-background').checked = false;
             enableDepthCull = true;
             depthCullPower = 0.4;
-            contrast = 1.8;
-            saturation = 1.10;
+            contrast = 1.1;
+            saturation = 0.80;
             hideBackground = false;
             bgThreshold = 40;
 
@@ -1316,14 +1346,29 @@
 
             const { step, TARGET_SIZE, scaleFactor, halfSize, depthMultiplier } = videoSamplingData;
 
-            // Draw current video frame to canvas
+            // Draw current video frame to canvas with cover behavior
             const videoWidth = currentVideo.videoWidth;
             const videoHeight = currentVideo.videoHeight;
-            const sourceSize = Math.min(videoWidth, videoHeight);
-            const offsetX = (videoWidth - sourceSize) / 2;
-            const offsetY = (videoHeight - sourceSize) / 2;
+            const videoAspect = videoWidth / videoHeight;
+            const targetAspect = 1; // Square target
 
-            videoSamplingCtx.drawImage(currentVideo, offsetX, offsetY, sourceSize, sourceSize, 0, 0, TARGET_SIZE, TARGET_SIZE);
+            let sourceWidth, sourceHeight, offsetX, offsetY;
+
+            if (videoAspect > targetAspect) {
+                // Video is wider, fit to height and crop sides
+                sourceHeight = videoHeight;
+                sourceWidth = videoHeight * targetAspect;
+                offsetX = (videoWidth - sourceWidth) / 2;
+                offsetY = 0;
+            } else {
+                // Video is taller, fit to width and crop top/bottom
+                sourceWidth = videoWidth;
+                sourceHeight = videoWidth / targetAspect;
+                offsetX = 0;
+                offsetY = (videoHeight - sourceHeight) / 2;
+            }
+
+            videoSamplingCtx.drawImage(currentVideo, offsetX, offsetY, sourceWidth, sourceHeight, 0, 0, TARGET_SIZE, TARGET_SIZE);
             const imageData = videoSamplingCtx.getImageData(0, 0, TARGET_SIZE, TARGET_SIZE);
             const data = imageData.data;
 
@@ -1539,9 +1584,23 @@
 
         // Resize
         window.onresize = function() {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            // Maintain 16:9 aspect ratio
+            const aspectRatio = 16 / 9;
+            let canvasWidth, canvasHeight;
+
+            if (window.innerWidth / window.innerHeight > aspectRatio) {
+                // Window is wider than 16:9, fit to height
+                canvasHeight = window.innerHeight;
+                canvasWidth = canvasHeight * aspectRatio;
+            } else {
+                // Window is taller than 16:9, fit to width
+                canvasWidth = window.innerWidth;
+                canvasHeight = canvasWidth / aspectRatio;
+            }
+
+            camera.aspect = aspectRatio;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(canvasWidth, canvasHeight);
         };
 
         // Shape selector event listeners
