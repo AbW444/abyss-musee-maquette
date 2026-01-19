@@ -1119,8 +1119,9 @@
                         const py = -(y - halfHeight) * scaleFactor;
 
                         // v1.3.1 — Luminance-based depth (Niveau 1) - Optimized
+                        // Volumétrie unilatérale : extrusion positive uniquement (z >= 0)
                         const luminance = (r + g + b) * rgbToLumFactor;
-                        const pz = (luminance - 0.5) * depthSpread;
+                        const pz = luminance * depthSpread;
 
                         positions.push(px, py, pz);
                         initialZ.push(pz);
@@ -1319,8 +1320,7 @@
 
             // Position: hinge top edge of floor to bottom edge of wall (fixed)
             // Floor extends from z=0 forward, so center is at z = +screenH / 2
-            // Adjust Z slightly to eliminate gap in hinge
-            floorLeft.position.set(0, wallBottomY, (screenH / 2) - 0.5);
+            floorLeft.position.set(0, wallBottomY, screenH / 2);
 
             // Add to group
             screensGroup.add(floorLeft);
@@ -1334,7 +1334,7 @@
             floorRight.rotation.x = -Math.PI / 2;
 
             // Position: hinge top edge of floor to bottom edge of wall (fixed)
-            floorRight.position.set(screenW, wallBottomY, (screenH / 2) - 0.5);
+            floorRight.position.set(screenW, wallBottomY, screenH / 2);
 
             // Add to group
             screensGroup.add(floorRight);
@@ -1482,8 +1482,9 @@
                         const maxColor = Math.max(r, g, b);
 
                         // v1.3.1 — Update luminance-based depth in real-time (optimized)
+                        // Volumétrie unilatérale : extrusion positive uniquement (z >= 0)
                         const luminance = (r + g + b) * rgbToLumFactor;
-                        const pz = (luminance - 0.5) * depthSpread;
+                        const pz = luminance * depthSpread;
                         newDepths.push(pz);
 
                         // Skip if hideBlack and below threshold (but keep same particle count)
