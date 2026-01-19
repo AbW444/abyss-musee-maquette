@@ -269,12 +269,12 @@
                     <label>PARTICLE DENSITY</label>
                     <div class="param-controls">
                         <button class="arrow-btn" data-param="density" data-dir="down">▼</button>
-                        <span class="value" id="val-density" data-param="density">2X</span>
+                        <span class="value" id="val-density" data-param="density">13X</span>
                         <button class="arrow-btn" data-param="density" data-dir="up">▲</button>
                     </div>
                 </div>
                 <div class="slider-wrapper">
-                    <input type="range" class="slider" id="density" min="1" max="15" step="1" value="2">
+                    <input type="range" class="slider" id="density" min="1" max="15" step="1" value="13">
                     <div class="center-mark" style="left: 42.9%;"></div>
                 </div>
             </div>
@@ -360,7 +360,7 @@
             <div class="param-row">
                 <div class="param-header">
                     <label style="display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" id="enable-depth-cull" checked style="width: 14px; height: 14px; cursor: pointer;">
+                        <input type="checkbox" id="enable-depth-cull" style="width: 14px; height: 14px; cursor: pointer;">
                         <span>DEPTH CULLING</span>
                     </label>
                     <div class="param-controls">
@@ -439,7 +439,7 @@
         let breathSpeed = 0.0;
         let depthMultiplier = 0.2;
         let pointSize = 0.39;
-        let particleDensity = 2;
+        let particleDensity = 13;
         let brightness = 1.8;
         let hideBlack = false;
         let blackThreshold = 30;
@@ -452,7 +452,7 @@
         let videoTexture = null;
 
         // New v1.3.1 parameters
-        let enableDepthCull = true;
+        let enableDepthCull = false;
         let depthCullPower = 0.4;
         let contrast = 1.1;
         let saturation = 0.80;
@@ -866,7 +866,7 @@
                 // Reset sliders to default ONLY on first load
                 if (isFirstLoad) {
                     document.getElementById('size').value = 0.39;
-                    document.getElementById('density').value = 2;
+                    document.getElementById('density').value = 13;
                     document.getElementById('depth').value = 0.2;
                     document.getElementById('breath').value = 0.0;
                     document.getElementById('brightness').value = 1.8;
@@ -965,15 +965,16 @@
             contrast = parseFloat(document.getElementById('contrast').value);
             saturation = parseFloat(document.getElementById('saturation').value);
 
-            // Normalize video to fixed size for consistent volume
-            const TARGET_SIZE = 1000;
+            // Normalize video to fixed size for consistent volume (16:9 aspect ratio)
+            const TARGET_WIDTH = 1600;
+            const TARGET_HEIGHT = 900;
             const step = Math.max(1, Math.floor(10 / particleDensity));
 
             // Create or reuse sampling canvas for continuous video updates
             if (!videoSamplingCanvas) {
                 videoSamplingCanvas = document.createElement('canvas');
-                videoSamplingCanvas.width = TARGET_SIZE;
-                videoSamplingCanvas.height = TARGET_SIZE;
+                videoSamplingCanvas.width = TARGET_WIDTH;
+                videoSamplingCanvas.height = TARGET_HEIGHT;
                 videoSamplingCtx = videoSamplingCanvas.getContext('2d');
             }
 
@@ -983,17 +984,19 @@
             // Store sampling data for continuous updates
             videoSamplingData = {
                 step: step,
-                TARGET_SIZE: TARGET_SIZE,
+                TARGET_WIDTH: TARGET_WIDTH,
+                TARGET_HEIGHT: TARGET_HEIGHT,
                 scaleFactor: 0.5,
-                halfSize: TARGET_SIZE / 2,
+                halfWidth: TARGET_WIDTH / 2,
+                halfHeight: TARGET_HEIGHT / 2,
                 depthMultiplier: depthMultiplier
             };
 
-            // Cover behavior: scale video to fill canvas without stretching
+            // Cover behavior: scale video to fill canvas without stretching (16:9)
             const videoWidth = video.videoWidth;
             const videoHeight = video.videoHeight;
             const videoAspect = videoWidth / videoHeight;
-            const targetAspect = 1; // Square target
+            const targetAspect = 16 / 9; // 16:9 aspect ratio
 
             let sourceWidth, sourceHeight, offsetX, offsetY;
 
@@ -1012,9 +1015,9 @@
             }
 
             // Draw current frame to sample pixels
-            ctx.drawImage(video, offsetX, offsetY, sourceWidth, sourceHeight, 0, 0, TARGET_SIZE, TARGET_SIZE);
+            ctx.drawImage(video, offsetX, offsetY, sourceWidth, sourceHeight, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
 
-            const imageData = ctx.getImageData(0, 0, TARGET_SIZE, TARGET_SIZE);
+            const imageData = ctx.getImageData(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
             const data = imageData.data;
 
             // Create particle for each pixel (1 pixel = 1 particle)
@@ -1023,10 +1026,11 @@
             const initialZ = [];
 
             const scaleFactor = 0.5;
-            const halfSize = TARGET_SIZE / 2;
+            const halfWidth = TARGET_WIDTH / 2;
+            const halfHeight = TARGET_HEIGHT / 2;
 
-            // TRUE CUBE: depth = width = height
-            const depthSpread = TARGET_SIZE * scaleFactor * depthMultiplier;
+            // Depth spread based on height (smaller dimension for 16:9)
+            const depthSpread = TARGET_HEIGHT * scaleFactor * depthMultiplier;
 
             // v1.3.1 — Detect background color from edges if hideBackground is enabled
             let bgR = 0, bgG = 0, bgB = 0;
@@ -1035,22 +1039,22 @@
                 const sampleSize = 20; // Sample 20 pixels from each edge
 
                 // Top and bottom edges
-                for (let x = 0; x < TARGET_SIZE; x += Math.floor(TARGET_SIZE / sampleSize)) {
+                for (let x = 0; x < TARGET_WIDTH; x += Math.floor(TARGET_WIDTH / sampleSize)) {
                     // Top edge
                     const iTop = x * 4;
                     edgeSamples.push([data[iTop], data[iTop + 1], data[iTop + 2]]);
                     // Bottom edge
-                    const iBottom = ((TARGET_SIZE - 1) * TARGET_SIZE + x) * 4;
+                    const iBottom = ((TARGET_HEIGHT - 1) * TARGET_WIDTH + x) * 4;
                     edgeSamples.push([data[iBottom], data[iBottom + 1], data[iBottom + 2]]);
                 }
 
                 // Left and right edges
-                for (let y = 0; y < TARGET_SIZE; y += Math.floor(TARGET_SIZE / sampleSize)) {
+                for (let y = 0; y < TARGET_HEIGHT; y += Math.floor(TARGET_HEIGHT / sampleSize)) {
                     // Left edge
-                    const iLeft = (y * TARGET_SIZE) * 4;
+                    const iLeft = (y * TARGET_WIDTH) * 4;
                     edgeSamples.push([data[iLeft], data[iLeft + 1], data[iLeft + 2]]);
                     // Right edge
-                    const iRight = (y * TARGET_SIZE + (TARGET_SIZE - 1)) * 4;
+                    const iRight = (y * TARGET_WIDTH + (TARGET_WIDTH - 1)) * 4;
                     edgeSamples.push([data[iRight], data[iRight + 1], data[iRight + 2]]);
                 }
 
@@ -1065,9 +1069,9 @@
                 bgB = Math.floor(bgB / edgeSamples.length);
             }
 
-            for (let y = 0; y < TARGET_SIZE; y += step) {
-                for (let x = 0; x < TARGET_SIZE; x += step) {
-                    const i = (y * TARGET_SIZE + x) * 4;
+            for (let y = 0; y < TARGET_HEIGHT; y += step) {
+                for (let x = 0; x < TARGET_WIDTH; x += step) {
+                    const i = (y * TARGET_WIDTH + x) * 4;
                     const alpha = data[i + 3];
 
                     // Only create particle if pixel is visible
@@ -1090,9 +1094,9 @@
                             }
                         }
 
-                        // Position
-                        const px = (x - halfSize) * scaleFactor;
-                        const py = -(y - halfSize) * scaleFactor;
+                        // Position (centered in 16:9 aspect ratio)
+                        const px = (x - halfWidth) * scaleFactor;
+                        const py = -(y - halfHeight) * scaleFactor;
 
                         // v1.3.1 — Luminance-based depth (Niveau 1)
                         const luminance = (r + g + b) / (3 * 255);
@@ -1288,7 +1292,7 @@
 
         function resetToDefaults() {
             document.getElementById('size').value = 0.39;
-            document.getElementById('density').value = 2;
+            document.getElementById('density').value = 13;
             document.getElementById('depth').value = 0.2;
             document.getElementById('breath').value = 0.0;
             document.getElementById('brightness').value = 1.8;
@@ -1302,9 +1306,9 @@
             document.getElementById('contrast').value = 1.1;
             document.getElementById('saturation').value = 0.80;
             document.getElementById('bgThreshold').value = 40;
-            document.getElementById('enable-depth-cull').checked = true;
+            document.getElementById('enable-depth-cull').checked = false;
             document.getElementById('hide-background').checked = false;
-            enableDepthCull = true;
+            enableDepthCull = false;
             depthCullPower = 0.4;
             contrast = 1.1;
             saturation = 0.80;
@@ -1344,13 +1348,13 @@
         function updateColorsFromVideo() {
             if (!currentVideo || !videoSamplingCanvas || !videoSamplingData || !particles) return;
 
-            const { step, TARGET_SIZE, scaleFactor, halfSize, depthMultiplier } = videoSamplingData;
+            const { step, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor, halfWidth, halfHeight, depthMultiplier } = videoSamplingData;
 
-            // Draw current video frame to canvas with cover behavior
+            // Draw current video frame to canvas with cover behavior (16:9)
             const videoWidth = currentVideo.videoWidth;
             const videoHeight = currentVideo.videoHeight;
             const videoAspect = videoWidth / videoHeight;
-            const targetAspect = 1; // Square target
+            const targetAspect = 16 / 9; // 16:9 aspect ratio
 
             let sourceWidth, sourceHeight, offsetX, offsetY;
 
@@ -1368,21 +1372,21 @@
                 offsetY = (videoHeight - sourceHeight) / 2;
             }
 
-            videoSamplingCtx.drawImage(currentVideo, offsetX, offsetY, sourceWidth, sourceHeight, 0, 0, TARGET_SIZE, TARGET_SIZE);
-            const imageData = videoSamplingCtx.getImageData(0, 0, TARGET_SIZE, TARGET_SIZE);
+            videoSamplingCtx.drawImage(currentVideo, offsetX, offsetY, sourceWidth, sourceHeight, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+            const imageData = videoSamplingCtx.getImageData(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
             const data = imageData.data;
 
             // Calculate depth spread (same as in generate)
-            const depthSpread = TARGET_SIZE * scaleFactor * depthMultiplier;
+            const depthSpread = TARGET_HEIGHT * scaleFactor * depthMultiplier;
 
             let particleIndex = 0;
 
             // Collect new colors and depths
             const newColors = [];
             const newDepths = [];
-            for (let y = 0; y < TARGET_SIZE; y += step) {
-                for (let x = 0; x < TARGET_SIZE; x += step) {
-                    const i = (y * TARGET_SIZE + x) * 4;
+            for (let y = 0; y < TARGET_HEIGHT; y += step) {
+                for (let x = 0; x < TARGET_WIDTH; x += step) {
+                    const i = (y * TARGET_WIDTH + x) * 4;
                     const alpha = data[i + 3];
 
                     if (alpha > 30) {
