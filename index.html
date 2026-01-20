@@ -1918,21 +1918,24 @@
 
             screensGroup.add(wallOppB);
 
-            // === ÉCRAN 7: panneau latéral avec demi-largeur (image non déformée) ===
-            // Créer une géométrie avec seulement la moitié droite des particules (X > 0)
-            // pour que l'image garde sa taille normale et "dépasse" de l'écran
+            // === ÉCRAN 7: panneau latéral CARRÉ (largeur = hauteur) ===
+            // Créer une géométrie carrée : largeur = hauteur = screenH
+            // L'image garde sa taille normale et "dépasse" de l'écran (comme les autres)
             const screen7Positions = [];
             const screen7Colors = [];
             const screen7InitialZ = [];
 
-            // Filtrer les particules : ne garder que celles de la moitié droite (X >= 0)
+            // Hauteur de l'écran
+            const halfH = screenH / 2; // 112.5
+
+            // Filtrer les particules pour faire un carré : X et Y entre -halfH et +halfH
             for (let i = 0; i < positions.length / 3; i++) {
                 const x = positions[i * 3];
                 const y = positions[i * 3 + 1];
                 const z = positions[i * 3 + 2];
 
-                // Ne garder que la moitié droite de l'image
-                if (x >= 0) {
+                // Carré centré : -112.5 <= X <= 112.5 ET -112.5 <= Y <= 112.5
+                if (x >= -halfH && x <= halfH && y >= -halfH && y <= halfH) {
                     screen7Positions.push(x, y, z);
                     screen7Colors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
                     screen7InitialZ.push(initialZ[i]);
@@ -1941,7 +1944,7 @@
 
             let screen7;
             if (is3DMode) {
-                // Mode 3D : créer InstancedMesh avec la moitié des particules
+                // Mode 3D : créer InstancedMesh avec les particules du carré
                 const count7 = screen7Positions.length / 3;
                 let baseGeometry7;
                 const size = pointSize * 3;
@@ -1991,7 +1994,7 @@
                 screen7.userData.is3D = true;
 
             } else {
-                // Mode 2D : créer Points avec la moitié des particules
+                // Mode 2D : créer Points avec les particules du carré
                 const geometry7 = new THREE.BufferGeometry();
                 geometry7.setAttribute('position', new THREE.Float32BufferAttribute(screen7Positions, 3));
                 geometry7.setAttribute('color', new THREE.Float32BufferAttribute(screen7Colors, 3));
@@ -2002,7 +2005,7 @@
 
             // Position et orientation de base (coordonnées ajustées par l'utilisateur)
             screen7.position.set(599.938, -0.064, 112.546);
-            screen7.rotation.set(0, -1.570796, 0); // Note: rotation négative maintenant
+            screen7.rotation.set(0, -1.570796, 0); // -90° en Y
             screen7.scale.set(1, 1, 1); // IMPORTANT: pas de scale, l'image garde sa taille normale
 
             screensGroup.add(screen7);
@@ -2293,6 +2296,46 @@
                         particles.userData.initialZ[i] = newDepths[i];
                     }
                 }
+
+                // CRITICAL: Also update screen 7 if it exists (3D mode)
+                if (allScreens[7] && allScreens[7].instanceColor) {
+                    const screen7 = allScreens[7];
+                    const colors7 = screen7.instanceColor.array;
+                    const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
+
+                    // Filter newColors and newDepths for screen 7 square
+                    let particleIndex = 0;
+                    let screen7Index = 0;
+                    for (let y = 0; y < TARGET_HEIGHT; y += step) {
+                        for (let x = 0; x < TARGET_WIDTH; x += step) {
+                            const i = (y * TARGET_WIDTH + x) * 4;
+                            const alpha = data[i + 3];
+
+                            if (alpha > 30) {
+                                const maxColor = Math.max(data[i], data[i + 1], data[i + 2]);
+
+                                // Calculate particle position
+                                const px = (x - halfWidth) * scaleFactor;
+                                const py = -(y - halfHeight) * scaleFactor;
+
+                                // Check if this particle is in screen 7 square
+                                if (px >= -halfH && px <= halfH && py >= -halfH && py <= halfH) {
+                                    colors7[screen7Index * 3] = newColors[particleIndex * 3];
+                                    colors7[screen7Index * 3 + 1] = newColors[particleIndex * 3 + 1];
+                                    colors7[screen7Index * 3 + 2] = newColors[particleIndex * 3 + 2];
+
+                                    if (screen7.userData.initialZ) {
+                                        screen7.userData.initialZ[screen7Index] = newDepths[particleIndex];
+                                    }
+                                    screen7Index++;
+                                }
+                                particleIndex++;
+                            }
+                        }
+                    }
+                    screen7.instanceColor.needsUpdate = true;
+                }
+
             } else if (geometry && geometry.attributes.color) {
                 // 2D Mode: Update vertex colors and initial depths
                 const colors = geometry.attributes.color.array;
@@ -2308,6 +2351,49 @@
                         initialZArray[i] = newDepths[i];
                     }
                     geometry.attributes.initialZ.needsUpdate = true;
+                }
+
+                // CRITICAL: Also update screen 7 if it exists (2D mode)
+                if (allScreens[7] && allScreens[7].geometry && allScreens[7].geometry.attributes.color) {
+                    const screen7 = allScreens[7];
+                    const geom7 = screen7.geometry;
+                    const colors7 = geom7.attributes.color.array;
+                    const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
+
+                    // Filter newColors and newDepths for screen 7 square
+                    let particleIndex = 0;
+                    let screen7Index = 0;
+                    for (let y = 0; y < TARGET_HEIGHT; y += step) {
+                        for (let x = 0; x < TARGET_WIDTH; x += step) {
+                            const i = (y * TARGET_WIDTH + x) * 4;
+                            const alpha = data[i + 3];
+
+                            if (alpha > 30) {
+                                const maxColor = Math.max(data[i], data[i + 1], data[i + 2]);
+
+                                // Calculate particle position
+                                const px = (x - halfWidth) * scaleFactor;
+                                const py = -(y - halfHeight) * scaleFactor;
+
+                                // Check if this particle is in screen 7 square
+                                if (px >= -halfH && px <= halfH && py >= -halfH && py <= halfH) {
+                                    colors7[screen7Index * 3] = newColors[particleIndex * 3];
+                                    colors7[screen7Index * 3 + 1] = newColors[particleIndex * 3 + 1];
+                                    colors7[screen7Index * 3 + 2] = newColors[particleIndex * 3 + 2];
+
+                                    if (geom7.attributes.initialZ) {
+                                        geom7.attributes.initialZ.array[screen7Index] = newDepths[particleIndex];
+                                    }
+                                    screen7Index++;
+                                }
+                                particleIndex++;
+                            }
+                        }
+                    }
+                    geom7.attributes.color.needsUpdate = true;
+                    if (geom7.attributes.initialZ) {
+                        geom7.attributes.initialZ.needsUpdate = true;
+                    }
                 }
             }
         }
@@ -2359,6 +2445,39 @@
                         }
                         particles.instanceMatrix.needsUpdate = true;
                     }
+
+                    // CRITICAL: Also update screen 7 if it has its own geometry (3D mode)
+                    if (allScreens[7] && allScreens[7].userData && allScreens[7].userData.is3D) {
+                        const screen7 = allScreens[7];
+                        const initialZs7 = screen7.userData.initialZ;
+                        const positions7 = screen7.userData.positions;
+
+                        if (initialZs7 && positions7 && initialZs7.length > 0) {
+                            const epsilon = 0.3 * breathSpeed;
+
+                            for (let i = 0; i < initialZs7.length; i++) {
+                                const breathOffset = Math.sin(time + i * 0.01) * epsilon;
+                                const newZ = initialZs7[i] + breathOffset;
+
+                                // Flow movement - circular organic motion
+                                let flowX = 0, flowY = 0;
+                                if (flowIntensity > 0 && flowOffsets[i]) {
+                                    const offset = flowOffsets[i];
+                                    flowX = Math.sin(time * offset.speedX + offset.phaseX) * offset.radiusX * flowIntensity;
+                                    flowY = Math.cos(time * offset.speedY + offset.phaseY) * offset.radiusY * flowIntensity;
+                                }
+
+                                reusableMatrix.setPosition(
+                                    positions7[i * 3] + flowX,
+                                    positions7[i * 3 + 1] + flowY,
+                                    newZ
+                                );
+                                screen7.setMatrixAt(i, reusableMatrix);
+                            }
+                            screen7.instanceMatrix.needsUpdate = true;
+                        }
+                    }
+
                 } else if (geometry && geometry.attributes.position) {
                     // 2D Mode: Update position attribute for breathing and flow animation
                     const positions = geometry.attributes.position.array;
@@ -2392,6 +2511,43 @@
                     }
 
                     geometry.attributes.position.needsUpdate = true;
+
+                    // CRITICAL: Also update screen 7 if it has its own geometry (2D mode)
+                    if (allScreens[7] && allScreens[7].geometry && allScreens[7].geometry.attributes.position) {
+                        const screen7 = allScreens[7];
+                        const geom7 = screen7.geometry;
+                        const positions7 = geom7.attributes.position.array;
+                        const initialZs7 = geom7.attributes.initialZ.array;
+
+                        // Store initial positions if not already stored
+                        if (!geom7.userData.initialPositions) {
+                            geom7.userData.initialPositions = new Float32Array(positions7.length);
+                            for (let i = 0; i < positions7.length; i++) {
+                                geom7.userData.initialPositions[i] = positions7[i];
+                            }
+                        }
+
+                        const initialPositions7 = geom7.userData.initialPositions;
+
+                        for (let i = 0; i < positions7.length / 3; i++) {
+                            const epsilon = 0.3 * breathSpeed;
+                            const breathOffset = Math.sin(time + i * 0.01) * epsilon;
+
+                            // Flow movement - circular organic motion
+                            let flowX = 0, flowY = 0;
+                            if (flowIntensity > 0 && flowOffsets[i]) {
+                                const offset = flowOffsets[i];
+                                flowX = Math.sin(time * offset.speedX + offset.phaseX) * offset.radiusX * flowIntensity;
+                                flowY = Math.cos(time * offset.speedY + offset.phaseY) * offset.radiusY * flowIntensity;
+                            }
+
+                            positions7[i * 3] = initialPositions7[i * 3] + flowX;
+                            positions7[i * 3 + 1] = initialPositions7[i * 3 + 1] + flowY;
+                            positions7[i * 3 + 2] = initialZs7[i] + breathOffset;
+                        }
+
+                        geom7.attributes.position.needsUpdate = true;
+                    }
                 }
             }
 
