@@ -1844,8 +1844,9 @@
             // Seules les particules lumineuses sortent vers z positif
             // Position fixe des écrans : z=0 invariant au DEPTH SPREAD
 
-            // Position first screen at origin (fixed)
+            // Écran 1 - Position de base
             particles.position.set(0, 0, 0);
+            particles.rotation.set(0, 0, 0);
 
             // Add first screen to group
             screensGroup.add(particles);
@@ -1862,8 +1863,9 @@
             particlesRight.geometry = particles.geometry;
             particlesRight.material = particles.material;
 
-            // Position second screen to the right, touching the first (fixed spacing)
-            particlesRight.position.set(screenW, 0, 0);
+            // Écran 2 - Position de base
+            particlesRight.position.set(400, 0, 0);
+            particlesRight.rotation.set(0, 0, 0);
 
             // Add second screen to group
             screensGroup.add(particlesRight);
@@ -1873,12 +1875,9 @@
             floorLeft.geometry = particles.geometry;
             floorLeft.material = particles.material;
 
-            // Rotate to horizontal (lie flat on ground)
-            floorLeft.rotation.x = -Math.PI / 2;
-
-            // Position: hinge top edge of floor to bottom edge of wall
-            // Floor center at z = screenH/2 to align with wall base
-            floorLeft.position.set(0, wallBottomY, screenH / 2);
+            // Écran 3 - Position de base
+            floorLeft.position.set(0, -112.5, 112.5);
+            floorLeft.rotation.set(1.570796, 0, 0); // 90° rotation sur X
 
             // Add to group
             screensGroup.add(floorLeft);
@@ -1888,12 +1887,9 @@
             floorRight.geometry = particles.geometry;
             floorRight.material = particles.material;
 
-            // Rotate to horizontal
-            floorRight.rotation.x = -Math.PI / 2;
-
-            // Position: hinge top edge of floor to bottom edge of wall
-            // Floor center at z = screenH/2 to align with wall base
-            floorRight.position.set(screenW, wallBottomY, screenH / 2);
+            // Écran 4 - Position de base
+            floorRight.position.set(400, -112.5, 112.5);
+            floorRight.rotation.set(1.570796, 0, 0); // 90° rotation sur X
 
             // Add to group
             screensGroup.add(floorRight);
@@ -1905,12 +1901,9 @@
             wallOppA.geometry = particles.geometry;
             wallOppA.material = particles.material;
 
-            // Place it at the end of the floor (z = screenH), same Y center as wall
-            wallOppA.position.set(0, 0, screenH);
-
-            // Make it face inward (toward -Z)
-            wallOppA.rotation.set(0, 0, 0);
-            wallOppA.rotateY(Math.PI);
+            // Écran 5 - Position de base
+            wallOppA.position.set(0, 0, 225);
+            wallOppA.rotation.set(-Math.PI, 0, -Math.PI); // Rotation 180° pour faire face vers -Z
 
             screensGroup.add(wallOppA);
 
@@ -1919,21 +1912,98 @@
             wallOppB.geometry = particles.geometry;
             wallOppB.material = particles.material;
 
-            wallOppB.position.set(screenW, 0, screenH);
-            wallOppB.rotation.set(0, 0, 0);
-            wallOppB.rotateY(Math.PI);
+            // Écran 6 - Position de base
+            wallOppB.position.set(400, 0, 225);
+            wallOppB.rotation.set(-Math.PI, 0, -Math.PI); // Rotation 180° pour faire face vers -Z
 
             screensGroup.add(wallOppB);
 
-            // === ÉCRAN 7: panneau latéral collé sur le côté droit de l'écran 6 ===
-            const screen7 = particles.clone();
-            screen7.geometry = particles.geometry;
-            screen7.material = particles.material;
+            // === ÉCRAN 7: panneau latéral avec demi-largeur (image non déformée) ===
+            // Créer une géométrie avec seulement la moitié droite des particules (X > 0)
+            // pour que l'image garde sa taille normale et "dépasse" de l'écran
+            const screen7Positions = [];
+            const screen7Colors = [];
+            const screen7InitialZ = [];
 
-            // Position et orientation de base (ajustée manuellement par l'utilisateur)
+            // Filtrer les particules : ne garder que celles de la moitié droite (X >= 0)
+            for (let i = 0; i < positions.length / 3; i++) {
+                const x = positions[i * 3];
+                const y = positions[i * 3 + 1];
+                const z = positions[i * 3 + 2];
+
+                // Ne garder que la moitié droite de l'image
+                if (x >= 0) {
+                    screen7Positions.push(x, y, z);
+                    screen7Colors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
+                    screen7InitialZ.push(initialZ[i]);
+                }
+            }
+
+            let screen7;
+            if (is3DMode) {
+                // Mode 3D : créer InstancedMesh avec la moitié des particules
+                const count7 = screen7Positions.length / 3;
+                let baseGeometry7;
+                const size = pointSize * 3;
+
+                switch(currentShape) {
+                    case 'square':
+                        baseGeometry7 = new THREE.BoxGeometry(size, size, size);
+                        break;
+                    case 'circle':
+                        baseGeometry7 = new THREE.SphereGeometry(size * 0.5, 8, 6);
+                        break;
+                    case 'diamond':
+                        baseGeometry7 = new THREE.OctahedronGeometry(size * 0.5);
+                        break;
+                    case 'star':
+                        baseGeometry7 = new THREE.TetrahedronGeometry(size * 0.6);
+                        break;
+                    default:
+                        baseGeometry7 = new THREE.SphereGeometry(size * 0.5, 8, 6);
+                }
+
+                screen7 = new THREE.InstancedMesh(baseGeometry7, material, count7);
+                screen7.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+                const instanceColors7 = new Float32Array(count7 * 3);
+                for (let i = 0; i < count7; i++) {
+                    instanceColors7[i * 3] = screen7Colors[i * 3];
+                    instanceColors7[i * 3 + 1] = screen7Colors[i * 3 + 1];
+                    instanceColors7[i * 3 + 2] = screen7Colors[i * 3 + 2];
+                }
+                screen7.instanceColor = new THREE.InstancedBufferAttribute(instanceColors7, 3);
+
+                for (let i = 0; i < count7; i++) {
+                    reusableMatrix.setPosition(
+                        screen7Positions[i * 3],
+                        screen7Positions[i * 3 + 1],
+                        screen7Positions[i * 3 + 2]
+                    );
+                    screen7.setMatrixAt(i, reusableMatrix);
+                    reusableColor.setRGB(screen7Colors[i * 3], screen7Colors[i * 3 + 1], screen7Colors[i * 3 + 2]);
+                    screen7.setColorAt(i, reusableColor);
+                }
+
+                screen7.instanceMatrix.needsUpdate = true;
+                screen7.userData.initialZ = screen7InitialZ;
+                screen7.userData.positions = screen7Positions;
+                screen7.userData.is3D = true;
+
+            } else {
+                // Mode 2D : créer Points avec la moitié des particules
+                const geometry7 = new THREE.BufferGeometry();
+                geometry7.setAttribute('position', new THREE.Float32BufferAttribute(screen7Positions, 3));
+                geometry7.setAttribute('color', new THREE.Float32BufferAttribute(screen7Colors, 3));
+                geometry7.setAttribute('initialZ', new THREE.Float32BufferAttribute(screen7InitialZ, 1));
+
+                screen7 = new THREE.Points(geometry7, material);
+            }
+
+            // Position et orientation de base (coordonnées ajustées par l'utilisateur)
             screen7.position.set(599.938, -0.064, 112.546);
-            screen7.rotation.set(0, 1.570796, 0); // ~π/2 radians (90°)
-            screen7.scale.set(0.563, 1.002, 3.290);
+            screen7.rotation.set(0, -1.570796, 0); // Note: rotation négative maintenant
+            screen7.scale.set(1, 1, 1); // IMPORTANT: pas de scale, l'image garde sa taille normale
 
             screensGroup.add(screen7);
 
