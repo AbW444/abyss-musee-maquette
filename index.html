@@ -493,6 +493,10 @@
         let redoHistory = [];
         const MAX_HISTORY = 50;
 
+        // Magnetism settings
+        const MAGNETISM_THRESHOLD = 0.05; // ~3 degrees in radians
+        const MAGNETISM_ANGLES = [0, Math.PI / 2, Math.PI, Math.PI * 3 / 2, Math.PI * 2];
+
         // Real-time regeneration with debounce
         function scheduleRegenerate() {
             clearTimeout(regenerateTimeout);
@@ -763,9 +767,6 @@
                 return;
             }
 
-            // Save state before selection (for undo)
-            saveState();
-
             selectedScreen = num;
             transformControls.attach(allScreens[num]);
 
@@ -778,9 +779,10 @@
             console.log('  G = Mode Translation');
             console.log('  R = Mode Rotation');
             console.log('  E = Mode Scale');
-            console.log('  Maj enfoncé = rotation par 10°, translation snapping');
+            console.log('  Maj enfoncé = rotation 15°, translation 1000');
             console.log('  Échap = Désélectionner');
-            console.log('  Ctrl+Z = Annuler');
+            console.log('  Ctrl+Z = Annuler | Ctrl+Shift+Z = Refaire');
+            console.log('  Magnétisme auto : 0/90/180/270°');
         }
 
         function deselectScreen() {
@@ -800,12 +802,29 @@
             const isShiftPressed = e.shiftKey;
 
             if (transformControls.mode === 'rotate') {
-                // Rotation par pas de 10° (en radians)
-                transformControls.setRotationSnap(isShiftPressed ? THREE.MathUtils.degToRad(10) : null);
+                // Rotation par pas de 15° (en radians)
+                transformControls.setRotationSnap(isShiftPressed ? THREE.MathUtils.degToRad(15) : null);
             } else if (transformControls.mode === 'translate') {
-                // Translation snapping de 10 unités
-                transformControls.setTranslationSnap(isShiftPressed ? 10 : null);
+                // Translation snapping de 1000 unités
+                transformControls.setTranslationSnap(isShiftPressed ? 1000 : null);
             }
+        }
+
+        // Apply magnetism to rotation - snap to 0, 90, 180, 270 degrees when close
+        function applyMagnetism(screen) {
+            if (!screen) return;
+
+            ['x', 'y', 'z'].forEach(axis => {
+                const rotation = screen.rotation[axis];
+                const normalized = ((rotation % (Math.PI * 2)) + (Math.PI * 2)) % (Math.PI * 2);
+
+                for (let angle of MAGNETISM_ANGLES) {
+                    if (Math.abs(normalized - angle) < MAGNETISM_THRESHOLD) {
+                        screen.rotation[axis] = rotation - normalized + angle;
+                        break;
+                    }
+                }
+            });
         }
 
         function saveState() {
@@ -1309,11 +1328,17 @@
 
             // TransformControls for manipulating screens
             transformControls = new THREE.TransformControls(camera, renderer.domElement);
+            transformControls.setSpace('world'); // Use world space to avoid X/Y inversion
             scene.add(transformControls);
 
             // When transforming, disable orbit controls
             transformControls.addEventListener('dragging-changed', function(event) {
                 orbitControls.enabled = !event.value;
+
+                // Apply magnetism when releasing (end of drag)
+                if (!event.value && selectedScreen && allScreens[selectedScreen]) {
+                    applyMagnetism(allScreens[selectedScreen]);
+                }
             });
 
             // Save state when starting to drag
@@ -1719,6 +1744,12 @@
                 }
             }
 
+            // CRITICAL: Detach transform controls before clearing to avoid "object must be part of scene graph" error
+            const wasScreenSelected = selectedScreen;
+            if (transformControls && selectedScreen) {
+                transformControls.detach();
+            }
+
             // Clear group before adding new screens
             screensGroup.clear();
 
@@ -1899,18 +1930,10 @@
             screen7.geometry = particles.geometry;
             screen7.material = particles.material;
 
-            // Demi-largeur (divise la largeur par 2)
-            screen7.scale.set(0.5, 1, 1);
-
-            // Position fixe : collé au côté droit de l'écran 6
-            // L'écran 6 est à (screenW, 0, screenH) avec largeur screenW/2 de chaque côté
-            // Donc son bord droit est à X = screenW + screenW/2
-            // L'écran 7 avec rotation π/2 et scale 0.5 a sa largeur selon Z
-            // Son centre doit être à X = screenW + screenW/2 + (screenW * 0.5) / 4
-            screen7.position.set(screenW + screenW * 0.625, 0, screenH);
-
-            // Rotation: perpendiculaire à l'écran 6 (π/2)
-            screen7.rotation.set(0, Math.PI / 2, 0);
+            // Position et orientation de base (ajustée manuellement par l'utilisateur)
+            screen7.position.set(599.938, -0.064, 112.546);
+            screen7.rotation.set(0, 1.570796, 0); // ~π/2 radians (90°)
+            screen7.scale.set(0.563, 1.002, 3.290);
 
             screensGroup.add(screen7);
 
@@ -1925,17 +1948,23 @@
                 7: screen7              // Side panel (demi-largeur)
             };
 
+            // CRITICAL: Reattach transform controls to the same screen after regeneration
+            if (transformControls && wasScreenSelected && allScreens[wasScreenSelected]) {
+                selectedScreen = wasScreenSelected;
+                transformControls.attach(allScreens[wasScreenSelected]);
+            }
+
             console.log('');
             console.log('=== CONTRÔLES 3D DISPONIBLES ===');
             console.log('Touches 1-7 : Sélectionner un écran');
             console.log('G : Mode Translation');
             console.log('R : Mode Rotation');
             console.log('E : Mode Scale');
-            console.log('Maj enfoncé : rotation par 10°, translation snapping');
+            console.log('Maj enfoncé : rotation 15°, translation 1000');
             console.log('Échap : Désélectionner');
-            console.log('Ctrl+Z : Annuler');
-            console.log('Ctrl+Shift+Z : Refaire');
+            console.log('Ctrl+Z : Annuler | Ctrl+Shift+Z : Refaire');
             console.log('S : Sauvegarder positions');
+            console.log('Magnétisme auto à 0/90/180/270°');
             console.log('================================');
 
             // Initialize flow offsets - random circular movement for each particle
