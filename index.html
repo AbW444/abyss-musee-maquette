@@ -1668,6 +1668,77 @@
 
             screensGroup.add(wallOppB);
 
+            // === ÉCRAN 7: panneau latéral collé sur le côté droit de l'écran 6 ===
+            // Update world matrix pour avoir les positions réelles
+            screensGroup.updateMatrixWorld(true);
+
+            // Calculer la Box3 de l'écran 6 (wallOppB)
+            const box6 = new THREE.Box3().setFromObject(wallOppB);
+
+            console.log('=== ÉCRAN 7 PLACEMENT ===');
+            console.log('Écran 6 (wallOppB) Box3:', {
+                min: box6.min.toArray().map(v => v.toFixed(2)),
+                max: box6.max.toArray().map(v => v.toFixed(2))
+            });
+
+            // Créer l'écran 7
+            const screen7 = particles.clone();
+            screen7.geometry = particles.geometry;
+            screen7.material = particles.material;
+
+            // Position initiale temporaire
+            screen7.position.set(0, 0, 0);
+
+            // Rotation: perpendiculaire à l'écran 6 (tourné de 90° par rapport à lui)
+            // L'écran 6 a rotation Y = π, donc l'écran 7 doit avoir Y = π/2 ou -π/2
+            screen7.rotation.set(0, Math.PI / 2, 0);
+
+            // Ajouter temporairement pour calculer sa Box3
+            screensGroup.add(screen7);
+            screensGroup.updateMatrixWorld(true);
+
+            // Calculer sa Box3 actuelle
+            const box7 = new THREE.Box3().setFromObject(screen7);
+
+            console.log('Écran 7 Box3 (avant placement):', {
+                min: box7.min.toArray().map(v => v.toFixed(2)),
+                max: box7.max.toArray().map(v => v.toFixed(2))
+            });
+
+            // PLACEMENT PRÉCIS : coller l'écran 7 sur le côté droit de l'écran 6
+            // - Son min.x collé au max.x de l'écran 6
+            // - Son centre Y aligné avec le centre Y de l'écran 6
+            // - Son centre Z aligné avec le centre Z de l'écran 6
+
+            const center6 = new THREE.Vector3();
+            const center7 = new THREE.Vector3();
+            box6.getCenter(center6);
+            box7.getCenter(center7);
+
+            const deltaX = box6.max.x - box7.min.x;
+            const deltaY = center6.y - center7.y;
+            const deltaZ = center6.z - center7.z;
+
+            console.log('Deltas à appliquer:', {
+                deltaX: deltaX.toFixed(2),
+                deltaY: deltaY.toFixed(2),
+                deltaZ: deltaZ.toFixed(2)
+            });
+
+            // Appliquer les deltas
+            screen7.position.add(new THREE.Vector3(deltaX, deltaY, deltaZ));
+
+            // Vérification finale
+            screensGroup.updateMatrixWorld(true);
+            const box7Final = new THREE.Box3().setFromObject(screen7);
+
+            console.log('Écran 7 Box3 (après placement):', {
+                min: box7Final.min.toArray().map(v => v.toFixed(2)),
+                max: box7Final.max.toArray().map(v => v.toFixed(2))
+            });
+            console.log('Écran 7 position finale:', screen7.position.toArray().map(v => v.toFixed(2)));
+            console.log('=========================');
+
             // Initialize flow offsets - random circular movement for each particle
             const particleCount = positions.length / 3;
             flowOffsets = [];
