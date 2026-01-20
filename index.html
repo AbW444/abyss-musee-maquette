@@ -470,6 +470,7 @@
 
         // Info mode - detailed screen information
         let infoMode = false;
+        let infoSprites = [];
 
         // Performance optimization: Reusable objects to avoid GC pressure
         const reusableMatrix = new THREE.Matrix4();
@@ -688,98 +689,137 @@
             }
         });
 
-        // Toggle detailed info mode - comprehensive screen analysis
+        // Create text sprite for 3D labels
+        function createTextSprite(text, parameters) {
+            if (parameters === undefined) parameters = {};
+            const fontface = parameters.hasOwnProperty("fontface") ? parameters["fontface"] : "Courier New";
+            const fontsize = parameters.hasOwnProperty("fontsize") ? parameters["fontsize"] : 18;
+            const backgroundColor = parameters.hasOwnProperty("backgroundColor") ? parameters["backgroundColor"] : { r: 0, g: 0, b: 0, a: 0.8 };
+            const textColor = parameters.hasOwnProperty("textColor") ? parameters["textColor"] : { r: 255, g: 255, b: 255, a: 1.0 };
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            context.font = fontsize + "px " + fontface;
+
+            // Split text by lines
+            const lines = text.split('\n');
+            const lineHeight = fontsize * 1.2;
+
+            // Measure max width
+            let maxWidth = 0;
+            lines.forEach(line => {
+                const metrics = context.measureText(line);
+                maxWidth = Math.max(maxWidth, metrics.width);
+            });
+
+            // Set canvas size
+            canvas.width = maxWidth + 20;
+            canvas.height = (lines.length * lineHeight) + 20;
+
+            // Re-set font after canvas resize
+            context.font = fontsize + "px " + fontface;
+            context.textAlign = "left";
+            context.textBaseline = "top";
+
+            // Background
+            context.fillStyle = "rgba(" + backgroundColor.r + "," + backgroundColor.g + "," + backgroundColor.b + "," + backgroundColor.a + ")";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Text
+            context.fillStyle = "rgba(" + textColor.r + "," + textColor.g + "," + textColor.b + "," + textColor.a + ")";
+            lines.forEach((line, i) => {
+                context.fillText(line, 10, 10 + (i * lineHeight));
+            });
+
+            // Create sprite
+            const texture = new THREE.Texture(canvas);
+            texture.needsUpdate = true;
+
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false });
+            const sprite = new THREE.Sprite(spriteMaterial);
+
+            // Scale sprite (canvas is in pixels, scale to world units)
+            const scale = 0.5;
+            sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
+
+            return sprite;
+        }
+
+        // Toggle detailed info mode - show 3D labels on screens
         function toggleInfoMode() {
             infoMode = !infoMode;
 
             if (infoMode) {
-                console.clear();
-                console.log('╔═══════════════════════════════════════════════════════════════╗');
-                console.log('║         DETAILED SCREEN INFORMATION MODE - ENABLED           ║');
-                console.log('╚═══════════════════════════════════════════════════════════════╝');
-                console.log('');
+                console.log('[INFO MODE] ENABLED - Showing 3D labels on screens');
 
                 if (screensGroup && screensGroup.children.length > 0) {
                     screensGroup.updateMatrixWorld(true);
 
-                    // Get screen dimensions from first screen
+                    // Get screen dimensions
                     const TARGET_WIDTH = 800;
                     const TARGET_HEIGHT = 450;
                     const scaleFactor = 0.5;
                     const screenW = TARGET_WIDTH * scaleFactor;
                     const screenH = TARGET_HEIGHT * scaleFactor;
 
-                    console.log('📐 REFERENCE DIMENSIONS (invariant to depthSpread):');
-                    console.log('   screenW:', screenW.toFixed(2));
-                    console.log('   screenH:', screenH.toFixed(2));
-                    console.log('   depthMultiplier:', depthMultiplier.toFixed(2));
-                    console.log('');
-
-                    // Analyze each screen
+                    // Create label for each screen
                     screensGroup.children.forEach((screen, index) => {
                         const screenNum = index + 1;
-                        console.log(`┌─────────────────────────────────────────────────────────────┐`);
-                        console.log(`│ ÉCRAN #${screenNum} ${getScreenName(index).padEnd(50)}│`);
-                        console.log(`└─────────────────────────────────────────────────────────────┘`);
-
-                        // Position
                         const pos = screen.position;
-                        console.log('  📍 POSITION (world):');
-                        console.log(`     X: ${pos.x.toFixed(3).padStart(8)} (${getXDescription(pos.x, screenW)})`);
-                        console.log(`     Y: ${pos.y.toFixed(3).padStart(8)} (${getYDescription(pos.y, screenH)})`);
-                        console.log(`     Z: ${pos.z.toFixed(3).padStart(8)} (${getZDescription(pos.z, screenH)})`);
-
-                        // Rotation (in degrees)
                         const rot = screen.rotation;
-                        console.log('  🔄 ROTATION (degrees):');
-                        console.log(`     X: ${(rot.x * 180 / Math.PI).toFixed(1).padStart(7)}° (${getRotXDescription(rot.x)})`);
-                        console.log(`     Y: ${(rot.y * 180 / Math.PI).toFixed(1).padStart(7)}° (${getRotYDescription(rot.y)})`);
-                        console.log(`     Z: ${(rot.z * 180 / Math.PI).toFixed(1).padStart(7)}° (${getRotZDescription(rot.z)})`);
-
-                        // Scale
-                        const scale = screen.scale;
-                        console.log('  📏 SCALE:');
-                        console.log(`     X: ${scale.x.toFixed(3)}`);
-                        console.log(`     Y: ${scale.y.toFixed(3)}`);
-                        console.log(`     Z: ${scale.z.toFixed(3)}`);
-
-                        // Bounding Box
                         const box = new THREE.Box3().setFromObject(screen);
-                        console.log('  📦 BOUNDING BOX (world space):');
-                        console.log(`     Min: (${box.min.x.toFixed(2)}, ${box.min.y.toFixed(2)}, ${box.min.z.toFixed(2)})`);
-                        console.log(`     Max: (${box.max.x.toFixed(2)}, ${box.max.y.toFixed(2)}, ${box.max.z.toFixed(2)})`);
 
-                        // Edges
-                        console.log('  🔷 EDGES (world coordinates):');
-                        console.log(`     TOP    edge: Y = ${box.max.y.toFixed(3)}`);
-                        console.log(`     BOTTOM edge: Y = ${box.min.y.toFixed(3)}`);
-                        console.log(`     LEFT   edge: X = ${box.min.x.toFixed(3)}`);
-                        console.log(`     RIGHT  edge: X = ${box.max.x.toFixed(3)}`);
-                        console.log(`     FRONT  edge: Z = ${box.max.z.toFixed(3)}`);
-                        console.log(`     BACK   edge: Z = ${box.min.z.toFixed(3)}`);
+                        // Build text for this screen
+                        let labelText = `ECRAN #${screenNum}\n`;
+                        labelText += `${getScreenName(index)}\n`;
+                        labelText += `\n`;
+                        labelText += `POS: X=${pos.x.toFixed(1)} Y=${pos.y.toFixed(1)} Z=${pos.z.toFixed(1)}\n`;
+                        labelText += `ROT: X=${(rot.x * 180 / Math.PI).toFixed(0)}° Y=${(rot.y * 180 / Math.PI).toFixed(0)}° Z=${(rot.z * 180 / Math.PI).toFixed(0)}°\n`;
+                        labelText += `\n`;
+                        labelText += `EDGES:\n`;
+                        labelText += `TOP: Y=${box.max.y.toFixed(1)}\n`;
+                        labelText += `BOTTOM: Y=${box.min.y.toFixed(1)}\n`;
+                        labelText += `LEFT: X=${box.min.x.toFixed(1)}\n`;
+                        labelText += `RIGHT: X=${box.max.x.toFixed(1)}\n`;
+                        labelText += `FRONT: Z=${box.max.z.toFixed(1)}\n`;
+                        labelText += `BACK: Z=${box.min.z.toFixed(1)}\n`;
+                        labelText += `\n`;
+                        labelText += `TYPE: ${getScreenType(rot)}\n`;
+                        labelText += `FACE: ${getFaceDirection(rot)}`;
 
-                        // Orientation
-                        console.log('  🧭 ORIENTATION:');
-                        console.log(`     Face direction: ${getFaceDirection(rot)}`);
-                        console.log(`     Screen type: ${getScreenType(rot)}`);
+                        // Create sprite
+                        const sprite = createTextSprite(labelText, {
+                            fontsize: 14,
+                            backgroundColor: { r: 0, g: 0, b: 0, a: 0.9 },
+                            textColor: { r: 0, g: 255, b: 255, a: 1.0 }
+                        });
 
-                        console.log('');
+                        // Position sprite in front of screen center
+                        const center = box.getCenter(new THREE.Vector3());
+
+                        // Offset sprite forward based on screen orientation
+                        const normal = new THREE.Vector3(0, 0, 1);
+                        normal.applyEuler(screen.rotation);
+                        sprite.position.copy(center).add(normal.multiplyScalar(50));
+
+                        scene.add(sprite);
+                        infoSprites.push(sprite);
                     });
-
-                    // Analyze hinges
-                    console.log('═══════════════════════════════════════════════════════════════');
-                    console.log('🔗 CHARNIÈRES (HINGES) ANALYSIS:');
-                    console.log('═══════════════════════════════════════════════════════════════');
-                    analyzeHinges(screensGroup);
 
                 } else {
                     console.log('⚠️  No screens found in screensGroup');
                 }
 
-                console.log('');
-                console.log('💡 Press I again to hide this information');
+                console.log('[INFO MODE] 3D labels displayed - Press I to hide');
 
             } else {
+                // Remove all sprites
+                infoSprites.forEach(sprite => {
+                    scene.remove(sprite);
+                    if (sprite.material.map) sprite.material.map.dispose();
+                    sprite.material.dispose();
+                });
+                infoSprites = [];
                 console.log('[INFO MODE] DISABLED');
             }
         }
