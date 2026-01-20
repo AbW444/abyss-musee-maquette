@@ -326,6 +326,21 @@
 
             <div class="param-row">
                 <div class="param-header">
+                    <label>EMISSIVE</label>
+                    <div class="param-controls">
+                        <button class="arrow-btn" data-param="emissive" data-dir="down">▼</button>
+                        <span class="value" id="val-emissive" data-param="emissive">0.30</span>
+                        <button class="arrow-btn" data-param="emissive" data-dir="up">▲</button>
+                    </div>
+                </div>
+                <div class="slider-wrapper">
+                    <input type="range" class="slider" id="emissive" min="0.0" max="1.0" step="0.05" value="0.3">
+                    <div class="center-mark" style="left: 30%;"></div>
+                </div>
+            </div>
+
+            <div class="param-row">
+                <div class="param-header">
                     <label>FLOW</label>
                     <div class="param-controls">
                         <button class="arrow-btn" data-param="flow" data-dir="down">▼</button>
@@ -461,6 +476,7 @@
         let saturation = 0.80;
         let hideBackground = false;
         let bgThreshold = 40;
+        let emissiveIntensity = 0.3; // Émissivité/glow des particules lumineuses
 
         // Video sampling data for continuous updates
         let videoSamplingCanvas = null;
@@ -523,6 +539,7 @@
             depth: { min: 0.0, max: 0.2, step: 0.01, decimals: 2, suffix: 'X' }, // Plage 0-0.2 pour précision sur petites valeurs
             breath: { min: 0, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
             brightness: { min: 0.5, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
+            emissive: { min: 0.0, max: 1.0, step: 0.05, decimals: 2, suffix: '' }, // Émissivité/glow
             flow: { min: 0, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
             blackThreshold: { min: 0, max: 128, step: 1, decimals: 0, suffix: '' },
             depthCullPower: { min: 0.0, max: 1.0, step: 0.05, decimals: 2, suffix: '' },
@@ -546,9 +563,11 @@
                 slider.addEventListener('input', function() {
                     updateValueDisplay(param);
 
-                    // Flow is real-time, doesn't need regeneration
+                    // Flow and Emissive are real-time, don't need regeneration
                     if (param === 'flow') {
                         flowIntensity = parseFloat(slider.value);
+                    } else if (param === 'emissive') {
+                        emissiveIntensity = parseFloat(slider.value);
                     } else {
                         scheduleRegenerate();
                     }
@@ -1457,12 +1476,14 @@
                     document.getElementById('depth').value = 0.1;
                     document.getElementById('breath').value = 0.0;
                     document.getElementById('brightness').value = 1.8;
+                    document.getElementById('emissive').value = 0.3;
 
                     updateValueDisplay('size');
                     updateValueDisplay('density');
                     updateValueDisplay('depth');
                     updateValueDisplay('breath');
                     updateValueDisplay('brightness');
+                    updateValueDisplay('emissive');
 
                     document.getElementById('load-section').classList.add('hidden');
                     document.getElementById('controls').classList.remove('hidden');
@@ -1545,6 +1566,7 @@
             depthMultiplier = parseFloat(document.getElementById('depth').value); // Plage ajustée 0-0.2 pour plus de précision
             breathSpeed = parseFloat(document.getElementById('breath').value);
             brightness = parseFloat(document.getElementById('brightness').value);
+            emissiveIntensity = parseFloat(document.getElementById('emissive').value);
             flowIntensity = parseFloat(document.getElementById('flow').value);
 
             // New v1.3.1 parameters
@@ -1844,8 +1866,8 @@
                     flatShading: true,
                     roughness: 0.7,
                     metalness: 0.3,
-                    emissive: 0x000000,
-                    emissiveIntensity: 0.2
+                    emissive: 0xffffff, // Couleur émissive = blanc pour prendre la couleur des particules
+                    emissiveIntensity: emissiveIntensity // Intensité contrôlée par le slider
                 });
 
                 particles = new THREE.InstancedMesh(baseGeometry, material, count);
@@ -2130,9 +2152,10 @@
         function resetToDefaults() {
             document.getElementById('size').value = 0.39;
             document.getElementById('density').value = 13;
-            document.getElementById('depth').value = 0.2;
+            document.getElementById('depth').value = 0.1;
             document.getElementById('breath').value = 0.0;
             document.getElementById('brightness').value = 1.8;
+            document.getElementById('emissive').value = 0.3;
             document.getElementById('flow').value = 0.0;
             document.getElementById('blackThreshold').value = 30;
             document.getElementById('hide-black').checked = false;
@@ -2151,12 +2174,14 @@
             saturation = 0.80;
             hideBackground = false;
             bgThreshold = 40;
+            emissiveIntensity = 0.3;
 
             updateValueDisplay('size');
             updateValueDisplay('density');
             updateValueDisplay('depth');
             updateValueDisplay('breath');
             updateValueDisplay('brightness');
+            updateValueDisplay('emissive');
             updateValueDisplay('flow');
             updateValueDisplay('blackThreshold');
             updateValueDisplay('depthCullPower');
@@ -2308,11 +2333,30 @@
                                 bNorm = Math.max(0, Math.min(1, bNorm));
                             }
 
-                            // Update color with brightness boost
+                            // Apply brightness boost
+                            let finalR = rNorm * brightness;
+                            let finalG = gNorm * brightness;
+                            let finalB = bNorm * brightness;
+
+                            // Professional emissive effect: brighter particles glow more (non-linear power curve)
+                            if (emissiveIntensity > 0) {
+                                // Calculate luminance of the pixel
+                                const pixelLuminance = 0.299 * finalR + 0.587 * finalG + 0.114 * finalB;
+
+                                // Power curve: bright pixels get boosted more (quadratic for smooth glow)
+                                const emissiveBoost = Math.pow(pixelLuminance, 2.0) * emissiveIntensity;
+
+                                // Add emissive glow to bright particles
+                                finalR += emissiveBoost * finalR;
+                                finalG += emissiveBoost * finalG;
+                                finalB += emissiveBoost * finalB;
+                            }
+
+                            // Update color with brightness + emissive
                             newColors.push(
-                                Math.min(1.0, rNorm * brightness),
-                                Math.min(1.0, gNorm * brightness),
-                                Math.min(1.0, bNorm * brightness)
+                                Math.min(1.0, finalR),
+                                Math.min(1.0, finalG),
+                                Math.min(1.0, finalB)
                             );
                         }
                     }
