@@ -433,6 +433,8 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <script>
         let scene, camera, renderer, particles;
         let geometry, material;
@@ -479,6 +481,17 @@
         // Performance optimization: Throttle video updates to reduce CPU load
         let lastVideoUpdateTime = 0;
         const VIDEO_UPDATE_INTERVAL = 16; // ~60fps, adjust if needed (33ms = ~30fps)
+
+        // Transform controls for manipulating screens
+        let transformControls = null;
+        let orbitControls = null;
+        let selectedScreen = null;
+        let allScreens = {}; // Store all screens by number
+
+        // Undo/Redo system
+        let undoHistory = [];
+        let redoHistory = [];
+        const MAX_HISTORY = 50;
 
         // Real-time regeneration with debounce
         function scheduleRegenerate() {
@@ -676,18 +689,231 @@
             video.currentTime = pos * video.duration;
         }
 
-        // Spacebar to play/pause, I key for info mode
+        // Keyboard controls
         document.addEventListener('keydown', function(e) {
+            // Space: play/pause
             if (e.code === 'Space' && currentVideo) {
                 e.preventDefault();
                 toggleVideo();
             }
-            // I key to toggle detailed info mode
+
+            // I: toggle info mode
             if (e.code === 'KeyI') {
                 e.preventDefault();
                 toggleInfoMode();
             }
+
+            // Number keys 1-7: Select screen (keyboard + numpad)
+            if ((e.code >= 'Digit1' && e.code <= 'Digit7') || (e.code >= 'Numpad1' && e.code <= 'Numpad7')) {
+                e.preventDefault();
+                const screenNum = parseInt(e.code.replace('Digit', '').replace('Numpad', ''));
+                selectScreen(screenNum);
+            }
+
+            // G: Translate mode
+            if (e.code === 'KeyG' && selectedScreen) {
+                e.preventDefault();
+                transformControls.setMode('translate');
+                console.log('Mode: TRANSLATE (déplacement XYZ)');
+            }
+
+            // R: Rotate mode
+            if (e.code === 'KeyR' && selectedScreen) {
+                e.preventDefault();
+                transformControls.setMode('rotate');
+                console.log('Mode: ROTATE (rotation XYZ)');
+            }
+
+            // E: Scale mode
+            if (e.code === 'KeyE' && selectedScreen) {
+                e.preventDefault();
+                transformControls.setMode('scale');
+                console.log('Mode: SCALE (échelle XYZ)');
+            }
+
+            // Escape: Deselect screen
+            if (e.code === 'Escape' && selectedScreen) {
+                e.preventDefault();
+                deselectScreen();
+            }
+
+            // S: Save all positions (only if no screen selected)
+            if (e.code === 'KeyS' && !selectedScreen && !e.ctrlKey) {
+                e.preventDefault();
+                saveAllPositions();
+            }
+
+            // Ctrl+Z: Undo
+            if (e.code === 'KeyZ' && e.ctrlKey && !e.shiftKey) {
+                e.preventDefault();
+                undo();
+            }
+
+            // Ctrl+Shift+Z or Ctrl+Y: Redo
+            if ((e.code === 'KeyZ' && e.ctrlKey && e.shiftKey) || (e.code === 'KeyY' && e.ctrlKey)) {
+                e.preventDefault();
+                redo();
+            }
         });
+
+        // Transform control functions
+        function selectScreen(num) {
+            if (!allScreens[num]) {
+                console.log(`Écran ${num} n'existe pas`);
+                return;
+            }
+
+            // Save state before selection (for undo)
+            saveState();
+
+            selectedScreen = num;
+            transformControls.attach(allScreens[num]);
+
+            // Set snap settings based on Shift key
+            document.addEventListener('keydown', onShiftChange);
+            document.addEventListener('keyup', onShiftChange);
+
+            console.log(`=== ÉCRAN ${num} SÉLECTIONNÉ ===`);
+            console.log('Commandes:');
+            console.log('  G = Mode Translation');
+            console.log('  R = Mode Rotation');
+            console.log('  E = Mode Scale');
+            console.log('  Maj enfoncé = rotation par 10°, translation snapping');
+            console.log('  Échap = Désélectionner');
+            console.log('  Ctrl+Z = Annuler');
+        }
+
+        function deselectScreen() {
+            if (selectedScreen) {
+                console.log(`Écran ${selectedScreen} désélectionné`);
+                transformControls.detach();
+                selectedScreen = null;
+
+                document.removeEventListener('keydown', onShiftChange);
+                document.removeEventListener('keyup', onShiftChange);
+            }
+        }
+
+        function onShiftChange(e) {
+            if (!transformControls || !selectedScreen) return;
+
+            const isShiftPressed = e.shiftKey;
+
+            if (transformControls.mode === 'rotate') {
+                // Rotation par pas de 10° (en radians)
+                transformControls.setRotationSnap(isShiftPressed ? THREE.MathUtils.degToRad(10) : null);
+            } else if (transformControls.mode === 'translate') {
+                // Translation snapping de 10 unités
+                transformControls.setTranslationSnap(isShiftPressed ? 10 : null);
+            }
+        }
+
+        function saveState() {
+            const state = {};
+            Object.keys(allScreens).forEach(num => {
+                const screen = allScreens[num];
+                state[num] = {
+                    position: screen.position.clone(),
+                    rotation: screen.rotation.clone(),
+                    scale: screen.scale.clone()
+                };
+            });
+
+            undoHistory.push(state);
+            if (undoHistory.length > MAX_HISTORY) {
+                undoHistory.shift();
+            }
+
+            // Clear redo history when new action is made
+            redoHistory = [];
+        }
+
+        function undo() {
+            if (undoHistory.length === 0) {
+                console.log('Rien à annuler');
+                return;
+            }
+
+            // Save current state to redo
+            const currentState = {};
+            Object.keys(allScreens).forEach(num => {
+                const screen = allScreens[num];
+                currentState[num] = {
+                    position: screen.position.clone(),
+                    rotation: screen.rotation.clone(),
+                    scale: screen.scale.clone()
+                };
+            });
+            redoHistory.push(currentState);
+
+            // Restore previous state
+            const previousState = undoHistory.pop();
+            Object.keys(previousState).forEach(num => {
+                const screen = allScreens[num];
+                const state = previousState[num];
+                screen.position.copy(state.position);
+                screen.rotation.copy(state.rotation);
+                screen.scale.copy(state.scale);
+            });
+
+            console.log('Annulé (Ctrl+Z)');
+        }
+
+        function redo() {
+            if (redoHistory.length === 0) {
+                console.log('Rien à refaire');
+                return;
+            }
+
+            // Save current to undo
+            const currentState = {};
+            Object.keys(allScreens).forEach(num => {
+                const screen = allScreens[num];
+                currentState[num] = {
+                    position: screen.position.clone(),
+                    rotation: screen.rotation.clone(),
+                    scale: screen.scale.clone()
+                };
+            });
+            undoHistory.push(currentState);
+
+            // Restore redo state
+            const nextState = redoHistory.pop();
+            Object.keys(nextState).forEach(num => {
+                const screen = allScreens[num];
+                const state = nextState[num];
+                screen.position.copy(state.position);
+                screen.rotation.copy(state.rotation);
+                screen.scale.copy(state.scale);
+            });
+
+            console.log('Refait (Ctrl+Shift+Z)');
+        }
+
+        function saveAllPositions() {
+            console.log('');
+            console.log('='.repeat(60));
+            console.log('SAUVEGARDE DES POSITIONS - COPIER-COLLER DANS LE CODE');
+            console.log('='.repeat(60));
+            console.log('');
+
+            Object.keys(allScreens).sort().forEach(num => {
+                const screen = allScreens[num];
+                const pos = screen.position;
+                const rot = screen.rotation;
+                const scale = screen.scale;
+
+                console.log(`// Écran ${num}`);
+                console.log(`screen${num}.position.set(${pos.x.toFixed(3)}, ${pos.y.toFixed(3)}, ${pos.z.toFixed(3)});`);
+                console.log(`screen${num}.rotation.set(${rot.x.toFixed(6)}, ${rot.y.toFixed(6)}, ${rot.z.toFixed(6)});`);
+                if (scale.x !== 1 || scale.y !== 1 || scale.z !== 1) {
+                    console.log(`screen${num}.scale.set(${scale.x.toFixed(3)}, ${scale.y.toFixed(3)}, ${scale.z.toFixed(3)});`);
+                }
+                console.log('');
+            });
+
+            console.log('='.repeat(60));
+        }
 
         // Create text sprite for 3D labels
         function createTextSprite(text, parameters) {
@@ -1075,27 +1301,27 @@
             directionalLight2.position.set(-1, -1, -0.5);
             scene.add(directionalLight2);
 
-            // Mouse control
-            let isDrag = false;
-            let prevMouse = { x: 0, y: 0 };
+            // OrbitControls for camera movement
+            orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = true;
+            orbitControls.dampingFactor = 0.05;
+            orbitControls.target.set(0, 0, 0);
 
-            renderer.domElement.onmousedown = function(e) {
-                isDrag = true;
-                prevMouse = { x: e.clientX, y: e.clientY };
-            };
+            // TransformControls for manipulating screens
+            transformControls = new THREE.TransformControls(camera, renderer.domElement);
+            scene.add(transformControls);
 
-            renderer.domElement.onmousemove = function(e) {
-                if (!isDrag || !screensGroup) return;
-                const dx = e.clientX - prevMouse.x;
-                const dy = e.clientY - prevMouse.y;
-                screensGroup.rotation.y += dx * 0.005;
-                screensGroup.rotation.x += dy * 0.005;
-                prevMouse = { x: e.clientX, y: e.clientY };
-            };
+            // When transforming, disable orbit controls
+            transformControls.addEventListener('dragging-changed', function(event) {
+                orbitControls.enabled = !event.value;
+            });
 
-            document.onmouseup = function() {
-                isDrag = false;
-            };
+            // Save state when starting to drag
+            transformControls.addEventListener('mouseDown', function() {
+                if (selectedScreen) {
+                    saveState();
+                }
+            });
 
             // Zoom with mouse wheel
             renderer.domElement.addEventListener('wheel', function(e) {
@@ -1669,75 +1895,48 @@
             screensGroup.add(wallOppB);
 
             // === ÉCRAN 7: panneau latéral collé sur le côté droit de l'écran 6 ===
-            // Update world matrix pour avoir les positions réelles
-            screensGroup.updateMatrixWorld(true);
-
-            // Calculer la Box3 de l'écran 6 (wallOppB)
-            const box6 = new THREE.Box3().setFromObject(wallOppB);
-
-            console.log('=== ÉCRAN 7 PLACEMENT ===');
-            console.log('Écran 6 (wallOppB) Box3:', {
-                min: box6.min.toArray().map(v => v.toFixed(2)),
-                max: box6.max.toArray().map(v => v.toFixed(2))
-            });
-
-            // Créer l'écran 7
             const screen7 = particles.clone();
             screen7.geometry = particles.geometry;
             screen7.material = particles.material;
 
-            // Position initiale temporaire
-            screen7.position.set(0, 0, 0);
+            // Demi-largeur (divise la largeur par 2)
+            screen7.scale.set(0.5, 1, 1);
 
-            // Rotation: perpendiculaire à l'écran 6 (tourné de 90° par rapport à lui)
-            // L'écran 6 a rotation Y = π, donc l'écran 7 doit avoir Y = π/2 ou -π/2
+            // Position fixe : collé au côté droit de l'écran 6
+            // L'écran 6 est à (screenW, 0, screenH) avec largeur screenW/2 de chaque côté
+            // Donc son bord droit est à X = screenW + screenW/2
+            // L'écran 7 avec rotation π/2 et scale 0.5 a sa largeur selon Z
+            // Son centre doit être à X = screenW + screenW/2 + (screenW * 0.5) / 4
+            screen7.position.set(screenW + screenW * 0.625, 0, screenH);
+
+            // Rotation: perpendiculaire à l'écran 6 (π/2)
             screen7.rotation.set(0, Math.PI / 2, 0);
 
-            // Ajouter temporairement pour calculer sa Box3
             screensGroup.add(screen7);
-            screensGroup.updateMatrixWorld(true);
 
-            // Calculer sa Box3 actuelle
-            const box7 = new THREE.Box3().setFromObject(screen7);
+            // Store all screens for manipulation
+            allScreens = {
+                1: particles,           // Wall back left
+                2: particlesRight,      // Wall back right
+                3: floorLeft,           // Floor left
+                4: floorRight,          // Floor right
+                5: wallOppA,            // Wall front left
+                6: wallOppB,            // Wall front right
+                7: screen7              // Side panel (demi-largeur)
+            };
 
-            console.log('Écran 7 Box3 (avant placement):', {
-                min: box7.min.toArray().map(v => v.toFixed(2)),
-                max: box7.max.toArray().map(v => v.toFixed(2))
-            });
-
-            // PLACEMENT PRÉCIS : coller l'écran 7 sur le côté droit de l'écran 6
-            // - Son min.x collé au max.x de l'écran 6
-            // - Son centre Y aligné avec le centre Y de l'écran 6
-            // - Son centre Z aligné avec le centre Z de l'écran 6
-
-            const center6 = new THREE.Vector3();
-            const center7 = new THREE.Vector3();
-            box6.getCenter(center6);
-            box7.getCenter(center7);
-
-            const deltaX = box6.max.x - box7.min.x;
-            const deltaY = center6.y - center7.y;
-            const deltaZ = center6.z - center7.z;
-
-            console.log('Deltas à appliquer:', {
-                deltaX: deltaX.toFixed(2),
-                deltaY: deltaY.toFixed(2),
-                deltaZ: deltaZ.toFixed(2)
-            });
-
-            // Appliquer les deltas
-            screen7.position.add(new THREE.Vector3(deltaX, deltaY, deltaZ));
-
-            // Vérification finale
-            screensGroup.updateMatrixWorld(true);
-            const box7Final = new THREE.Box3().setFromObject(screen7);
-
-            console.log('Écran 7 Box3 (après placement):', {
-                min: box7Final.min.toArray().map(v => v.toFixed(2)),
-                max: box7Final.max.toArray().map(v => v.toFixed(2))
-            });
-            console.log('Écran 7 position finale:', screen7.position.toArray().map(v => v.toFixed(2)));
-            console.log('=========================');
+            console.log('');
+            console.log('=== CONTRÔLES 3D DISPONIBLES ===');
+            console.log('Touches 1-7 : Sélectionner un écran');
+            console.log('G : Mode Translation');
+            console.log('R : Mode Rotation');
+            console.log('E : Mode Scale');
+            console.log('Maj enfoncé : rotation par 10°, translation snapping');
+            console.log('Échap : Désélectionner');
+            console.log('Ctrl+Z : Annuler');
+            console.log('Ctrl+Shift+Z : Refaire');
+            console.log('S : Sauvegarder positions');
+            console.log('================================');
 
             // Initialize flow offsets - random circular movement for each particle
             const particleCount = positions.length / 3;
@@ -2095,6 +2294,11 @@
 
                     geometry.attributes.position.needsUpdate = true;
                 }
+            }
+
+            // Update orbit controls
+            if (orbitControls) {
+                orbitControls.update();
             }
 
             renderer.render(scene, camera);
