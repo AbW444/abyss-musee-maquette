@@ -754,7 +754,7 @@
         // FPS Physics
         let playerVelocityY = 0;
         const GRAVITY = -0.8;
-        const PLAYER_HEIGHT = 170; // Hauteur des yeux du joueur en cm
+        const PLAYER_HEIGHT = 10; // Hauteur des yeux du joueur au-dessus du sol (quelques unités)
 
         // Undo/Redo system
         let undoHistory = [];
@@ -2332,18 +2332,19 @@
             }
 
             camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 10000);
-            // Position de spawn au centre de la forme 11, à hauteur d'œil (170cm au-dessus du sol)
-            camera.position.set(-274.876, 58.227, 112.79);
+            // Position de spawn au centre de la forme 11, à quelques unités au-dessus du sol
+            // Sol de la forme 11: y = -111.773, on spawn à +10 unités
+            camera.position.set(-274.876, -101.773, 112.79);
 
-            // Orienter la caméra vers l'écran 7 (position: 599.938, -0.064, 112.546)
-            const lookAtTarget = new THREE.Vector3(599.938, 0, 112.546);
+            // Orienter la caméra vers l'écran 7 puis tourner de 90° anti-horaire
+            const lookAtTarget = new THREE.Vector3(599.938, -101.773, 112.546);
             camera.lookAt(lookAtTarget);
 
             // Calculer yaw et pitch initiaux basés sur l'orientation
             const direction = new THREE.Vector3();
             direction.subVectors(lookAtTarget, camera.position).normalize();
-            cameraYaw = Math.atan2(direction.x, direction.z);
-            cameraPitch = Math.asin(-direction.y);
+            cameraYaw = Math.atan2(direction.x, direction.z) + Math.PI / 2; // +90° anti-horaire
+            cameraPitch = 0; // Vision horizontale
 
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
@@ -2601,6 +2602,7 @@
             console.log('');
             console.log('🔄 BASCULER ENTRE MODES:');
             console.log('   B            - Activer/désactiver MODE FPS');
+            console.log('   N            - Afficher/Cacher interfaces (cachées par défaut)');
             console.log('');
             console.log('📍 MODE NORMAL (par défaut):');
             console.log('   Flèches/WASD - Déplacement horizontal');
@@ -2615,7 +2617,8 @@
             console.log('   Gravité      - Marche sur formes 11 et 3');
             console.log('   Collisions   - Activées avec murs');
             console.log('');
-            console.log('📍 Spawn: Centre forme 11 → Vue vers écran 7');
+            console.log('📍 Spawn: Centre forme 11, quelques unités au-dessus');
+            console.log('🙈 Interfaces cachées - Appuyez sur N pour afficher');
             console.log('═══════════════════════════════════════════════════════');
 
             animate();
@@ -2662,9 +2665,10 @@
                     document.getElementById('load-section').classList.add('hidden');
                     document.getElementById('controls').classList.remove('hidden');
                     document.getElementById('ui').classList.add('loaded');
-                    // Screen manager visible par défaut, shape-selector caché
-                    document.getElementById('screen-manager-panel').classList.remove('hidden');
-                    // document.getElementById('shape-selector').classList.remove('hidden');
+                    // Interfaces cachées par défaut, appuyer sur N pour afficher
+                    document.getElementById('screen-manager-panel').classList.add('hidden');
+                    document.getElementById('ui').classList.add('hidden');
+                    // document.getElementById('shape-selector').classList.add('hidden'); // Already hidden
                     // updateScreenList(); // Removed: called at end of generate() instead
                 }
 
@@ -4476,12 +4480,12 @@
                     const playerBox = new THREE.Box3(
                         new THREE.Vector3(
                             camera.position.x - collisionMargin,
-                            camera.position.y - 85,
+                            camera.position.y - PLAYER_HEIGHT, // Pieds du joueur
                             camera.position.z - collisionMargin
                         ),
                         new THREE.Vector3(
                             camera.position.x + collisionMargin,
-                            camera.position.y + 85,
+                            camera.position.y + 5, // Tête du joueur
                             camera.position.z + collisionMargin
                         )
                     );
