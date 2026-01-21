@@ -778,7 +778,7 @@
             down: false,
             sprint: false
         };
-        const CAMERA_SPEED = 5; // Vitesse de déplacement de la caméra
+        const CAMERA_SPEED = 3; // Vitesse de déplacement de la caméra (réduite)
         const CAMERA_SPRINT_MULTIPLIER = 2.5; // Multiplicateur pour la vitesse de sprint
 
         // Real-time regeneration with debounce
@@ -1247,11 +1247,18 @@
             const ui = document.getElementById('ui');
             const screenManager = document.getElementById('screen-manager-panel');
             const shapeSelector = document.getElementById('shape-selector');
+            const loadSection = document.getElementById('load-section');
 
             const isVisible = !ui.classList.contains('hidden');
 
             if (isVisible) {
-                ui.classList.add('hidden');
+                // Cacher les interfaces SAUF load-section si aucune vidéo n'est chargée
+                if (currentVideo) {
+                    ui.classList.add('hidden');
+                } else {
+                    // Si pas de vidéo, garder load-section visible mais cacher le reste
+                    document.getElementById('controls')?.classList.add('hidden');
+                }
                 screenManager.classList.add('hidden');
                 shapeSelector.classList.add('hidden');
                 console.log('🙈 Interfaces cachées (N pour afficher)');
@@ -2317,27 +2324,18 @@
             screensGroup = new THREE.Group();
             scene.add(screensGroup);
 
-            // Calculate 16:9 aspect ratio dimensions
-            const aspectRatio = 16 / 9;
-            let canvasWidth, canvasHeight;
-
-            if (window.innerWidth / window.innerHeight > aspectRatio) {
-                // Window is wider than 16:9, fit to height
-                canvasHeight = window.innerHeight;
-                canvasWidth = canvasHeight * aspectRatio;
-            } else {
-                // Window is taller than 16:9, fit to width
-                canvasWidth = window.innerWidth;
-                canvasHeight = canvasWidth / aspectRatio;
-            }
+            // Utiliser la taille complète de la fenêtre (pas de ratio forcé)
+            const canvasWidth = window.innerWidth;
+            const canvasHeight = window.innerHeight;
+            const aspectRatio = canvasWidth / canvasHeight;
 
             camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 10000);
             // Position de spawn au centre de la forme 11, à quelques unités au-dessus du sol
-            // Sol de la forme 11: y = -111.773, on spawn à +10 unités
-            camera.position.set(-274.876, -101.773, 112.79);
+            // Sol de la forme 11: y = -111.773, on spawn à +17 unités
+            camera.position.set(-274.876, -95, 112.79);
 
             // Orienter la caméra vers l'écran 7 puis tourner de 90° anti-horaire
-            const lookAtTarget = new THREE.Vector3(599.938, -101.773, 112.546);
+            const lookAtTarget = new THREE.Vector3(599.938, -95, 112.546);
             camera.lookAt(lookAtTarget);
 
             // Calculer yaw et pitch initiaux basés sur l'orientation
@@ -2587,6 +2585,13 @@
                 // Move camera forward/backward along its direction
                 const forward = new THREE.Vector3();
                 camera.getWorldDirection(forward);
+
+                if (fpsMode) {
+                    // En mode FPS: avancer/reculer horizontalement seulement (pas de mouvement vertical)
+                    forward.y = 0;
+                    forward.normalize();
+                }
+
                 camera.position.addScaledVector(forward, -delta * zoomSpeed);
             });
 
@@ -4551,19 +4556,10 @@
 
         // Resize
         window.onresize = function() {
-            // Maintain 16:9 aspect ratio
-            const aspectRatio = 16 / 9;
-            let canvasWidth, canvasHeight;
-
-            if (window.innerWidth / window.innerHeight > aspectRatio) {
-                // Window is wider than 16:9, fit to height
-                canvasHeight = window.innerHeight;
-                canvasWidth = canvasHeight * aspectRatio;
-            } else {
-                // Window is taller than 16:9, fit to width
-                canvasWidth = window.innerWidth;
-                canvasHeight = canvasWidth / aspectRatio;
-            }
+            // Utiliser la taille complète de la fenêtre (pas de ratio forcé)
+            const canvasWidth = window.innerWidth;
+            const canvasHeight = window.innerHeight;
+            const aspectRatio = canvasWidth / canvasHeight;
 
             camera.aspect = aspectRatio;
             camera.updateProjectionMatrix();
