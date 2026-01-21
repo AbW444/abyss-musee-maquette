@@ -437,6 +437,7 @@
             <strong>Raccourcis clavier:</strong><br>
             Touche A: Ajouter un écran<br>
             Suppr/Backspace: Supprimer sélection<br>
+            Ctrl+C: Copier écran | Ctrl+V: Coller<br>
             1-7: Sélectionner écran<br>
             G/R/E/S: Translate/Rotate/Scale/Size
         </p>
@@ -731,6 +732,7 @@
         let transformControls = null;
         let selectedScreen = null;
         let allScreens = {}; // Store all screens by number
+        let clipboardScreen = null; // Store copied screen data for copy/paste
 
         // Free camera (no orbit controls, no pivot)
         let freeCameraEnabled = true;
@@ -997,6 +999,24 @@
                 return; // Stop here
             }
 
+            // Ctrl+C: Copy selected screen
+            if (e.code === 'KeyC' && e.ctrlKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('📋 Ctrl+C détecté - Copie écran');
+                copyScreen();
+                return; // Stop here
+            }
+
+            // Ctrl+V: Paste screen (create duplicate)
+            if (e.code === 'KeyV' && e.ctrlKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('📄 Ctrl+V détecté - Collage écran');
+                pasteScreen();
+                return; // Stop here
+            }
+
             // FPS Camera controls (always active, even with screen selected)
             if (e.code === 'ArrowUp') {
                 e.preventDefault();
@@ -1160,6 +1180,7 @@
             console.log('  S = Mode Redimensionnement (modifie positions, préserve depth)');
             console.log('  Maj enfoncé = rotation 15°, translation 1000');
             console.log('  Échap = Désélectionner');
+            console.log('  Ctrl+C = Copier | Ctrl+V = Coller (dupliquer)');
             console.log('  Ctrl+Z = Annuler | Ctrl+Shift+Z = Refaire');
             console.log('  Magnétisme auto : 0/90/180/270°');
         }
@@ -1283,6 +1304,123 @@
 
             // Update UI
             updateScreenList();
+        }
+
+        // Copy selected screen to clipboard
+        function copyScreen() {
+            if (!selectedScreen) {
+                console.log('❌ Aucun écran sélectionné pour copier');
+                return;
+            }
+
+            const screen = allScreens[selectedScreen];
+            if (!screen) {
+                console.log('❌ Écran non trouvé');
+                return;
+            }
+
+            // Deep copy all screen properties
+            clipboardScreen = {
+                position: {
+                    x: screen.position.x,
+                    y: screen.position.y,
+                    z: screen.position.z
+                },
+                rotation: {
+                    x: screen.rotation.x,
+                    y: screen.rotation.y,
+                    z: screen.rotation.z
+                },
+                scale: {
+                    x: screen.scale.x,
+                    y: screen.scale.y,
+                    z: screen.scale.z
+                },
+                isColorSurface: screen.userData.isColorSurface || false,
+                color: screen.userData.color || 0x808080,
+                geometryType: screen.geometry ? screen.geometry.type : 'PlaneGeometry',
+                dimensions: null
+            };
+
+            // Copy geometry dimensions if available
+            if (screen.geometry && screen.geometry.parameters) {
+                const params = screen.geometry.parameters;
+                if (params.width !== undefined && params.height !== undefined) {
+                    clipboardScreen.dimensions = {
+                        width: params.width,
+                        height: params.height
+                    };
+                }
+            }
+
+            console.log(`📋 Écran ${selectedScreen} copié dans le presse-papiers`);
+            console.log('   Dimensions:', clipboardScreen.dimensions);
+            console.log('   Position:', clipboardScreen.position);
+        }
+
+        // Paste screen from clipboard (create duplicate)
+        function pasteScreen() {
+            if (!clipboardScreen) {
+                console.log('❌ Presse-papiers vide - copiez d\'abord un écran (Ctrl+C)');
+                return;
+            }
+
+            // Find next available screen number
+            let newNum = 1;
+            while (allScreens[newNum]) {
+                newNum++;
+            }
+
+            // Save state for undo
+            saveState();
+
+            // Create geometry based on stored data
+            let width = 450;
+            let height = 450;
+            if (clipboardScreen.dimensions) {
+                width = clipboardScreen.dimensions.width;
+                height = clipboardScreen.dimensions.height;
+            }
+
+            const geometry = new THREE.PlaneGeometry(width, height);
+            const material = new THREE.MeshBasicMaterial({
+                color: clipboardScreen.color,
+                side: THREE.DoubleSide
+            });
+            const screen = new THREE.Mesh(geometry, material);
+
+            // Copy position, rotation, scale
+            screen.position.set(
+                clipboardScreen.position.x,
+                clipboardScreen.position.y,
+                clipboardScreen.position.z
+            );
+            screen.rotation.set(
+                clipboardScreen.rotation.x,
+                clipboardScreen.rotation.y,
+                clipboardScreen.rotation.z
+            );
+            screen.scale.set(
+                clipboardScreen.scale.x,
+                clipboardScreen.scale.y,
+                clipboardScreen.scale.z
+            );
+
+            // Copy metadata
+            screen.userData.screenNumber = newNum;
+            screen.userData.isColorSurface = clipboardScreen.isColorSurface;
+            screen.userData.color = clipboardScreen.color;
+
+            screensGroup.add(screen);
+            allScreens[newNum] = screen;
+
+            console.log(`✅ Écran ${newNum} créé par collage (duplicata)`);
+            console.log(`   Position: (${screen.position.x.toFixed(3)}, ${screen.position.y.toFixed(3)}, ${screen.position.z.toFixed(3)})`);
+            console.log(`   Dimensions: ${width} x ${height}`);
+
+            // Update UI and select new screen
+            updateScreenList();
+            selectScreen(newNum);
         }
 
         function updateScreenList() {
