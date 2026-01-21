@@ -2356,12 +2356,12 @@
                     // Screen manager visible par défaut, shape-selector caché
                     document.getElementById('screen-manager-panel').classList.remove('hidden');
                     // document.getElementById('shape-selector').classList.remove('hidden');
-                    updateScreenList(); // Update screen management UI
+                    // updateScreenList(); // Removed: called at end of generate() instead
                 }
 
                 // Auto-play
                 videoElement.play();
-                generate(videoElement);
+                generate(videoElement); // updateScreenList() is called at the end of this function
 
                 // Update timeline duration when metadata is loaded
                 videoElement.addEventListener('loadedmetadata', function() {
@@ -3067,6 +3067,10 @@
                 ...customShapesToPreserve // Restore custom shapes
             };
             console.log('✅ Tous les écrans restaurés:', Object.keys(allScreens));
+
+            // CRITICAL: Update screen list UI immediately after allScreens is populated
+            updateScreenList();
+            console.log('🎨 Interface de gestion des écrans mise à jour');
 
             // CRITICAL: Reattach transform controls to the same screen after regeneration
             if (transformControls && wasScreenSelected && allScreens[wasScreenSelected]) {
