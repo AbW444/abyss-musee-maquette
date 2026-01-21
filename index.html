@@ -741,6 +741,15 @@
         let mouseSensitivity = 0.002;
         let isMouseLocked = false;
 
+        // FPS visual effects
+        let headBobTimer = 0;
+        const HEAD_BOB_SPEED = 0.15;
+        const HEAD_BOB_AMOUNT = 0.8;
+        const DEFAULT_FOV = 75;
+        const SPRINT_FOV_INCREASE = 5;
+        let currentFOV = DEFAULT_FOV;
+        let targetFOV = DEFAULT_FOV;
+
         // Undo/Redo system
         let undoHistory = [];
         let redoHistory = [];
@@ -760,9 +769,11 @@
             left: false,
             right: false,
             up: false,
-            down: false
+            down: false,
+            sprint: false
         };
         const CAMERA_SPEED = 5; // Vitesse de déplacement de la caméra
+        const CAMERA_SPRINT_MULTIPLIER = 2.5; // Multiplicateur pour la vitesse de sprint
 
         // Real-time regeneration with debounce
         function scheduleRegenerate() {
@@ -1018,19 +1029,20 @@
             }
 
             // FPS Camera controls (always active, even with screen selected)
-            if (e.code === 'ArrowUp') {
+            // Arrow keys always work; WASD only when no screen selected
+            if (e.code === 'ArrowUp' || (e.code === 'KeyW' && !selectedScreen)) {
                 e.preventDefault();
                 cameraKeys.forward = true;
             }
-            if (e.code === 'ArrowDown') {
+            if (e.code === 'ArrowDown' || (e.code === 'KeyS' && !selectedScreen && !e.ctrlKey)) {
                 e.preventDefault();
                 cameraKeys.backward = true;
             }
-            if (e.code === 'ArrowLeft') {
+            if (e.code === 'ArrowLeft' || (e.code === 'KeyA' && !selectedScreen && !e.ctrlKey)) {
                 e.preventDefault();
                 cameraKeys.left = true;
             }
-            if (e.code === 'ArrowRight') {
+            if (e.code === 'ArrowRight' || (e.code === 'KeyD' && !selectedScreen)) {
                 e.preventDefault();
                 cameraKeys.right = true;
             }
@@ -1043,6 +1055,11 @@
             if (e.code === 'KeyL') {
                 e.preventDefault();
                 cameraKeys.down = true;
+            }
+
+            // Shift: Sprint (when no screen selected)
+            if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !selectedScreen) {
+                cameraKeys.sprint = true;
             }
 
             // Space: play/pause (only if video exists)
@@ -1138,16 +1155,16 @@
 
         // Keyboard controls - keyup for FPS camera
         document.addEventListener('keyup', function(e) {
-            if (e.code === 'ArrowUp') {
+            if (e.code === 'ArrowUp' || e.code === 'KeyW') {
                 cameraKeys.forward = false;
             }
-            if (e.code === 'ArrowDown') {
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') {
                 cameraKeys.backward = false;
             }
-            if (e.code === 'ArrowLeft') {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
                 cameraKeys.left = false;
             }
-            if (e.code === 'ArrowRight') {
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') {
                 cameraKeys.right = false;
             }
             if (e.code === 'KeyO') {
@@ -1155,6 +1172,9 @@
             }
             if (e.code === 'KeyL') {
                 cameraKeys.down = false;
+            }
+            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+                cameraKeys.sprint = false;
             }
         });
 
@@ -2286,23 +2306,63 @@
             }
 
             camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 10000);
-            camera.position.z = 300;
+            // Position de spawn au centre de la forme 11, à hauteur d'œil (170cm au-dessus du sol)
+            camera.position.set(-274.876, 58.227, 112.79);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            // Orienter la caméra vers l'écran 7 (position: 599.938, -0.064, 112.546)
+            const lookAtTarget = new THREE.Vector3(599.938, 0, 112.546);
+            camera.lookAt(lookAtTarget);
+
+            // Calculer yaw et pitch initiaux basés sur l'orientation
+            const direction = new THREE.Vector3();
+            direction.subVectors(lookAtTarget, camera.position).normalize();
+            cameraYaw = Math.atan2(direction.x, direction.z);
+            cameraPitch = Math.asin(-direction.y);
+
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true,
+                powerPreference: 'high-performance'
+            });
             renderer.setSize(canvasWidth, canvasHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
             document.getElementById('canvas').appendChild(renderer.domElement);
 
-            // Add lighting for 3D mode
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            // Museum-style lighting: soft ambient + key spotlights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
             scene.add(ambientLight);
 
-            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight1.position.set(1, 1, 1);
-            scene.add(directionalLight1);
+            // Lumière principale (key light) - simule éclairage zénithal de musée
+            const keyLight = new THREE.DirectionalLight(0xfff5e6, 0.8);
+            keyLight.position.set(0, 300, 0);
+            keyLight.castShadow = true;
+            keyLight.shadow.mapSize.width = 2048;
+            keyLight.shadow.mapSize.height = 2048;
+            keyLight.shadow.camera.near = 0.5;
+            keyLight.shadow.camera.far = 500;
+            scene.add(keyLight);
 
-            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
-            directionalLight2.position.set(-1, -1, -0.5);
-            scene.add(directionalLight2);
+            // Lumière de remplissage (fill light) - adoucit les ombres
+            const fillLight = new THREE.DirectionalLight(0xe6f2ff, 0.3);
+            fillLight.position.set(-200, 100, 200);
+            scene.add(fillLight);
+
+            // Lumière arrière (rim light) - crée de la profondeur
+            const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
+            rimLight.position.set(0, 50, -200);
+            scene.add(rimLight);
+
+            // Point lights subtils pour créer de l'atmosphère
+            const spotLight1 = new THREE.PointLight(0xfff5e6, 0.6, 400);
+            spotLight1.position.set(200, 100, 0);
+            scene.add(spotLight1);
+
+            const spotLight2 = new THREE.PointLight(0xfff5e6, 0.6, 400);
+            spotLight2.position.set(-200, 100, 200);
+            scene.add(spotLight2);
 
             // FREE CAMERA: Pas d'OrbitControls, caméra complètement libre
             // Rotation avec clic droit + drag, mouvement avec flèches
@@ -2437,7 +2497,19 @@
             });
 
             renderer.domElement.addEventListener('mousemove', function(e) {
-                if (isLeftMouseDown && freeCameraEnabled) {
+                // PointerLock mode (FPS-style)
+                if (isMouseLocked && freeCameraEnabled) {
+                    const deltaX = e.movementX || 0;
+                    const deltaY = e.movementY || 0;
+
+                    cameraYaw -= deltaX * mouseSensitivity;
+                    cameraPitch -= deltaY * mouseSensitivity;
+
+                    // Clamp pitch to avoid flipping
+                    cameraPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraPitch));
+                }
+                // Legacy click+drag mode
+                else if (isLeftMouseDown && freeCameraEnabled) {
                     const deltaX = e.clientX - lastMouseX;
                     const deltaY = e.clientY - lastMouseY;
 
@@ -2451,6 +2523,33 @@
                     lastMouseY = e.clientY;
                 }
             });
+
+            // PointerLock API setup for FPS-style controls
+            renderer.domElement.addEventListener('click', function() {
+                if (!selectedScreen && freeCameraEnabled) {
+                    renderer.domElement.requestPointerLock = renderer.domElement.requestPointerLock ||
+                                                             renderer.domElement.mozRequestPointerLock ||
+                                                             renderer.domElement.webkitRequestPointerLock;
+                    renderer.domElement.requestPointerLock();
+                }
+            });
+
+            // PointerLock change event
+            document.addEventListener('pointerlockchange', lockChangeCallback, false);
+            document.addEventListener('mozpointerlockchange', lockChangeCallback, false);
+            document.addEventListener('webkitpointerlockchange', lockChangeCallback, false);
+
+            function lockChangeCallback() {
+                if (document.pointerLockElement === renderer.domElement ||
+                    document.mozPointerLockElement === renderer.domElement ||
+                    document.webkitPointerLockElement === renderer.domElement) {
+                    isMouseLocked = true;
+                    console.log('🎮 Mode FPS activé (ESC pour quitter)');
+                } else {
+                    isMouseLocked = false;
+                    console.log('🖱️ Mode FPS désactivé');
+                }
+            }
 
             // Zoom with mouse wheel
             renderer.domElement.addEventListener('wheel', function(e) {
@@ -2468,6 +2567,28 @@
             setupSliderListeners();
             setupValueEditing();
             setupArrowButtons();
+
+            // Display FPS controls in console
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('🏛️  MODE SIMULATION MUSÉE - CONTRÔLES FPS');
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('🎮 CONTRÔLES DE DÉPLACEMENT:');
+            console.log('   W/Z/↑        - Avancer');
+            console.log('   S/↓          - Reculer');
+            console.log('   A/Q/←        - Gauche');
+            console.log('   D/→          - Droite');
+            console.log('   Shift        - Sprint (x2.5 vitesse)');
+            console.log('   O            - Monter');
+            console.log('   L            - Descendre');
+            console.log('');
+            console.log('🖱️  CONTRÔLES CAMÉRA:');
+            console.log('   Clic canvas  - Activer mode PointerLock FPS');
+            console.log('   ESC          - Désactiver PointerLock');
+            console.log('   Souris       - Regarder autour');
+            console.log('   Molette      - Zoom avant/arrière');
+            console.log('');
+            console.log('📍 SPAWN POINT: Centre forme 11 → Vue vers écran 7');
+            console.log('═══════════════════════════════════════════════════════');
 
             animate();
         }
@@ -4273,24 +4394,97 @@
                 right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
                 right.normalize();
 
+                // Apply sprint multiplier if shift is held
+                const currentSpeed = cameraKeys.sprint ? CAMERA_SPEED * CAMERA_SPRINT_MULTIPLIER : CAMERA_SPEED;
+
+                // Store previous position for collision detection
+                const prevPosition = camera.position.clone();
+
                 if (cameraKeys.forward) {
-                    camera.position.addScaledVector(forward, CAMERA_SPEED);
+                    camera.position.addScaledVector(forward, currentSpeed);
                 }
                 if (cameraKeys.backward) {
-                    camera.position.addScaledVector(forward, -CAMERA_SPEED);
+                    camera.position.addScaledVector(forward, -currentSpeed);
                 }
                 if (cameraKeys.left) {
-                    camera.position.addScaledVector(right, -CAMERA_SPEED);
+                    camera.position.addScaledVector(right, -currentSpeed);
                 }
                 if (cameraKeys.right) {
-                    camera.position.addScaledVector(right, CAMERA_SPEED);
+                    camera.position.addScaledVector(right, currentSpeed);
                 }
                 if (cameraKeys.up) {
-                    camera.position.y += CAMERA_SPEED;
+                    camera.position.y += currentSpeed;
                 }
                 if (cameraKeys.down) {
-                    camera.position.y -= CAMERA_SPEED;
+                    camera.position.y -= currentSpeed;
                 }
+
+                // Advanced collision detection with bounding boxes
+                const collisionMargin = 25; // Marge de collision (taille du joueur)
+                let hasCollision = false;
+
+                // Create a bounding box for the camera/player
+                const playerBox = new THREE.Box3(
+                    new THREE.Vector3(
+                        camera.position.x - collisionMargin,
+                        camera.position.y - 85, // Hauteur du joueur (~170cm)
+                        camera.position.z - collisionMargin
+                    ),
+                    new THREE.Vector3(
+                        camera.position.x + collisionMargin,
+                        camera.position.y + 85,
+                        camera.position.z + collisionMargin
+                    )
+                );
+
+                for (const key in allScreens) {
+                    const screen = allScreens[key];
+                    if (screen && screen.userData.isColorSurface && screen.visible !== false) {
+                        // Create bounding box for each screen
+                        const screenBox = new THREE.Box3().setFromObject(screen);
+
+                        // Expand screen box slightly to prevent clipping
+                        screenBox.expandByScalar(5);
+
+                        // Check intersection
+                        if (playerBox.intersectsBox(screenBox)) {
+                            hasCollision = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Revert position if collision detected
+                if (hasCollision) {
+                    camera.position.copy(prevPosition);
+                }
+
+                // Floor collision (prevent falling through)
+                const floorY = -111.773 + 170; // Sol de la forme 11 + hauteur œil
+                if (camera.position.y < floorY && !cameraKeys.down) {
+                    camera.position.y = floorY;
+                }
+
+                // Head bobbing effect when moving
+                const isMoving = cameraKeys.forward || cameraKeys.backward || cameraKeys.left || cameraKeys.right;
+                if (isMoving) {
+                    headBobTimer += HEAD_BOB_SPEED * (cameraKeys.sprint ? 1.5 : 1);
+                    const bobOffset = Math.sin(headBobTimer) * HEAD_BOB_AMOUNT;
+                    camera.position.y += bobOffset;
+                } else {
+                    // Gradually reset head bob when not moving
+                    headBobTimer *= 0.9;
+                }
+
+                // FOV kick during sprint
+                targetFOV = cameraKeys.sprint ? DEFAULT_FOV + SPRINT_FOV_INCREASE : DEFAULT_FOV;
+            }
+
+            // Smooth FOV transition
+            if (camera && Math.abs(currentFOV - targetFOV) > 0.1) {
+                currentFOV += (targetFOV - currentFOV) * 0.1;
+                camera.fov = currentFOV;
+                camera.updateProjectionMatrix();
             }
 
             renderer.render(scene, camera);
