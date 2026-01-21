@@ -20,7 +20,7 @@
 
         #ui.loaded { top: auto; bottom: 20px; left: auto; right: 20px;
                      transform: none; max-width: 320px; width: auto; padding: 16px;
-                     max-height: 75vh; overflow-y: auto; }
+                     max-height: calc(100vh - 40px); overflow-y: auto; }
 
         #title-link { position: fixed; top: 20px; left: 20px; z-index: 100;
                       text-decoration: none; color: #fff; transition: opacity 0.2s; }
@@ -1240,11 +1240,15 @@
         }
 
         function addNewScreen() {
+            console.log('🆕 addNewScreen() appelé - allScreens actuels:', Object.keys(allScreens));
+            console.trace('Stack trace:'); // Pour voir qui appelle cette fonction
+
             // Find next available screen number
             let newNum = 1;
             while (allScreens[newNum]) {
                 newNum++;
             }
+            console.log('🆕 Nouveau numéro trouvé:', newNum);
 
             // Save state for undo
             saveState();
@@ -2423,6 +2427,8 @@
         });
 
         function generate(video) {
+            console.log('🎬 generate() appelé - allScreens avant:', Object.keys(allScreens || {}));
+
             if (typeof THREE === 'undefined') {
                 alert('THREE.js not loaded.');
                 return;
@@ -2698,12 +2704,12 @@
                 }
             }
 
-            // CRITICAL: Preserve custom shapes (>7) before clearing
+            // CRITICAL: Preserve custom shapes (>8) before clearing
             const customShapesToPreserve = {};
             if (allScreens) {
                 Object.keys(allScreens).forEach(key => {
                     const num = parseInt(key);
-                    if (num > 7) {
+                    if (num > 8) {
                         customShapesToPreserve[num] = allScreens[num];
                         // Remove from screensGroup temporarily to avoid disposal
                         if (allScreens[num].parent === screensGroup) {
@@ -2712,7 +2718,7 @@
                     }
                 });
             }
-            console.log('💾 Formes personnalisées préservées:', Object.keys(customShapesToPreserve));
+            console.log('💾 Formes personnalisées préservées (>8):', Object.keys(customShapesToPreserve));
 
             // CRITICAL: Detach transform controls before clearing to avoid "object must be part of scene graph" error
             const wasScreenSelected = selectedScreen;
@@ -3048,15 +3054,39 @@
 
             screensGroup.add(screen7);
 
-            // Restore custom shapes (>7) - both in allScreens and screensGroup
-            console.log('🔄 Restauration des formes personnalisées:', Object.keys(customShapesToPreserve));
+            // ======================
+            // SCREEN 8: Custom shape (color surface) - ceiling panel
+            // ======================
+            const width8 = 450;
+            const height8 = 450;
+            const geometry8 = new THREE.PlaneGeometry(width8, height8);
+            const material8 = new THREE.MeshBasicMaterial({
+                color: 0x808080,
+                side: THREE.DoubleSide
+            });
+            const screen8 = new THREE.Mesh(geometry8, material8);
+
+            // Position et orientation (from user JSON)
+            screen8.position.set(225.277, 110.567, 111.361);
+            screen8.rotation.set(1.570796, 0, 0);
+            screen8.scale.set(1, 1, 1);
+
+            // Mark as color surface by default
+            screen8.userData.screenNumber = 8;
+            screen8.userData.isColorSurface = true;
+            screen8.userData.color = 0x808080;
+
+            screensGroup.add(screen8);
+
+            // Restore custom shapes (>8) - both in allScreens and screensGroup
+            console.log('🔄 Restauration des formes personnalisées (>8):', Object.keys(customShapesToPreserve));
             Object.keys(customShapesToPreserve).forEach(key => {
                 const shape = customShapesToPreserve[key];
                 screensGroup.add(shape); // Re-add to scene
                 console.log(`  ✓ Forme #${key} réajoutée à la scène`);
             });
 
-            // Update volumetric screens 1-7 and restore custom shapes
+            // Update volumetric screens 1-8 and restore custom shapes
             allScreens = {
                 1: particles,           // Wall back left
                 2: particlesRight,      // Wall back right
@@ -3064,9 +3094,10 @@
                 5: wallOppA,            // Wall front left
                 6: wallOppB,            // Wall front right
                 7: screen7,             // Side panel (carré)
-                ...customShapesToPreserve // Restore custom shapes
+                8: screen8,             // Ceiling panel (custom shape - color surface)
+                ...customShapesToPreserve // Restore custom shapes (>8)
             };
-            console.log('✅ Tous les écrans restaurés:', Object.keys(allScreens));
+            console.log('✅ Tous les écrans restaurés (1-8 + custom):', Object.keys(allScreens));
 
             // CRITICAL: Update screen list UI immediately after allScreens is populated
             updateScreenList();
@@ -3104,6 +3135,8 @@
                     radiusY: 2 + Math.random() * 8        // Random radius Y (2-10)
                 });
             }
+
+            console.log('🏁 generate() terminé - allScreens final:', Object.keys(allScreens));
         }
 
         function applySettings() {
