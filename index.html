@@ -646,11 +646,10 @@
             <button class="small" onclick="changeVideo()">Change Video</button>
         </div>
 
-        <p class="hint">Drag to rotate • Scroll to zoom</p>
+        <p class="hint">Clic droit + drag pour tourner • Molette pour avancer/reculer • Flèches pour se déplacer</p>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <script>
         let scene, camera, renderer, particles;
@@ -703,9 +702,15 @@
 
         // Transform controls for manipulating screens
         let transformControls = null;
-        let orbitControls = null;
         let selectedScreen = null;
         let allScreens = {}; // Store all screens by number
+
+        // Free camera (no orbit controls, no pivot)
+        let freeCameraEnabled = true;
+        let cameraYaw = 0; // Rotation horizontale (Y axis)
+        let cameraPitch = 0; // Rotation verticale (X axis)
+        let mouseSensitivity = 0.002;
+        let isMouseLocked = false;
 
         // Undo/Redo system
         let undoHistory = [];
@@ -1948,20 +1953,17 @@
             directionalLight2.position.set(-1, -1, -0.5);
             scene.add(directionalLight2);
 
-            // OrbitControls for camera movement
-            orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
-            orbitControls.enableDamping = true;
-            orbitControls.dampingFactor = 0.05;
-            orbitControls.target.set(0, 0, 0);
+            // FREE CAMERA: Pas d'OrbitControls, caméra complètement libre
+            // Rotation avec clic droit + drag, mouvement avec flèches
 
             // TransformControls for manipulating screens
             transformControls = new THREE.TransformControls(camera, renderer.domElement);
             transformControls.setSpace('world'); // Use world space to avoid X/Y inversion
             scene.add(transformControls);
 
-            // When transforming, disable orbit controls
+            // When transforming, disable free camera
             transformControls.addEventListener('dragging-changed', function(event) {
-                orbitControls.enabled = !event.value;
+                freeCameraEnabled = !event.value;
 
                 // Apply magnetism when releasing (end of drag)
                 if (!event.value && selectedScreen && allScreens[selectedScreen]) {
@@ -2064,13 +2066,57 @@
                 }
             });
 
+            // Free camera mouse controls
+            let isRightMouseDown = false;
+            let lastMouseX = 0;
+            let lastMouseY = 0;
+
+            renderer.domElement.addEventListener('mousedown', function(e) {
+                if (e.button === 2) { // Right click
+                    e.preventDefault();
+                    isRightMouseDown = true;
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                }
+            });
+
+            renderer.domElement.addEventListener('mouseup', function(e) {
+                if (e.button === 2) {
+                    isRightMouseDown = false;
+                }
+            });
+
+            renderer.domElement.addEventListener('mousemove', function(e) {
+                if (isRightMouseDown && freeCameraEnabled) {
+                    const deltaX = e.clientX - lastMouseX;
+                    const deltaY = e.clientY - lastMouseY;
+
+                    cameraYaw -= deltaX * mouseSensitivity;
+                    cameraPitch -= deltaY * mouseSensitivity;
+
+                    // Clamp pitch to avoid flipping
+                    cameraPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraPitch));
+
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                }
+            });
+
+            // Disable context menu on canvas
+            renderer.domElement.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+
             // Zoom with mouse wheel
             renderer.domElement.addEventListener('wheel', function(e) {
                 e.preventDefault();
-                const zoomSpeed = 0.1;
+                const zoomSpeed = 10;
                 const delta = e.deltaY > 0 ? 1 : -1;
-                camera.position.z += delta * zoomSpeed * camera.position.z;
-                camera.position.z = Math.max(50, Math.min(1000, camera.position.z));
+
+                // Move camera forward/backward along its direction
+                const forward = new THREE.Vector3();
+                camera.getWorldDirection(forward);
+                camera.position.addScaledVector(forward, -delta * zoomSpeed);
             });
 
             // Setup parameter controls
@@ -3571,8 +3617,15 @@
                 }
             }
 
-            // FPS Camera movement (only when no screen selected)
-            if (!selectedScreen && camera) {
+            // Free camera rotation (apply yaw and pitch)
+            if (freeCameraEnabled && camera) {
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = cameraYaw;
+                camera.rotation.x = cameraPitch;
+            }
+
+            // FPS Camera movement (only when no screen selected and free camera enabled)
+            if (!selectedScreen && freeCameraEnabled && camera) {
                 const forward = new THREE.Vector3();
                 camera.getWorldDirection(forward);
                 forward.y = 0; // Mouvement horizontal uniquement (pas de montée/descente automatique)
@@ -3600,11 +3653,6 @@
                 if (cameraKeys.down) {
                     camera.position.y -= CAMERA_SPEED;
                 }
-            }
-
-            // Update orbit controls
-            if (orbitControls) {
-                orbitControls.update();
             }
 
             renderer.render(scene, camera);
