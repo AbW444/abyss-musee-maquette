@@ -2533,24 +2533,25 @@
             // Add second screen to group
             screensGroup.add(particlesRight);
 
-            // === ÉCRAN 3: SOL RECTANGLE (largeur double = screenW x screenH) ===
-            // Créer une géométrie rectangulaire : largeur = screenW, hauteur = screenH
-            // L'image garde sa taille normale et "dépasse" de l'écran (comme les autres)
+            // === ÉCRAN 3: SOL RECTANGLE (surface doublée avec scale x2) ===
+            // Créer une géométrie rectangulaire : largeur complète, hauteur réduite de moitié
+            // Avec scale x2 en X : largeur finale = 800, hauteur = 112.5, surface doublée
             const screen3Positions = [];
             const screen3Colors = [];
             const screen3InitialZ = [];
 
-            // Dimensions du rectangle : Largeur complète (toutes les particules), hauteur normale
+            // Dimensions du rectangle : Largeur complète (toutes les particules), hauteur réduite de moitié
             const halfH = screenH / 2; // Demi-hauteur pour centrage (112.5)
+            const halfH_screen3 = halfH / 2; // Hauteur réduite pour écran 3 (56.25)
 
-            // Filtrer les particules : TOUTES en largeur (pas de filtre sur X), hauteur normale
+            // Filtrer les particules : TOUTES en largeur (pas de filtre sur X), hauteur réduite de moitié
             for (let i = 0; i < positions.length / 3; i++) {
                 const x = positions[i * 3];
                 const y = positions[i * 3 + 1];
                 const z = positions[i * 3 + 2];
 
-                // Rectangle : TOUTE la largeur (pas de condition sur X), hauteur filtrée
-                if (y >= -halfH && y <= halfH) {
+                // Rectangle : TOUTE la largeur (pas de condition sur X), hauteur réduite de moitié
+                if (y >= -halfH_screen3 && y <= halfH_screen3) {
                     screen3Positions.push(x, y, z);
                     screen3Colors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
                     screen3InitialZ.push(initialZ[i]);
@@ -3104,8 +3105,9 @@
                     const screen3 = allScreens[3];
                     const colors3 = screen3.instanceColor.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
+                    const halfH_screen3 = halfH / 2; // Hauteur réduite pour écran 3
 
-                    // Filter newColors and newDepths for screen 3 rectangle (full width, normal height)
+                    // Filter newColors and newDepths for screen 3 rectangle (full width, half height)
                     let particleIndex = 0;
                     let screen3Index = 0;
                     for (let y = 0; y < TARGET_HEIGHT; y += step) {
@@ -3120,8 +3122,8 @@
                                 const px = (x - halfWidth) * scaleFactor;
                                 const py = -(y - halfHeight) * scaleFactor;
 
-                                // Check if this particle is in screen 3 rectangle (NO filter on X, only Y)
-                                if (py >= -halfH && py <= halfH) {
+                                // Check if this particle is in screen 3 rectangle (NO filter on X, Y reduced by half)
+                                if (py >= -halfH_screen3 && py <= halfH_screen3) {
                                     colors3[screen3Index * 3] = newColors[particleIndex * 3];
                                     colors3[screen3Index * 3 + 1] = newColors[particleIndex * 3 + 1];
                                     colors3[screen3Index * 3 + 2] = newColors[particleIndex * 3 + 2];
@@ -3204,8 +3206,9 @@
                     const geom3 = screen3.geometry;
                     const colors3 = geom3.attributes.color.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
+                    const halfH_screen3 = halfH / 2; // Hauteur réduite pour écran 3
 
-                    // Filter newColors and newDepths for screen 3 rectangle (full width, normal height)
+                    // Filter newColors and newDepths for screen 3 rectangle (full width, half height)
                     let particleIndex = 0;
                     let screen3Index = 0;
                     for (let y = 0; y < TARGET_HEIGHT; y += step) {
@@ -3220,8 +3223,8 @@
                                 const px = (x - halfWidth) * scaleFactor;
                                 const py = -(y - halfHeight) * scaleFactor;
 
-                                // Check if this particle is in screen 3 rectangle (NO filter on X, only Y)
-                                if (py >= -halfH && py <= halfH) {
+                                // Check if this particle is in screen 3 rectangle (NO filter on X, Y reduced by half)
+                                if (py >= -halfH_screen3 && py <= halfH_screen3) {
                                     colors3[screen3Index * 3] = newColors[particleIndex * 3];
                                     colors3[screen3Index * 3 + 1] = newColors[particleIndex * 3 + 1];
                                     colors3[screen3Index * 3 + 2] = newColors[particleIndex * 3 + 2];
