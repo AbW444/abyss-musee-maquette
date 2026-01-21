@@ -2657,9 +2657,7 @@
             const screen7Colors = [];
             const screen7InitialZ = [];
 
-            // Hauteur de l'écran
-            const halfH = screenH / 2; // 112.5
-
+            // Réutilise halfH déjà déclaré pour l'écran 3 (screenH / 2 = 112.5)
             // Filtrer les particules pour faire un carré : X et Y entre -halfH et +halfH
             for (let i = 0; i < positions.length / 3; i++) {
                 const x = positions[i * 3];
