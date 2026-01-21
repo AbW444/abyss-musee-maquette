@@ -1327,21 +1327,62 @@
 
             screen.userData.isColorSurface = isColorSurface;
 
+            // Detect if this is a volumetric screen (1-7) or a shape (>7)
+            const isVolumetric = (num >= 1 && num <= 7);
+
             if (isColorSurface) {
                 // Switch to color surface
                 const color = screen.userData.color || 0x808080;
-                screen.material.dispose();
-                screen.material = new THREE.MeshBasicMaterial({
-                    color: color,
-                    side: THREE.DoubleSide
-                });
+
+                if (isVolumetric) {
+                    // For volumetric screens: create overlay plane to hide particles
+                    if (!screen.userData.colorOverlay) {
+                        // Get screen dimensions (approximate from bounding box)
+                        const box = new THREE.Box3().setFromObject(screen);
+                        const size = box.getSize(new THREE.Vector3());
+                        const width = Math.max(size.x, size.y, size.z);
+                        const height = Math.max(size.x, size.y, size.z);
+
+                        // Create overlay mesh
+                        const overlayGeometry = new THREE.PlaneGeometry(width * 1.2, height * 1.2);
+                        const overlayMaterial = new THREE.MeshBasicMaterial({
+                            color: color,
+                            side: THREE.DoubleSide
+                        });
+                        const overlay = new THREE.Mesh(overlayGeometry, overlayMaterial);
+
+                        // Position overlay at screen position (local space)
+                        overlay.position.copy(screen.position);
+                        overlay.rotation.copy(screen.rotation);
+                        overlay.scale.copy(screen.scale);
+
+                        screensGroup.add(overlay);
+                        screen.userData.colorOverlay = overlay;
+                    } else {
+                        // Update existing overlay color
+                        screen.userData.colorOverlay.material.color.setHex(color);
+                        screen.userData.colorOverlay.visible = true;
+                    }
+
+                    // Hide volumetric particles
+                    screen.visible = false;
+
+                } else {
+                    // For shapes: just change material color
+                    screen.material.color.setHex(color);
+                }
             } else {
-                // Switch to video - will be updated in updateColorsFromVideo
-                screen.material.dispose();
-                screen.material = new THREE.MeshBasicMaterial({
-                    color: 0xffffff,
-                    side: THREE.DoubleSide
-                });
+                // Switch to video
+                if (isVolumetric) {
+                    // For volumetric screens: hide overlay, show particles
+                    if (screen.userData.colorOverlay) {
+                        screen.userData.colorOverlay.visible = false;
+                    }
+                    screen.visible = true;
+                } else {
+                    // For shapes: can't convert to video (not supported yet)
+                    console.warn(`Écran ${num}: Conversion forme → vidéo non supportée`);
+                }
             }
 
             updateScreenList();
@@ -1355,10 +1396,17 @@
             saveState();
 
             screen.userData.color = colorValue;
-            screen.material.color.setHex(colorValue);
+
+            // Update color for volumetric overlay or direct material
+            const isVolumetric = (num >= 1 && num <= 7);
+            if (isVolumetric && screen.userData.colorOverlay) {
+                screen.userData.colorOverlay.material.color.setHex(colorValue);
+            } else if (screen.material) {
+                screen.material.color.setHex(colorValue);
+            }
 
             updateScreenList();
-            console.log(`Écran ${num}: Couleur changée`);
+            console.log(`Écran ${num}: Couleur changée → #${colorValue.toString(16).padStart(6, '0')}`);
         }
 
         function onShiftChange(e) {
@@ -2625,7 +2673,19 @@
 
             screensGroup.add(screen7);
 
-            // Store all screens for manipulation
+            // Store volumetric screens (1-7) and preserve custom shapes (>7)
+            const customShapes = {};
+            if (allScreens) {
+                // Preserve shapes created by user (numbers > 7)
+                Object.keys(allScreens).forEach(key => {
+                    const num = parseInt(key);
+                    if (num > 7) {
+                        customShapes[num] = allScreens[num];
+                    }
+                });
+            }
+
+            // Update volumetric screens 1-7
             allScreens = {
                 1: particles,           // Wall back left
                 2: particlesRight,      // Wall back right
@@ -2633,7 +2693,8 @@
                 4: floorRight,          // Floor right
                 5: wallOppA,            // Wall front left
                 6: wallOppB,            // Wall front right
-                7: screen7              // Side panel (demi-largeur)
+                7: screen7,             // Side panel (demi-largeur)
+                ...customShapes         // Restore custom shapes
             };
 
             // CRITICAL: Reattach transform controls to the same screen after regeneration
