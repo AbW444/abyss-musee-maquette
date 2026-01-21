@@ -20,7 +20,7 @@
 
         #ui.loaded { top: auto; bottom: 20px; left: auto; right: 20px;
                      transform: none; max-width: 320px; width: auto; padding: 16px;
-                     max-height: 50vh; overflow-y: auto; }
+                     max-height: 75vh; overflow-y: auto; }
 
         #title-link { position: fixed; top: 20px; left: 20px; z-index: 100;
                       text-decoration: none; color: #fff; transition: opacity 0.2s; }
@@ -224,8 +224,14 @@
         }
         .screen-list {
             max-height: 600px;
-            overflow: hidden;
+            overflow-y: auto;
             margin-bottom: 12px;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+        .screen-list::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
         }
         .screen-item {
             background: rgba(255,255,255,0.03);
@@ -991,24 +997,22 @@
                 return; // Stop here
             }
 
-            // FPS Camera controls (only when no screen selected)
-            if (!selectedScreen) {
-                if (e.code === 'ArrowUp') {
-                    e.preventDefault();
-                    cameraKeys.forward = true;
-                }
-                if (e.code === 'ArrowDown') {
-                    e.preventDefault();
-                    cameraKeys.backward = true;
-                }
-                if (e.code === 'ArrowLeft') {
-                    e.preventDefault();
-                    cameraKeys.left = true;
-                }
-                if (e.code === 'ArrowRight') {
-                    e.preventDefault();
-                    cameraKeys.right = true;
-                }
+            // FPS Camera controls (always active, even with screen selected)
+            if (e.code === 'ArrowUp') {
+                e.preventDefault();
+                cameraKeys.forward = true;
+            }
+            if (e.code === 'ArrowDown') {
+                e.preventDefault();
+                cameraKeys.backward = true;
+            }
+            if (e.code === 'ArrowLeft') {
+                e.preventDefault();
+                cameraKeys.left = true;
+            }
+            if (e.code === 'ArrowRight') {
+                e.preventDefault();
+                cameraKeys.right = true;
             }
 
             // O/L: Camera up/down (always active)
@@ -1114,25 +1118,23 @@
 
         // Keyboard controls - keyup for FPS camera
         document.addEventListener('keyup', function(e) {
-            if (!selectedScreen) {
-                if (e.code === 'ArrowUp') {
-                    cameraKeys.forward = false;
-                }
-                if (e.code === 'ArrowDown') {
-                    cameraKeys.backward = false;
-                }
-                if (e.code === 'ArrowLeft') {
-                    cameraKeys.left = false;
-                }
-                if (e.code === 'ArrowRight') {
-                    cameraKeys.right = false;
-                }
-                if (e.code === 'KeyO') {
-                    cameraKeys.up = false;
-                }
-                if (e.code === 'KeyL') {
-                    cameraKeys.down = false;
-                }
+            if (e.code === 'ArrowUp') {
+                cameraKeys.forward = false;
+            }
+            if (e.code === 'ArrowDown') {
+                cameraKeys.backward = false;
+            }
+            if (e.code === 'ArrowLeft') {
+                cameraKeys.left = false;
+            }
+            if (e.code === 'ArrowRight') {
+                cameraKeys.right = false;
+            }
+            if (e.code === 'KeyO') {
+                cameraKeys.up = false;
+            }
+            if (e.code === 'KeyL') {
+                cameraKeys.down = false;
             }
         });
 
@@ -1552,6 +1554,7 @@
             });
 
             undoHistory.push(state);
+            console.log('💾 saveState() - État sauvegardé, écrans:', Object.keys(state.screens), 'historique:', undoHistory.length);
             if (undoHistory.length > MAX_HISTORY) {
                 undoHistory.shift();
             }
@@ -1561,8 +1564,10 @@
         }
 
         function undo() {
+            console.log('🔄 undo() appelé - undoHistory.length:', undoHistory.length);
+
             if (undoHistory.length === 0) {
-                console.log('❌ Rien à annuler');
+                console.log('❌ Rien à annuler (historique vide)');
                 return;
             }
 
@@ -1584,6 +1589,7 @@
                     color: screen.userData.color || 0x808080
                 };
             });
+            console.log('💾 État actuel sauvegardé dans redo, écrans:', Object.keys(currentState.screens));
             redoHistory.push(currentState);
             if (redoHistory.length > MAX_HISTORY) {
                 redoHistory.shift();
@@ -1591,6 +1597,7 @@
 
             // Restore previous state
             const previousState = undoHistory.pop();
+            console.log('⏮️ Restauration état précédent, écrans:', Object.keys(previousState.screens));
 
             // Restore all screens from previous state
             Object.keys(previousState.screens).forEach(num => {
@@ -2691,13 +2698,29 @@
                 }
             }
 
+            // CRITICAL: Preserve custom shapes (>7) before clearing
+            const customShapesToPreserve = {};
+            if (allScreens) {
+                Object.keys(allScreens).forEach(key => {
+                    const num = parseInt(key);
+                    if (num > 7) {
+                        customShapesToPreserve[num] = allScreens[num];
+                        // Remove from screensGroup temporarily to avoid disposal
+                        if (allScreens[num].parent === screensGroup) {
+                            screensGroup.remove(allScreens[num]);
+                        }
+                    }
+                });
+            }
+            console.log('💾 Formes personnalisées préservées:', Object.keys(customShapesToPreserve));
+
             // CRITICAL: Detach transform controls before clearing to avoid "object must be part of scene graph" error
             const wasScreenSelected = selectedScreen;
             if (transformControls && selectedScreen) {
                 transformControls.detach();
             }
 
-            // Clear group before adding new screens
+            // Clear group before adding new screens (only default screens 1-7 now)
             screensGroup.clear();
 
             if (is3DMode) {
@@ -3025,19 +3048,15 @@
 
             screensGroup.add(screen7);
 
-            // Store volumetric screens (1-7) and preserve custom shapes (>7)
-            const customShapes = {};
-            if (allScreens) {
-                // Preserve shapes created by user (numbers > 7)
-                Object.keys(allScreens).forEach(key => {
-                    const num = parseInt(key);
-                    if (num > 7) {
-                        customShapes[num] = allScreens[num];
-                    }
-                });
-            }
+            // Restore custom shapes (>7) - both in allScreens and screensGroup
+            console.log('🔄 Restauration des formes personnalisées:', Object.keys(customShapesToPreserve));
+            Object.keys(customShapesToPreserve).forEach(key => {
+                const shape = customShapesToPreserve[key];
+                screensGroup.add(shape); // Re-add to scene
+                console.log(`  ✓ Forme #${key} réajoutée à la scène`);
+            });
 
-            // Update volumetric screens 1-7
+            // Update volumetric screens 1-7 and restore custom shapes
             allScreens = {
                 1: particles,           // Wall back left
                 2: particlesRight,      // Wall back right
@@ -3045,8 +3064,9 @@
                 5: wallOppA,            // Wall front left
                 6: wallOppB,            // Wall front right
                 7: screen7,             // Side panel (carré)
-                ...customShapes         // Restore custom shapes
+                ...customShapesToPreserve // Restore custom shapes
             };
+            console.log('✅ Tous les écrans restaurés:', Object.keys(allScreens));
 
             // CRITICAL: Reattach transform controls to the same screen after regeneration
             if (transformControls && wasScreenSelected && allScreens[wasScreenSelected]) {
