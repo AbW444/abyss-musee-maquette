@@ -2540,11 +2540,11 @@
             const screen3Colors = [];
             const screen3InitialZ = [];
 
-            // Dimensions du rectangle
-            const halfW = screenW / 2; // Demi-largeur pour centrage
+            // Dimensions du rectangle : DOUBLE largeur (2x screenW)
+            const halfW = screenW; // halfW = screenW pour avoir largeur totale = 2 * screenW (au lieu de screenW/2)
             const halfH = screenH / 2; // Demi-hauteur pour centrage (112.5)
 
-            // Filtrer les particules pour faire un rectangle : largeur complète, hauteur normale
+            // Filtrer les particules pour faire un rectangle : largeur DOUBLE (2x), hauteur normale
             for (let i = 0; i < positions.length / 3; i++) {
                 const x = positions[i * 3];
                 const y = positions[i * 3 + 1];
@@ -3104,7 +3104,7 @@
                 if (allScreens[3] && allScreens[3].instanceColor) {
                     const screen3 = allScreens[3];
                     const colors3 = screen3.instanceColor.array;
-                    const halfW = TARGET_WIDTH * scaleFactor / 2; // Same as screenW / 2
+                    const halfW = TARGET_WIDTH * scaleFactor; // Same as screenW (double width)
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
 
                     // Filter newColors and newDepths for screen 3 rectangle
@@ -3205,7 +3205,7 @@
                     const screen3 = allScreens[3];
                     const geom3 = screen3.geometry;
                     const colors3 = geom3.attributes.color.array;
-                    const halfW = TARGET_WIDTH * scaleFactor / 2; // Same as screenW / 2
+                    const halfW = TARGET_WIDTH * scaleFactor; // Same as screenW (double width)
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
 
                     // Filter newColors and newDepths for screen 3 rectangle
