@@ -1015,8 +1015,11 @@
                     // Activate SIZE mode (geometry resize)
                     transformControls.setMode('scale');
                     scaleMode = 'resize'; // Special mode for geometry resizing
-                    console.log('Mode: REDIMENSIONNEMENT (change geometry, pas scale)');
-                    console.log('Drag les handles pour changer les dimensions de l\'écran');
+                    console.log('=== MODE: REDIMENSIONNEMENT (S) ===');
+                    console.log('Modifie les positions des particules directement');
+                    console.log('→ Surface change SANS affecter depth spread');
+                    console.log('→ Idéal pour harmoniser les écrans volumétriques');
+                    console.log('Drag les handles pour redimensionner');
                 } else {
                     saveAllPositions();
                 }
@@ -1095,7 +1098,8 @@
             console.log('Commandes:');
             console.log('  G = Mode Translation');
             console.log('  R = Mode Rotation');
-            console.log('  E = Mode Scale');
+            console.log('  E = Mode Scale (classique, affecte depth spread)');
+            console.log('  S = Mode Redimensionnement (modifie positions, préserve depth)');
             console.log('  Maj enfoncé = rotation 15°, translation 1000');
             console.log('  Échap = Désélectionner');
             console.log('  Ctrl+Z = Annuler | Ctrl+Shift+Z = Refaire');
@@ -1973,15 +1977,16 @@
                         screen.scale.set(avgScale, avgScale, avgScale);
                     } else if (scaleMode === 'resize') {
                         // RESIZE mode: change geometry dimensions, not scale
-                        // Only works if screen has a geometry (PlaneGeometry)
-                        if (screen.geometry && screen.geometry.type === 'PlaneGeometry') {
-                            const currentScale = {x: screen.scale.x, y: screen.scale.y, z: screen.scale.z};
+                        const currentScale = {x: screen.scale.x, y: screen.scale.y, z: screen.scale.z};
 
-                            // Detect which axis changed
-                            const deltaX = currentScale.x / lastResizeScale.x;
-                            const deltaY = currentScale.y / lastResizeScale.y;
+                        // Detect which axis changed
+                        const deltaX = currentScale.x / lastResizeScale.x;
+                        const deltaY = currentScale.y / lastResizeScale.y;
+                        const deltaZ = currentScale.z / lastResizeScale.z;
 
-                            if (deltaX !== 1 || deltaY !== 1) {
+                        if (deltaX !== 1 || deltaY !== 1 || deltaZ !== 1) {
+                            // PlaneGeometry (color surfaces)
+                            if (screen.geometry && screen.geometry.type === 'PlaneGeometry') {
                                 // Get current geometry dimensions
                                 const currentWidth = screen.geometry.parameters.width;
                                 const currentHeight = screen.geometry.parameters.height;
@@ -1999,6 +2004,48 @@
                                 lastResizeScale = {x: 1, y: 1, z: 1};
 
                                 console.log(`Redimensionné: ${Math.round(newWidth)} x ${Math.round(newHeight)}`);
+                            }
+                            // Volumetric screens (Points or InstancedMesh)
+                            else if (screen.userData.positions || (screen.geometry && screen.geometry.attributes.position)) {
+                                // Get positions array
+                                let positions;
+                                if (screen.userData.positions) {
+                                    positions = screen.userData.positions;
+                                } else {
+                                    positions = screen.geometry.attributes.position.array;
+                                }
+
+                                // Multiply all positions by delta (resize without affecting depth spread)
+                                for (let i = 0; i < positions.length; i += 3) {
+                                    positions[i] *= deltaX;     // X
+                                    positions[i + 1] *= deltaY; // Y
+                                    positions[i + 2] *= deltaZ; // Z (depth)
+                                }
+
+                                // Update geometry based on type
+                                if (screen.isPoints) {
+                                    // Points: update position attribute
+                                    screen.geometry.attributes.position.needsUpdate = true;
+                                    screen.geometry.computeBoundingSphere();
+                                } else if (screen.isInstancedMesh) {
+                                    // InstancedMesh: update instance matrices
+                                    const count = screen.count;
+                                    for (let i = 0; i < count; i++) {
+                                        reusableMatrix.setPosition(
+                                            positions[i * 3],
+                                            positions[i * 3 + 1],
+                                            positions[i * 3 + 2]
+                                        );
+                                        screen.setMatrixAt(i, reusableMatrix);
+                                    }
+                                    screen.instanceMatrix.needsUpdate = true;
+                                }
+
+                                // Reset scale to 1 (geometry changed, not scale)
+                                screen.scale.set(1, 1, 1);
+                                lastResizeScale = {x: 1, y: 1, z: 1};
+
+                                console.log(`Redimensionné (volumétrique): x${deltaX.toFixed(2)}, y${deltaY.toFixed(2)}, z${deltaZ.toFixed(2)}`);
                             }
                         }
                     }
