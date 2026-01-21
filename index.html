@@ -1038,6 +1038,12 @@
                 deselectScreen();
             }
 
+            // Ctrl+S: Save positions to JSON file
+            if (e.code === 'KeyS' && e.ctrlKey) {
+                e.preventDefault();
+                savePositionsToFile();
+            }
+
             // Ctrl+Z: Undo
             if (e.code === 'KeyZ' && e.ctrlKey && !e.shiftKey) {
                 e.preventDefault();
@@ -1460,14 +1466,24 @@
             });
         }
 
+        // PROFESSIONAL UNDO/REDO SYSTEM - Complet et robuste
         function saveState() {
-            const state = {};
+            const state = {
+                screens: {},
+                selectedScreen: selectedScreen,
+                timestamp: Date.now()
+            };
+
+            // Deep copy of ALL screen properties
             Object.keys(allScreens).forEach(num => {
                 const screen = allScreens[num];
-                state[num] = {
-                    position: screen.position.clone(),
-                    rotation: screen.rotation.clone(),
-                    scale: screen.scale.clone()
+                state.screens[num] = {
+                    position: { x: screen.position.x, y: screen.position.y, z: screen.position.z },
+                    rotation: { x: screen.rotation.x, y: screen.rotation.y, z: screen.rotation.z },
+                    scale: { x: screen.scale.x, y: screen.scale.y, z: screen.scale.z },
+                    visible: screen.visible,
+                    isColorSurface: screen.userData.isColorSurface || false,
+                    color: screen.userData.color || 0x808080
                 };
             });
 
@@ -1482,64 +1498,124 @@
 
         function undo() {
             if (undoHistory.length === 0) {
-                console.log('Rien à annuler');
+                console.log('❌ Rien à annuler');
                 return;
             }
 
-            // Save current state to redo
-            const currentState = {};
+            // Save current state to redo BEFORE undoing
+            const currentState = {
+                screens: {},
+                selectedScreen: selectedScreen,
+                timestamp: Date.now()
+            };
+
             Object.keys(allScreens).forEach(num => {
                 const screen = allScreens[num];
-                currentState[num] = {
-                    position: screen.position.clone(),
-                    rotation: screen.rotation.clone(),
-                    scale: screen.scale.clone()
+                currentState.screens[num] = {
+                    position: { x: screen.position.x, y: screen.position.y, z: screen.position.z },
+                    rotation: { x: screen.rotation.x, y: screen.rotation.y, z: screen.rotation.z },
+                    scale: { x: screen.scale.x, y: screen.scale.y, z: screen.scale.z },
+                    visible: screen.visible,
+                    isColorSurface: screen.userData.isColorSurface || false,
+                    color: screen.userData.color || 0x808080
                 };
             });
             redoHistory.push(currentState);
+            if (redoHistory.length > MAX_HISTORY) {
+                redoHistory.shift();
+            }
 
             // Restore previous state
             const previousState = undoHistory.pop();
-            Object.keys(previousState).forEach(num => {
-                const screen = allScreens[num];
-                const state = previousState[num];
-                screen.position.copy(state.position);
-                screen.rotation.copy(state.rotation);
-                screen.scale.copy(state.scale);
+
+            // Restore all screens from previous state
+            Object.keys(previousState.screens).forEach(num => {
+                if (allScreens[num]) {
+                    const screen = allScreens[num];
+                    const state = previousState.screens[num];
+                    screen.position.set(state.position.x, state.position.y, state.position.z);
+                    screen.rotation.set(state.rotation.x, state.rotation.y, state.rotation.z);
+                    screen.scale.set(state.scale.x, state.scale.y, state.scale.z);
+                    screen.visible = state.visible;
+                    if (state.isColorSurface !== undefined) {
+                        screen.userData.isColorSurface = state.isColorSurface;
+                    }
+                    if (state.color !== undefined) {
+                        screen.userData.color = state.color;
+                    }
+                }
             });
 
-            console.log('Annulé (Ctrl+Z)');
+            // Restore selection
+            if (previousState.selectedScreen && allScreens[previousState.selectedScreen]) {
+                selectScreen(previousState.selectedScreen);
+            } else if (selectedScreen) {
+                deselectScreen();
+            }
+
+            updateScreenList();
+            console.log('✅ Annulé (Ctrl+Z)');
         }
 
         function redo() {
             if (redoHistory.length === 0) {
-                console.log('Rien à refaire');
+                console.log('❌ Rien à refaire');
                 return;
             }
 
-            // Save current to undo
-            const currentState = {};
+            // Save current state to undo BEFORE redoing
+            const currentState = {
+                screens: {},
+                selectedScreen: selectedScreen,
+                timestamp: Date.now()
+            };
+
             Object.keys(allScreens).forEach(num => {
                 const screen = allScreens[num];
-                currentState[num] = {
-                    position: screen.position.clone(),
-                    rotation: screen.rotation.clone(),
-                    scale: screen.scale.clone()
+                currentState.screens[num] = {
+                    position: { x: screen.position.x, y: screen.position.y, z: screen.position.z },
+                    rotation: { x: screen.rotation.x, y: screen.rotation.y, z: screen.rotation.z },
+                    scale: { x: screen.scale.x, y: screen.scale.y, z: screen.scale.z },
+                    visible: screen.visible,
+                    isColorSurface: screen.userData.isColorSurface || false,
+                    color: screen.userData.color || 0x808080
                 };
             });
             undoHistory.push(currentState);
+            if (undoHistory.length > MAX_HISTORY) {
+                undoHistory.shift();
+            }
 
-            // Restore redo state
+            // Restore next state
             const nextState = redoHistory.pop();
-            Object.keys(nextState).forEach(num => {
-                const screen = allScreens[num];
-                const state = nextState[num];
-                screen.position.copy(state.position);
-                screen.rotation.copy(state.rotation);
-                screen.scale.copy(state.scale);
+
+            // Restore all screens from next state
+            Object.keys(nextState.screens).forEach(num => {
+                if (allScreens[num]) {
+                    const screen = allScreens[num];
+                    const state = nextState.screens[num];
+                    screen.position.set(state.position.x, state.position.y, state.position.z);
+                    screen.rotation.set(state.rotation.x, state.rotation.y, state.rotation.z);
+                    screen.scale.set(state.scale.x, state.scale.y, state.scale.z);
+                    screen.visible = state.visible;
+                    if (state.isColorSurface !== undefined) {
+                        screen.userData.isColorSurface = state.isColorSurface;
+                    }
+                    if (state.color !== undefined) {
+                        screen.userData.color = state.color;
+                    }
+                }
             });
 
-            console.log('Refait (Ctrl+Shift+Z)');
+            // Restore selection
+            if (nextState.selectedScreen && allScreens[nextState.selectedScreen]) {
+                selectScreen(nextState.selectedScreen);
+            } else if (selectedScreen) {
+                deselectScreen();
+            }
+
+            updateScreenList();
+            console.log('✅ Refait (Ctrl+Shift+Z)');
         }
 
         function saveAllPositions() {
@@ -1565,6 +1641,50 @@
             });
 
             console.log('='.repeat(60));
+        }
+
+        // Save positions to JSON file (Ctrl+S)
+        function savePositionsToFile() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                screens: {}
+            };
+
+            Object.keys(allScreens).forEach(num => {
+                const screen = allScreens[num];
+                data.screens[num] = {
+                    position: {
+                        x: parseFloat(screen.position.x.toFixed(3)),
+                        y: parseFloat(screen.position.y.toFixed(3)),
+                        z: parseFloat(screen.position.z.toFixed(3))
+                    },
+                    rotation: {
+                        x: parseFloat(screen.rotation.x.toFixed(6)),
+                        y: parseFloat(screen.rotation.y.toFixed(6)),
+                        z: parseFloat(screen.rotation.z.toFixed(6))
+                    },
+                    scale: {
+                        x: parseFloat(screen.scale.x.toFixed(3)),
+                        y: parseFloat(screen.scale.y.toFixed(3)),
+                        z: parseFloat(screen.scale.z.toFixed(3))
+                    }
+                };
+            });
+
+            // Download as JSON file
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `screen-positions-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            console.log('✅ Positions sauvegardées dans le fichier JSON téléchargé');
+            console.log(`📦 ${Object.keys(allScreens).length} écrans exportés`);
         }
 
         // Create text sprite for 3D labels
