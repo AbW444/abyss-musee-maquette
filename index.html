@@ -261,21 +261,21 @@
             background: transparent;
             border: none;
             padding: 0;
-            width: 16px;
-            height: 16px;
-            font-size: 14px;
-            line-height: 14px;
+            width: 24px;
+            height: 24px;
+            font-size: 20px;
+            line-height: 20px;
             cursor: pointer;
             transition: all 0.2s;
-            color: rgba(255,80,80,0.6);
-            font-weight: 400;
+            color: rgba(255,80,80,0.7);
+            font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         .screen-header .screen-delete:hover {
             color: rgba(255,80,80,1);
-            transform: scale(1.2);
+            transform: scale(1.15);
         }
         .screen-type-selector {
             display: none; /* Retrait transformation forme→écran */
@@ -977,14 +977,16 @@
                     e.preventDefault();
                     cameraKeys.right = true;
                 }
-                if (e.code === 'KeyP') {
-                    e.preventDefault();
-                    cameraKeys.up = true;
-                }
-                if (e.code === 'KeyM') {
-                    e.preventDefault();
-                    cameraKeys.down = true;
-                }
+            }
+
+            // P/M: Camera up/down (always active)
+            if (e.code === 'KeyP') {
+                e.preventDefault();
+                cameraKeys.up = true;
+            }
+            if (e.code === 'KeyM') {
+                e.preventDefault();
+                cameraKeys.down = true;
             }
 
             // Space: play/pause (only if video exists)
@@ -1068,12 +1070,16 @@
             // Ctrl+Z: Undo
             if (e.code === 'KeyZ' && e.ctrlKey && !e.shiftKey) {
                 e.preventDefault();
+                e.stopPropagation();
+                console.log('🔄 Ctrl+Z détecté');
                 undo();
             }
 
             // Ctrl+Shift+Z or Ctrl+Y: Redo
             if ((e.code === 'KeyZ' && e.ctrlKey && e.shiftKey) || (e.code === 'KeyY' && e.ctrlKey)) {
                 e.preventDefault();
+                e.stopPropagation();
+                console.log('🔄 Ctrl+Shift+Z détecté');
                 redo();
             }
 
@@ -2330,9 +2336,9 @@
                     document.getElementById('load-section').classList.add('hidden');
                     document.getElementById('controls').classList.remove('hidden');
                     document.getElementById('ui').classList.add('loaded');
-                    // Interfaces cachées par défaut - utiliser touche N pour afficher
+                    // Screen manager visible par défaut, shape-selector caché
+                    document.getElementById('screen-manager-panel').classList.remove('hidden');
                     // document.getElementById('shape-selector').classList.remove('hidden');
-                    // document.getElementById('screen-manager-panel').classList.remove('hidden');
                     updateScreenList(); // Update screen management UI
                 }
 
