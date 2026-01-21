@@ -20,7 +20,7 @@
 
         #ui.loaded { top: auto; bottom: 20px; left: auto; right: 20px;
                      transform: none; max-width: 320px; width: auto; padding: 16px;
-                     max-height: calc(100vh - 40px); overflow-y: auto; }
+                     max-height: 50vh; overflow-y: auto; }
 
         #title-link { position: fixed; top: 20px; left: 20px; z-index: 100;
                       text-decoration: none; color: #fff; transition: opacity 0.2s; }
@@ -224,7 +224,7 @@
         }
         .screen-list {
             max-height: 600px;
-            overflow-y: auto;
+            overflow: hidden;
             margin-bottom: 12px;
         }
         .screen-item {
@@ -423,7 +423,7 @@
     </div>
 
     <!-- Screen Management Panel (Left side) -->
-    <div id="screen-manager-panel" class="hidden">
+    <div id="screen-manager-panel">
         <h2>Gestion des Écrans</h2>
         <div class="screen-list" id="screen-list"></div>
         <button class="add-screen-btn" onclick="addNewScreen()">+ Ajouter un Écran</button>
@@ -959,6 +959,38 @@
 
         // Keyboard controls
         document.addEventListener('keydown', function(e) {
+            // Debug: log all Ctrl key combinations
+            if (e.ctrlKey) {
+                console.log('🎹 Touche Ctrl détectée:', e.code, 'ctrlKey:', e.ctrlKey, 'shiftKey:', e.shiftKey);
+            }
+
+            // Ctrl+Z: Undo (PRIORITY - check first!)
+            if (e.code === 'KeyZ' && e.ctrlKey && !e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔄 Ctrl+Z détecté - Exécution undo()');
+                undo();
+                return; // Stop here
+            }
+
+            // Ctrl+Shift+Z or Ctrl+Y: Redo
+            if ((e.code === 'KeyZ' && e.ctrlKey && e.shiftKey) || (e.code === 'KeyY' && e.ctrlKey)) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔄 Ctrl+Shift+Z ou Ctrl+Y détecté - Exécution redo()');
+                redo();
+                return; // Stop here
+            }
+
+            // Ctrl+S: Save positions to JSON file
+            if (e.code === 'KeyS' && e.ctrlKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('💾 Ctrl+S détecté - Sauvegarde positions');
+                savePositionsToFile();
+                return; // Stop here
+            }
+
             // FPS Camera controls (only when no screen selected)
             if (!selectedScreen) {
                 if (e.code === 'ArrowUp') {
@@ -979,12 +1011,12 @@
                 }
             }
 
-            // P/M: Camera up/down (always active)
-            if (e.code === 'KeyP') {
+            // O/L: Camera up/down (always active)
+            if (e.code === 'KeyO') {
                 e.preventDefault();
                 cameraKeys.up = true;
             }
-            if (e.code === 'KeyM') {
+            if (e.code === 'KeyL') {
                 e.preventDefault();
                 cameraKeys.down = true;
             }
@@ -1061,28 +1093,6 @@
                 deselectScreen();
             }
 
-            // Ctrl+S: Save positions to JSON file
-            if (e.code === 'KeyS' && e.ctrlKey) {
-                e.preventDefault();
-                savePositionsToFile();
-            }
-
-            // Ctrl+Z: Undo
-            if (e.code === 'KeyZ' && e.ctrlKey && !e.shiftKey) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('🔄 Ctrl+Z détecté');
-                undo();
-            }
-
-            // Ctrl+Shift+Z or Ctrl+Y: Redo
-            if ((e.code === 'KeyZ' && e.ctrlKey && e.shiftKey) || (e.code === 'KeyY' && e.ctrlKey)) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('🔄 Ctrl+Shift+Z détecté');
-                redo();
-            }
-
             // Delete or Backspace: Delete selected screen
             if ((e.code === 'Delete' || e.code === 'Backspace') && selectedScreen) {
                 e.preventDefault();
@@ -1117,10 +1127,10 @@
                 if (e.code === 'ArrowRight') {
                     cameraKeys.right = false;
                 }
-                if (e.code === 'KeyP') {
+                if (e.code === 'KeyO') {
                     cameraKeys.up = false;
                 }
-                if (e.code === 'KeyM') {
+                if (e.code === 'KeyL') {
                     cameraKeys.down = false;
                 }
             }
@@ -2246,7 +2256,7 @@
             let lastMouseY = 0;
 
             renderer.domElement.addEventListener('mousedown', function(e) {
-                if (e.button === 0 && !selectedScreen) { // Left click (only when no screen selected)
+                if (e.button === 0) { // Left click
                     isLeftMouseDown = true;
                     lastMouseX = e.clientX;
                     lastMouseY = e.clientY;
