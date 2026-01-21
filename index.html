@@ -736,6 +736,7 @@
 
         // Free camera (no orbit controls, no pivot)
         let freeCameraEnabled = true;
+        let fpsMode = false; // Mode FPS activé avec touche B
         let cameraYaw = 0; // Rotation horizontale (Y axis)
         let cameraPitch = 0; // Rotation verticale (X axis)
         let mouseSensitivity = 0.002;
@@ -749,6 +750,11 @@
         const SPRINT_FOV_INCREASE = 5;
         let currentFOV = DEFAULT_FOV;
         let targetFOV = DEFAULT_FOV;
+
+        // FPS Physics
+        let playerVelocityY = 0;
+        const GRAVITY = -0.8;
+        const PLAYER_HEIGHT = 170; // Hauteur des yeux du joueur en cm
 
         // Undo/Redo system
         let undoHistory = [];
@@ -1047,17 +1053,17 @@
                 cameraKeys.right = true;
             }
 
-            // O/L: Camera up/down (always active)
-            if (e.code === 'KeyO') {
+            // O/L: Camera up/down (only in normal mode, not FPS mode)
+            if (e.code === 'KeyO' && !fpsMode) {
                 e.preventDefault();
                 cameraKeys.up = true;
             }
-            if (e.code === 'KeyL') {
+            if (e.code === 'KeyL' && !fpsMode) {
                 e.preventDefault();
                 cameraKeys.down = true;
             }
 
-            // Shift: Sprint (when no screen selected)
+            // Shift: Sprint (when no screen selected, works in both modes)
             if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !selectedScreen) {
                 cameraKeys.sprint = true;
             }
@@ -1150,6 +1156,26 @@
             if (e.code === 'KeyN') {
                 e.preventDefault();
                 toggleAllInterfaces();
+            }
+
+            // B: Toggle FPS mode
+            if (e.code === 'KeyB') {
+                e.preventDefault();
+                fpsMode = !fpsMode;
+                if (fpsMode) {
+                    console.log('🎮 MODE FPS ACTIVÉ');
+                    console.log('   - Cliquez sur le canvas pour activer PointerLock');
+                    console.log('   - WASD pour se déplacer');
+                    console.log('   - Shift pour sprinter');
+                    console.log('   - ESC pour sortir du PointerLock');
+                    console.log('   - B pour désactiver le mode FPS');
+                } else {
+                    console.log('🖱️ MODE NORMAL ACTIVÉ (B pour mode FPS)');
+                    // Release pointer lock if active
+                    if (document.exitPointerLock) {
+                        document.exitPointerLock();
+                    }
+                }
             }
         });
 
@@ -2524,9 +2550,9 @@
                 }
             });
 
-            // PointerLock API setup for FPS-style controls
+            // PointerLock API setup for FPS-style controls (only in FPS mode)
             renderer.domElement.addEventListener('click', function() {
-                if (!selectedScreen && freeCameraEnabled) {
+                if (!selectedScreen && freeCameraEnabled && fpsMode) {
                     renderer.domElement.requestPointerLock = renderer.domElement.requestPointerLock ||
                                                              renderer.domElement.mozRequestPointerLock ||
                                                              renderer.domElement.webkitRequestPointerLock;
@@ -2544,10 +2570,10 @@
                     document.mozPointerLockElement === renderer.domElement ||
                     document.webkitPointerLockElement === renderer.domElement) {
                     isMouseLocked = true;
-                    console.log('🎮 Mode FPS activé (ESC pour quitter)');
+                    console.log('🔒 PointerLock activé (ESC pour quitter)');
                 } else {
                     isMouseLocked = false;
-                    console.log('🖱️ Mode FPS désactivé');
+                    console.log('🔓 PointerLock désactivé');
                 }
             }
 
@@ -2568,26 +2594,28 @@
             setupValueEditing();
             setupArrowButtons();
 
-            // Display FPS controls in console
+            // Display controls in console
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🏛️  MODE SIMULATION MUSÉE - CONTRÔLES FPS');
+            console.log('🏛️  SIMULATION MUSÉE - CONTRÔLES');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🎮 CONTRÔLES DE DÉPLACEMENT:');
-            console.log('   W/Z/↑        - Avancer');
-            console.log('   S/↓          - Reculer');
-            console.log('   A/Q/←        - Gauche');
-            console.log('   D/→          - Droite');
-            console.log('   Shift        - Sprint (x2.5 vitesse)');
-            console.log('   O            - Monter');
-            console.log('   L            - Descendre');
             console.log('');
-            console.log('🖱️  CONTRÔLES CAMÉRA:');
-            console.log('   Clic canvas  - Activer mode PointerLock FPS');
-            console.log('   ESC          - Désactiver PointerLock');
-            console.log('   Souris       - Regarder autour');
-            console.log('   Molette      - Zoom avant/arrière');
+            console.log('🔄 BASCULER ENTRE MODES:');
+            console.log('   B            - Activer/désactiver MODE FPS');
             console.log('');
-            console.log('📍 SPAWN POINT: Centre forme 11 → Vue vers écran 7');
+            console.log('📍 MODE NORMAL (par défaut):');
+            console.log('   Flèches/WASD - Déplacement horizontal');
+            console.log('   O/L          - Monter/Descendre librement');
+            console.log('   Clic gauche  - Rotation caméra');
+            console.log('   Molette      - Zoom');
+            console.log('');
+            console.log('🎮 MODE FPS (touche B):');
+            console.log('   WASD/Flèches - Se déplacer');
+            console.log('   Shift        - Sprint (x2.5)');
+            console.log('   Clic canvas  - PointerLock (ESC pour quitter)');
+            console.log('   Gravité      - Marche sur formes 11 et 3');
+            console.log('   Collisions   - Activées avec murs');
+            console.log('');
+            console.log('📍 Spawn: Centre forme 11 → Vue vers écran 7');
             console.log('═══════════════════════════════════════════════════════');
 
             animate();
@@ -4383,11 +4411,11 @@
                 camera.rotation.x = cameraPitch;
             }
 
-            // FPS Camera movement (only when no screen selected and free camera enabled)
+            // Camera movement (only when no screen selected and free camera enabled)
             if (!selectedScreen && freeCameraEnabled && camera) {
                 const forward = new THREE.Vector3();
                 camera.getWorldDirection(forward);
-                forward.y = 0; // Mouvement horizontal uniquement (pas de montée/descente automatique)
+                forward.y = 0; // Mouvement horizontal uniquement
                 forward.normalize();
 
                 const right = new THREE.Vector3();
@@ -4400,6 +4428,7 @@
                 // Store previous position for collision detection
                 const prevPosition = camera.position.clone();
 
+                // Horizontal movement (same for both modes)
                 if (cameraKeys.forward) {
                     camera.position.addScaledVector(forward, currentSpeed);
                 }
@@ -4412,72 +4441,98 @@
                 if (cameraKeys.right) {
                     camera.position.addScaledVector(right, currentSpeed);
                 }
-                if (cameraKeys.up) {
-                    camera.position.y += currentSpeed;
-                }
-                if (cameraKeys.down) {
-                    camera.position.y -= currentSpeed;
-                }
 
-                // Advanced collision detection with bounding boxes
-                const collisionMargin = 25; // Marge de collision (taille du joueur)
-                let hasCollision = false;
+                if (fpsMode) {
+                    // ===== MODE FPS: Gravité et marche sur le sol =====
 
-                // Create a bounding box for the camera/player
-                const playerBox = new THREE.Box3(
-                    new THREE.Vector3(
-                        camera.position.x - collisionMargin,
-                        camera.position.y - 85, // Hauteur du joueur (~170cm)
-                        camera.position.z - collisionMargin
-                    ),
-                    new THREE.Vector3(
-                        camera.position.x + collisionMargin,
-                        camera.position.y + 85,
-                        camera.position.z + collisionMargin
-                    )
-                );
+                    // Appliquer la gravité
+                    playerVelocityY += GRAVITY;
+                    camera.position.y += playerVelocityY;
 
-                for (const key in allScreens) {
-                    const screen = allScreens[key];
-                    if (screen && screen.userData.isColorSurface && screen.visible !== false) {
-                        // Create bounding box for each screen
-                        const screenBox = new THREE.Box3().setFromObject(screen);
+                    // Raycasting vers le bas pour détecter le sol (formes 11 et 3)
+                    const raycaster = new THREE.Raycaster();
+                    raycaster.set(camera.position, new THREE.Vector3(0, -1, 0));
 
-                        // Expand screen box slightly to prevent clipping
-                        screenBox.expandByScalar(5);
+                    const floorScreens = [];
+                    if (allScreens[11]) floorScreens.push(allScreens[11]);
+                    if (allScreens[3]) floorScreens.push(allScreens[3]);
 
-                        // Check intersection
-                        if (playerBox.intersectsBox(screenBox)) {
-                            hasCollision = true;
-                            break;
+                    const intersects = raycaster.intersectObjects(floorScreens, false);
+
+                    if (intersects.length > 0) {
+                        const groundY = intersects[0].point.y + PLAYER_HEIGHT;
+
+                        // Si on est proche du sol ou en dessous, poser le joueur
+                        if (camera.position.y <= groundY) {
+                            camera.position.y = groundY;
+                            playerVelocityY = 0;
                         }
                     }
-                }
 
-                // Revert position if collision detected
-                if (hasCollision) {
-                    camera.position.copy(prevPosition);
-                }
+                    // Collision horizontale avec surfaces (murs)
+                    const collisionMargin = 25;
+                    let hasCollision = false;
 
-                // Floor collision (prevent falling through)
-                const floorY = -111.773 + 170; // Sol de la forme 11 + hauteur œil
-                if (camera.position.y < floorY && !cameraKeys.down) {
-                    camera.position.y = floorY;
-                }
+                    const playerBox = new THREE.Box3(
+                        new THREE.Vector3(
+                            camera.position.x - collisionMargin,
+                            camera.position.y - 85,
+                            camera.position.z - collisionMargin
+                        ),
+                        new THREE.Vector3(
+                            camera.position.x + collisionMargin,
+                            camera.position.y + 85,
+                            camera.position.z + collisionMargin
+                        )
+                    );
 
-                // Head bobbing effect when moving
-                const isMoving = cameraKeys.forward || cameraKeys.backward || cameraKeys.left || cameraKeys.right;
-                if (isMoving) {
-                    headBobTimer += HEAD_BOB_SPEED * (cameraKeys.sprint ? 1.5 : 1);
-                    const bobOffset = Math.sin(headBobTimer) * HEAD_BOB_AMOUNT;
-                    camera.position.y += bobOffset;
+                    for (const key in allScreens) {
+                        // Ne pas checker collision avec les sols (11 et 3)
+                        if (key === '11' || key === '3') continue;
+
+                        const screen = allScreens[key];
+                        if (screen && screen.userData.isColorSurface && screen.visible !== false) {
+                            const screenBox = new THREE.Box3().setFromObject(screen);
+                            screenBox.expandByScalar(5);
+
+                            if (playerBox.intersectsBox(screenBox)) {
+                                hasCollision = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (hasCollision) {
+                        camera.position.x = prevPosition.x;
+                        camera.position.z = prevPosition.z;
+                    }
+
+                    // Head bobbing effect when moving
+                    const isMoving = cameraKeys.forward || cameraKeys.backward || cameraKeys.left || cameraKeys.right;
+                    if (isMoving && playerVelocityY === 0) { // Only bob when on ground
+                        headBobTimer += HEAD_BOB_SPEED * (cameraKeys.sprint ? 1.5 : 1);
+                        const bobOffset = Math.sin(headBobTimer) * HEAD_BOB_AMOUNT;
+                        camera.position.y += bobOffset;
+                    } else {
+                        headBobTimer *= 0.9;
+                    }
+
+                    // FOV kick during sprint
+                    targetFOV = cameraKeys.sprint ? DEFAULT_FOV + SPRINT_FOV_INCREASE : DEFAULT_FOV;
+
                 } else {
-                    // Gradually reset head bob when not moving
-                    headBobTimer *= 0.9;
-                }
+                    // ===== MODE NORMAL: Déplacement libre avec O/L =====
 
-                // FOV kick during sprint
-                targetFOV = cameraKeys.sprint ? DEFAULT_FOV + SPRINT_FOV_INCREASE : DEFAULT_FOV;
+                    if (cameraKeys.up) {
+                        camera.position.y += currentSpeed;
+                    }
+                    if (cameraKeys.down) {
+                        camera.position.y -= currentSpeed;
+                    }
+
+                    // Pas de collision en mode normal (mode édition)
+                    targetFOV = DEFAULT_FOV;
+                }
             }
 
             // Smooth FOV transition
