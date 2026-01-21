@@ -196,6 +196,36 @@
 
         /* Hidden video element */
         .hidden-video { position: absolute; left: -9999px; }
+
+        /* Screen Management UI */
+        .screen-manager { margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .screen-manager h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+                             opacity: 0.7; margin-bottom: 12px; }
+        .screen-list { max-height: 200px; overflow-y: auto; margin-bottom: 12px; }
+        .screen-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+                       border-radius: 6px; padding: 10px; margin-bottom: 8px; display: flex;
+                       flex-direction: column; gap: 8px; }
+        .screen-item.selected { border-color: rgba(100,150,255,0.5); background: rgba(100,150,255,0.1); }
+        .screen-header { display: flex; justify-content: space-between; align-items: center; }
+        .screen-header .screen-num { font-weight: 600; font-size: 11px; }
+        .screen-header .screen-delete { background: rgba(255,50,50,0.2); border: 1px solid rgba(255,50,50,0.3);
+                                        padding: 4px 10px; border-radius: 4px; font-size: 9px; cursor: pointer;
+                                        transition: all 0.2s; }
+        .screen-header .screen-delete:hover { background: rgba(255,50,50,0.4); }
+        .screen-type-selector { display: flex; gap: 6px; }
+        .screen-type-btn { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+                           border-radius: 4px; padding: 6px; font-size: 9px; cursor: pointer; transition: all 0.2s;
+                           text-transform: uppercase; letter-spacing: 0.5px; }
+        .screen-type-btn.active { background: rgba(100,150,255,0.2); border-color: rgba(100,150,255,0.5); }
+        .screen-type-btn:hover { background: rgba(255,255,255,0.1); }
+        .color-picker { display: flex; gap: 6px; align-items: center; }
+        .color-option { width: 24px; height: 24px; border-radius: 4px; cursor: pointer; border: 2px solid transparent;
+                        transition: all 0.2s; }
+        .color-option:hover { transform: scale(1.1); }
+        .color-option.active { border-color: rgba(100,150,255,0.8); box-shadow: 0 0 8px rgba(100,150,255,0.5); }
+        .add-screen-btn { background: rgba(100,200,100,0.2); border: 1px solid rgba(100,200,100,0.3);
+                          margin-top: 8px; }
+        .add-screen-btn:hover { background: rgba(100,200,100,0.3); }
     </style>
 </head>
 <body>
@@ -326,15 +356,15 @@
 
             <div class="param-row">
                 <div class="param-header">
-                    <label>EMISSIVE</label>
+                    <label>GLOW</label>
                     <div class="param-controls">
-                        <button class="arrow-btn" data-param="emissive" data-dir="down">▼</button>
-                        <span class="value" id="val-emissive" data-param="emissive">0.30</span>
-                        <button class="arrow-btn" data-param="emissive" data-dir="up">▲</button>
+                        <button class="arrow-btn" data-param="glow" data-dir="down">▼</button>
+                        <span class="value" id="val-glow" data-param="glow">0.30</span>
+                        <button class="arrow-btn" data-param="glow" data-dir="up">▲</button>
                     </div>
                 </div>
                 <div class="slider-wrapper">
-                    <input type="range" class="slider" id="emissive" min="0.0" max="1.0" step="0.05" value="0.3">
+                    <input type="range" class="slider" id="glow" min="0.0" max="1.0" step="0.05" value="0.3">
                     <div class="center-mark" style="left: 30%;"></div>
                 </div>
             </div>
@@ -442,6 +472,16 @@
             <button onclick="resetToDefaults()">Reset to Defaults</button>
             <button onclick="resetCamera()">Reset Camera</button>
             <button class="small" onclick="changeVideo()">Change Video</button>
+
+            <!-- Screen Management -->
+            <div class="screen-manager hidden" id="screen-manager">
+                <h3>Gestion des Écrans</h3>
+                <div class="screen-list" id="screen-list"></div>
+                <button class="add-screen-btn" onclick="addNewScreen()">+ Ajouter un Écran</button>
+                <p style="font-size: 9px; opacity: 0.5; margin-top: 8px;">
+                    Touche A: Ajouter • Suppr: Supprimer sélection
+                </p>
+            </div>
         </div>
 
         <p class="hint">Drag to rotate • Scroll to zoom</p>
@@ -476,7 +516,7 @@
         let saturation = 0.80;
         let hideBackground = false;
         let bgThreshold = 40;
-        let emissiveIntensity = 0.3; // Émissivité/glow des particules lumineuses
+        let glowIntensity = 0.3; // Émissivité/glow des particules lumineuses
 
         // Video sampling data for continuous updates
         let videoSamplingCanvas = null;
@@ -513,6 +553,9 @@
         const MAGNETISM_THRESHOLD = 0.05; // ~3 degrees in radians
         const MAGNETISM_ANGLES = [0, Math.PI / 2, Math.PI, Math.PI * 3 / 2, Math.PI * 2];
 
+        // Scale mode: 'uniform' (proportionnel) or 'free' (par axe)
+        let scaleMode = 'free'; // Default to free mode (allows per-axis scaling)
+
         // FPS Camera controls (only when no screen selected)
         const cameraKeys = {
             forward: false,
@@ -539,7 +582,7 @@
             depth: { min: 0.0, max: 0.2, step: 0.01, decimals: 2, suffix: 'X' }, // Plage 0-0.2 pour précision sur petites valeurs
             breath: { min: 0, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
             brightness: { min: 0.5, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
-            emissive: { min: 0.0, max: 1.0, step: 0.05, decimals: 2, suffix: '' }, // Émissivité/glow
+            glow: { min: 0.0, max: 1.0, step: 0.05, decimals: 2, suffix: '' }, // Émissivité/glow
             flow: { min: 0, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
             blackThreshold: { min: 0, max: 128, step: 1, decimals: 0, suffix: '' },
             depthCullPower: { min: 0.0, max: 1.0, step: 0.05, decimals: 2, suffix: '' },
@@ -563,11 +606,12 @@
                 slider.addEventListener('input', function() {
                     updateValueDisplay(param);
 
-                    // Flow and Emissive are real-time, don't need regeneration
+                    // Flow is real-time, glow needs regeneration
                     if (param === 'flow') {
                         flowIntensity = parseFloat(slider.value);
-                    } else if (param === 'emissive') {
-                        emissiveIntensity = parseFloat(slider.value);
+                    } else if (param === 'glow') {
+                        glowIntensity = parseFloat(slider.value);
+                        scheduleRegenerate();
                     } else {
                         scheduleRegenerate();
                     }
@@ -789,8 +833,17 @@
             // E: Scale mode
             if (e.code === 'KeyE' && selectedScreen) {
                 e.preventDefault();
-                transformControls.setMode('scale');
-                console.log('Mode: SCALE (échelle XYZ)');
+                // Cycle between scale modes
+                if (transformControls.mode !== 'scale') {
+                    // First press: activate scale mode
+                    transformControls.setMode('scale');
+                    scaleMode = 'free';
+                    console.log('Mode: SCALE LIBRE (axe individuel) - Re-appuyez sur E pour mode uniforme');
+                } else {
+                    // Subsequent presses: toggle between free and uniform
+                    scaleMode = scaleMode === 'free' ? 'uniform' : 'free';
+                    console.log(`Mode: SCALE ${scaleMode === 'uniform' ? 'UNIFORME (proportionnel)' : 'LIBRE (axe individuel)'}`);
+                }
             }
 
             // Escape: Deselect screen
@@ -815,6 +868,18 @@
             if ((e.code === 'KeyZ' && e.ctrlKey && e.shiftKey) || (e.code === 'KeyY' && e.ctrlKey)) {
                 e.preventDefault();
                 redo();
+            }
+
+            // Delete or Backspace: Delete selected screen
+            if ((e.code === 'Delete' || e.code === 'Backspace') && selectedScreen) {
+                e.preventDefault();
+                deleteScreen(selectedScreen);
+            }
+
+            // A: Add new screen
+            if (e.code === 'KeyA' && !selectedScreen && !e.ctrlKey) {
+                e.preventDefault();
+                addNewScreen();
             }
         });
 
@@ -876,6 +941,206 @@
                 document.removeEventListener('keydown', onShiftChange);
                 document.removeEventListener('keyup', onShiftChange);
             }
+        }
+
+        function deleteScreen(num) {
+            if (!allScreens[num]) {
+                console.warn(`Écran ${num} n'existe pas`);
+                return;
+            }
+
+            // Save state for undo
+            saveState();
+
+            const screen = allScreens[num];
+
+            // Detach transform controls if this screen is selected
+            if (selectedScreen === num) {
+                transformControls.detach();
+                selectedScreen = null;
+                document.removeEventListener('keydown', onShiftChange);
+                document.removeEventListener('keyup', onShiftChange);
+            }
+
+            // Remove from scene
+            if (screen.parent) {
+                screen.parent.remove(screen);
+            }
+
+            // Dispose geometry and material to free memory
+            if (screen.geometry) screen.geometry.dispose();
+            if (screen.material) {
+                if (Array.isArray(screen.material)) {
+                    screen.material.forEach(mat => mat.dispose());
+                } else {
+                    screen.material.dispose();
+                }
+            }
+
+            // Remove from allScreens
+            delete allScreens[num];
+
+            console.log(`=== ÉCRAN ${num} SUPPRIMÉ ===`);
+
+            // Update UI
+            updateScreenList();
+        }
+
+        function addNewScreen() {
+            // Find next available screen number
+            let newNum = 1;
+            while (allScreens[newNum]) {
+                newNum++;
+            }
+
+            // Get screen 1 dimensions as reference
+            const refScreen = allScreens[1];
+            if (!refScreen) {
+                console.error('Écran 1 n\'existe pas, impossible de créer un nouveau');
+                return;
+            }
+
+            // Save state for undo
+            saveState();
+
+            // Create new screen with same dimensions as screen 1, but offset position
+            const geometry = new THREE.PlaneGeometry(refScreen.geometry.parameters.width, refScreen.geometry.parameters.height);
+            const material = new THREE.MeshBasicMaterial({
+                color: 0x808080, // Gray by default
+                side: THREE.DoubleSide
+            });
+            const screen = new THREE.Mesh(geometry, material);
+
+            // Position offset from origin
+            const offset = (newNum - 1) * 500;
+            screen.position.set(offset, 0, 0);
+
+            screen.userData.screenNumber = newNum;
+            screen.userData.isColorSurface = true; // Mark as color surface by default
+            screen.userData.color = 0x808080; // Store color
+
+            screensGroup.add(screen);
+            allScreens[newNum] = screen;
+
+            console.log(`=== ÉCRAN ${newNum} CRÉÉ ===`);
+            console.log(`Position: (${offset}, 0, 0)`);
+            console.log(`Dimensions: ${refScreen.geometry.parameters.width} x ${refScreen.geometry.parameters.height}`);
+            console.log(`Type: Surface couleur unie (gris)`);
+
+            // Update UI
+            updateScreenList();
+        }
+
+        function updateScreenList() {
+            const screenList = document.getElementById('screen-list');
+            if (!screenList) return;
+
+            screenList.innerHTML = '';
+
+            Object.keys(allScreens).sort((a, b) => parseInt(a) - parseInt(b)).forEach(num => {
+                const screen = allScreens[num];
+                const isColorSurface = screen.userData.isColorSurface || false;
+                const color = screen.userData.color || 0x808080;
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'screen-item';
+                if (selectedScreen == num) {
+                    itemDiv.classList.add('selected');
+                }
+
+                // Header with number and delete button
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'screen-header';
+                headerDiv.innerHTML = `
+                    <span class="screen-num">Écran ${num}</span>
+                    <button class="screen-delete" onclick="deleteScreen(${num}); updateScreenList();">✕ Supprimer</button>
+                `;
+                itemDiv.appendChild(headerDiv);
+
+                // Type selector
+                const typeSelectorDiv = document.createElement('div');
+                typeSelectorDiv.className = 'screen-type-selector';
+                typeSelectorDiv.innerHTML = `
+                    <button class="screen-type-btn ${!isColorSurface ? 'active' : ''}" onclick="setScreenType(${num}, false)">Vidéo</button>
+                    <button class="screen-type-btn ${isColorSurface ? 'active' : ''}" onclick="setScreenType(${num}, true)">Couleur</button>
+                `;
+                itemDiv.appendChild(typeSelectorDiv);
+
+                // Color picker (only if color surface)
+                if (isColorSurface) {
+                    const colorPickerDiv = document.createElement('div');
+                    colorPickerDiv.className = 'color-picker';
+
+                    const colors = [
+                        { hex: '#000000', value: 0x000000, name: 'Noir' },
+                        { hex: '#1a1a1a', value: 0x1a1a1a, name: 'Noir+' },
+                        { hex: '#333333', value: 0x333333, name: 'Gris foncé' },
+                        { hex: '#666666', value: 0x666666, name: 'Gris' },
+                        { hex: '#808080', value: 0x808080, name: 'Gris moyen' },
+                        { hex: '#999999', value: 0x999999, name: 'Gris clair' },
+                        { hex: '#cccccc', value: 0xcccccc, name: 'Gris très clair' },
+                        { hex: '#ffffff', value: 0xffffff, name: 'Blanc' }
+                    ];
+
+                    colors.forEach(c => {
+                        const colorBtn = document.createElement('div');
+                        colorBtn.className = 'color-option';
+                        if (color === c.value) {
+                            colorBtn.classList.add('active');
+                        }
+                        colorBtn.style.background = c.hex;
+                        colorBtn.title = c.name;
+                        colorBtn.onclick = () => setScreenColor(num, c.value);
+                        colorPickerDiv.appendChild(colorBtn);
+                    });
+
+                    itemDiv.appendChild(colorPickerDiv);
+                }
+
+                screenList.appendChild(itemDiv);
+            });
+        }
+
+        function setScreenType(num, isColorSurface) {
+            const screen = allScreens[num];
+            if (!screen) return;
+
+            saveState();
+
+            screen.userData.isColorSurface = isColorSurface;
+
+            if (isColorSurface) {
+                // Switch to color surface
+                const color = screen.userData.color || 0x808080;
+                screen.material.dispose();
+                screen.material = new THREE.MeshBasicMaterial({
+                    color: color,
+                    side: THREE.DoubleSide
+                });
+            } else {
+                // Switch to video - will be updated in updateColorsFromVideo
+                screen.material.dispose();
+                screen.material = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    side: THREE.DoubleSide
+                });
+            }
+
+            updateScreenList();
+            console.log(`Écran ${num}: Type changé en ${isColorSurface ? 'Couleur' : 'Vidéo'}`);
+        }
+
+        function setScreenColor(num, colorValue) {
+            const screen = allScreens[num];
+            if (!screen || !screen.userData.isColorSurface) return;
+
+            saveState();
+
+            screen.userData.color = colorValue;
+            screen.material.color.setHex(colorValue);
+
+            updateScreenList();
+            console.log(`Écran ${num}: Couleur changée`);
         }
 
         function onShiftChange(e) {
@@ -1430,6 +1695,17 @@
                 }
             });
 
+            // Enforce uniform scaling when in uniform mode
+            transformControls.addEventListener('objectChange', function() {
+                if (transformControls.mode === 'scale' && scaleMode === 'uniform' && selectedScreen && allScreens[selectedScreen]) {
+                    const screen = allScreens[selectedScreen];
+                    // Calculate average scale across all axes
+                    const avgScale = (screen.scale.x + screen.scale.y + screen.scale.z) / 3;
+                    // Apply uniform scale to maintain proportions
+                    screen.scale.set(avgScale, avgScale, avgScale);
+                }
+            });
+
             // Zoom with mouse wheel
             renderer.domElement.addEventListener('wheel', function(e) {
                 e.preventDefault();
@@ -1476,19 +1752,21 @@
                     document.getElementById('depth').value = 0.1;
                     document.getElementById('breath').value = 0.0;
                     document.getElementById('brightness').value = 1.8;
-                    document.getElementById('emissive').value = 0.3;
+                    document.getElementById('glow').value = 0.3;
 
                     updateValueDisplay('size');
                     updateValueDisplay('density');
                     updateValueDisplay('depth');
                     updateValueDisplay('breath');
                     updateValueDisplay('brightness');
-                    updateValueDisplay('emissive');
+                    updateValueDisplay('glow');
 
                     document.getElementById('load-section').classList.add('hidden');
                     document.getElementById('controls').classList.remove('hidden');
                     document.getElementById('ui').classList.add('loaded');
                     document.getElementById('shape-selector').classList.remove('hidden');
+                    document.getElementById('screen-manager').classList.remove('hidden');
+                    updateScreenList(); // Update screen management UI
                 }
 
                 // Auto-play
@@ -1566,7 +1844,7 @@
             depthMultiplier = parseFloat(document.getElementById('depth').value); // Plage ajustée 0-0.2 pour plus de précision
             breathSpeed = parseFloat(document.getElementById('breath').value);
             brightness = parseFloat(document.getElementById('brightness').value);
-            emissiveIntensity = parseFloat(document.getElementById('emissive').value);
+            glowIntensity = parseFloat(document.getElementById('glow').value);
             flowIntensity = parseFloat(document.getElementById('flow').value);
 
             // New v1.3.1 parameters
@@ -1867,7 +2145,7 @@
                     roughness: 0.7,
                     metalness: 0.3,
                     emissive: 0xffffff, // Couleur émissive = blanc pour prendre la couleur des particules
-                    emissiveIntensity: emissiveIntensity // Intensité contrôlée par le slider
+                    emissiveIntensity: glowIntensity // Intensité contrôlée par le slider
                 });
 
                 particles = new THREE.InstancedMesh(baseGeometry, material, count);
@@ -2155,7 +2433,7 @@
             document.getElementById('depth').value = 0.1;
             document.getElementById('breath').value = 0.0;
             document.getElementById('brightness').value = 1.8;
-            document.getElementById('emissive').value = 0.3;
+            document.getElementById('glow').value = 0.3;
             document.getElementById('flow').value = 0.0;
             document.getElementById('blackThreshold').value = 30;
             document.getElementById('hide-black').checked = false;
@@ -2174,14 +2452,14 @@
             saturation = 0.80;
             hideBackground = false;
             bgThreshold = 40;
-            emissiveIntensity = 0.3;
+            glowIntensity = 0.3;
 
             updateValueDisplay('size');
             updateValueDisplay('density');
             updateValueDisplay('depth');
             updateValueDisplay('breath');
             updateValueDisplay('brightness');
-            updateValueDisplay('emissive');
+            updateValueDisplay('glow');
             updateValueDisplay('flow');
             updateValueDisplay('blackThreshold');
             updateValueDisplay('depthCullPower');
@@ -2339,12 +2617,12 @@
                             let finalB = bNorm * brightness;
 
                             // Professional emissive effect: brighter particles glow more (non-linear power curve)
-                            if (emissiveIntensity > 0) {
+                            if (glowIntensity > 0) {
                                 // Calculate luminance of the pixel
                                 const pixelLuminance = 0.299 * finalR + 0.587 * finalG + 0.114 * finalB;
 
                                 // Power curve: bright pixels get boosted more (quadratic for smooth glow)
-                                const emissiveBoost = Math.pow(pixelLuminance, 2.0) * emissiveIntensity;
+                                const emissiveBoost = Math.pow(pixelLuminance, 2.0) * glowIntensity;
 
                                 // Add emissive glow to bright particles
                                 finalR += emissiveBoost * finalR;
