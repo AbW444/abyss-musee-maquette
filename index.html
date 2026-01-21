@@ -2533,9 +2533,9 @@
             // Add second screen to group
             screensGroup.add(particlesRight);
 
-            // === ÉCRAN 3: SOL RECTANGLE (surface doublée avec scale x2) ===
+            // === ÉCRAN 3: SOL RECTANGLE (surface doublée sans scale) ===
             // Créer une géométrie rectangulaire : largeur complète, hauteur réduite de moitié
-            // Avec scale x2 en X : largeur finale = 800, hauteur = 112.5, surface doublée
+            // Positions multipliées x2 : largeur finale = 800, hauteur = 225, surface doublée
             const screen3Positions = [];
             const screen3Colors = [];
             const screen3InitialZ = [];
@@ -2552,7 +2552,8 @@
 
                 // Rectangle : TOUTE la largeur (pas de condition sur X), hauteur réduite de moitié
                 if (y >= -halfH_screen3 && y <= halfH_screen3) {
-                    screen3Positions.push(x, y, z);
+                    // Multiplier X et Y par 2 pour surface doublée SANS scale (évite distorsion depth)
+                    screen3Positions.push(x * 2, y * 2, z);
                     screen3Colors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
                     screen3InitialZ.push(initialZ[i]);
                 }
@@ -2622,7 +2623,7 @@
             // Position et orientation de base
             screen3.position.set(200.858, -112.500, 112.500);
             screen3.rotation.set(1.570796, 0.000000, 0.000000); // 90° sur X
-            screen3.scale.set(2.001, 2.001, 8.268); // Scale pour surface doublée
+            screen3.scale.set(1, 1, 1); // Pas de scale (positions déjà multipliées x2)
 
             screensGroup.add(screen3);
 
