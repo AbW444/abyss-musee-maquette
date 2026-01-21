@@ -1727,7 +1727,7 @@
 
             Object.keys(allScreens).forEach(num => {
                 const screen = allScreens[num];
-                data.screens[num] = {
+                const screenData = {
                     position: {
                         x: parseFloat(screen.position.x.toFixed(3)),
                         y: parseFloat(screen.position.y.toFixed(3)),
@@ -1742,8 +1742,26 @@
                         x: parseFloat(screen.scale.x.toFixed(3)),
                         y: parseFloat(screen.scale.y.toFixed(3)),
                         z: parseFloat(screen.scale.z.toFixed(3))
-                    }
+                    },
+                    // Type and properties
+                    isColorSurface: screen.userData.isColorSurface || false,
+                    color: screen.userData.color || 0x808080
                 };
+
+                // Save geometry dimensions if available
+                if (screen.geometry && screen.geometry.parameters) {
+                    const params = screen.geometry.parameters;
+                    if (params.width !== undefined && params.height !== undefined) {
+                        screenData.dimensions = {
+                            width: parseFloat(params.width.toFixed(3)),
+                            height: parseFloat(params.height.toFixed(3))
+                        };
+                    }
+                    // Save geometry type
+                    screenData.geometryType = screen.geometry.type || 'unknown';
+                }
+
+                data.screens[num] = screenData;
             });
 
             // Download as JSON file
@@ -1758,7 +1776,7 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            console.log('✅ Positions sauvegardées dans le fichier JSON téléchargé');
+            console.log('✅ Positions complètes (avec dimensions) sauvegardées dans le fichier JSON téléchargé');
             console.log(`📦 ${Object.keys(allScreens).length} écrans exportés`);
         }
 
@@ -2704,12 +2722,12 @@
                 }
             }
 
-            // CRITICAL: Preserve custom shapes (>8) before clearing
+            // CRITICAL: Preserve custom shapes (>7) before clearing
             const customShapesToPreserve = {};
             if (allScreens) {
                 Object.keys(allScreens).forEach(key => {
                     const num = parseInt(key);
-                    if (num > 8) {
+                    if (num > 7) {
                         customShapesToPreserve[num] = allScreens[num];
                         // Remove from screensGroup temporarily to avoid disposal
                         if (allScreens[num].parent === screensGroup) {
@@ -2718,7 +2736,7 @@
                     }
                 });
             }
-            console.log('💾 Formes personnalisées préservées (>8):', Object.keys(customShapesToPreserve));
+            console.log('💾 Formes personnalisées préservées (>7):', Object.keys(customShapesToPreserve));
 
             // CRITICAL: Detach transform controls before clearing to avoid "object must be part of scene graph" error
             const wasScreenSelected = selectedScreen;
@@ -3054,39 +3072,15 @@
 
             screensGroup.add(screen7);
 
-            // ======================
-            // SCREEN 8: Custom shape (color surface) - ceiling panel
-            // ======================
-            const width8 = 450;
-            const height8 = 450;
-            const geometry8 = new THREE.PlaneGeometry(width8, height8);
-            const material8 = new THREE.MeshBasicMaterial({
-                color: 0x808080,
-                side: THREE.DoubleSide
-            });
-            const screen8 = new THREE.Mesh(geometry8, material8);
-
-            // Position et orientation (from user JSON)
-            screen8.position.set(225.277, 110.567, 111.361);
-            screen8.rotation.set(1.570796, 0, 0);
-            screen8.scale.set(1, 1, 1);
-
-            // Mark as color surface by default
-            screen8.userData.screenNumber = 8;
-            screen8.userData.isColorSurface = true;
-            screen8.userData.color = 0x808080;
-
-            screensGroup.add(screen8);
-
-            // Restore custom shapes (>8) - both in allScreens and screensGroup
-            console.log('🔄 Restauration des formes personnalisées (>8):', Object.keys(customShapesToPreserve));
+            // Restore custom shapes (>7) - both in allScreens and screensGroup
+            console.log('🔄 Restauration des formes personnalisées (>7):', Object.keys(customShapesToPreserve));
             Object.keys(customShapesToPreserve).forEach(key => {
                 const shape = customShapesToPreserve[key];
                 screensGroup.add(shape); // Re-add to scene
                 console.log(`  ✓ Forme #${key} réajoutée à la scène`);
             });
 
-            // Update volumetric screens 1-8 and restore custom shapes
+            // Update volumetric screens 1-7 and restore custom shapes (including user's screen 8)
             allScreens = {
                 1: particles,           // Wall back left
                 2: particlesRight,      // Wall back right
@@ -3094,10 +3088,9 @@
                 5: wallOppA,            // Wall front left
                 6: wallOppB,            // Wall front right
                 7: screen7,             // Side panel (carré)
-                8: screen8,             // Ceiling panel (custom shape - color surface)
-                ...customShapesToPreserve // Restore custom shapes (>8)
+                ...customShapesToPreserve // Restore custom shapes (>7, including screen 8)
             };
-            console.log('✅ Tous les écrans restaurés (1-8 + custom):', Object.keys(allScreens));
+            console.log('✅ Tous les écrans restaurés (1-7 + custom):', Object.keys(allScreens));
 
             // CRITICAL: Update screen list UI immediately after allScreens is populated
             updateScreenList();
