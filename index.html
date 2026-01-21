@@ -498,6 +498,21 @@
 
             <div class="param-row">
                 <div class="param-header">
+                    <label>DEPTH SMOOTHING</label>
+                    <div class="param-controls">
+                        <button class="arrow-btn" data-param="smoothing" data-dir="down">▼</button>
+                        <span class="value" id="val-smoothing" data-param="smoothing">0.00</span>
+                        <button class="arrow-btn" data-param="smoothing" data-dir="up">▲</button>
+                    </div>
+                </div>
+                <div class="slider-wrapper">
+                    <input type="range" class="slider" id="smoothing" min="0.0" max="0.1" step="0.005" value="0.0">
+                    <div class="center-mark" style="left: 0%;"></div>
+                </div>
+            </div>
+
+            <div class="param-row">
+                <div class="param-header">
                     <label>BREATH SPEED</label>
                     <div class="param-controls">
                         <button class="arrow-btn" data-param="breath" data-dir="down">▼</button>
@@ -658,6 +673,7 @@
         let screensGroup; // Group to contain all screens for common rotation
         let breathSpeed = 0.0;
         let depthMultiplier = 0.2;
+        let depthSmoothing = 0.0; // Seuil pour atténuer micro-mouvements (0 = aucun, 0.1 = élevé)
         let pointSize = 0.39;
         let particleDensity = 13;
         let brightness = 1.8;
@@ -742,6 +758,7 @@
             size: { min: 0.1, max: 2.0, step: 0.01, decimals: 2, suffix: '' },
             density: { min: 1, max: 15, step: 1, decimals: 0, suffix: 'X' },
             depth: { min: 0.0, max: 0.2, step: 0.01, decimals: 2, suffix: 'X' }, // Plage 0-0.2 pour précision sur petites valeurs
+            smoothing: { min: 0.0, max: 0.1, step: 0.005, decimals: 3, suffix: '' }, // Seuil atténuation micro-mouvements
             breath: { min: 0, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
             brightness: { min: 0.5, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
             glow: { min: 0.0, max: 1.0, step: 0.05, decimals: 2, suffix: '' }, // Émissivité/glow
@@ -2189,6 +2206,7 @@
             pointSize = parseFloat(document.getElementById('size').value);
             particleDensity = parseInt(document.getElementById('density').value);
             depthMultiplier = parseFloat(document.getElementById('depth').value); // Plage ajustée 0-0.2 pour plus de précision
+            depthSmoothing = parseFloat(document.getElementById('smoothing').value); // Seuil atténuation micro-mouvements
             breathSpeed = parseFloat(document.getElementById('breath').value);
             brightness = parseFloat(document.getElementById('brightness').value);
             glowIntensity = parseFloat(document.getElementById('glow').value);
@@ -3102,10 +3120,18 @@
                 }
                 particles.instanceColor.needsUpdate = true;
 
-                // Update initialZ for depth animation
+                // Update initialZ for depth animation with smoothing
                 if (particles.userData.initialZ) {
                     for (let i = 0; i < newDepths.length; i++) {
-                        particles.userData.initialZ[i] = newDepths[i];
+                        const oldDepth = particles.userData.initialZ[i];
+                        const newDepth = newDepths[i];
+                        const depthDelta = Math.abs(newDepth - oldDepth);
+
+                        // Apply smoothing: only update if change exceeds threshold
+                        if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
+                            particles.userData.initialZ[i] = newDepth;
+                        }
+                        // else: keep old depth (reduces micro-movements/noise)
                     }
                 }
 
@@ -3137,7 +3163,14 @@
                                     colors7[screen7Index * 3 + 2] = newColors[particleIndex * 3 + 2];
 
                                     if (screen7.userData.initialZ) {
-                                        screen7.userData.initialZ[screen7Index] = newDepths[particleIndex];
+                                        const oldDepth = screen7.userData.initialZ[screen7Index];
+                                        const newDepth = newDepths[particleIndex];
+                                        const depthDelta = Math.abs(newDepth - oldDepth);
+
+                                        // Apply smoothing: only update if change exceeds threshold
+                                        if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
+                                            screen7.userData.initialZ[screen7Index] = newDepth;
+                                        }
                                     }
                                     screen7Index++;
                                 }
@@ -3177,7 +3210,14 @@
                                     colors3[screen3Index * 3 + 2] = newColors[particleIndex * 3 + 2];
 
                                     if (screen3.userData.initialZ) {
-                                        screen3.userData.initialZ[screen3Index] = newDepths[particleIndex];
+                                        const oldDepth = screen3.userData.initialZ[screen3Index];
+                                        const newDepth = newDepths[particleIndex];
+                                        const depthDelta = Math.abs(newDepth - oldDepth);
+
+                                        // Apply smoothing: only update if change exceeds threshold
+                                        if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
+                                            screen3.userData.initialZ[screen3Index] = newDepth;
+                                        }
                                     }
                                     screen3Index++;
                                 }
@@ -3196,11 +3236,18 @@
                 }
                 geometry.attributes.color.needsUpdate = true;
 
-                // Update initialZ attribute for depth animation
+                // Update initialZ attribute for depth animation with smoothing
                 if (geometry.attributes.initialZ) {
                     const initialZArray = geometry.attributes.initialZ.array;
                     for (let i = 0; i < newDepths.length; i++) {
-                        initialZArray[i] = newDepths[i];
+                        const oldDepth = initialZArray[i];
+                        const newDepth = newDepths[i];
+                        const depthDelta = Math.abs(newDepth - oldDepth);
+
+                        // Apply smoothing: only update if change exceeds threshold
+                        if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
+                            initialZArray[i] = newDepth;
+                        }
                     }
                     geometry.attributes.initialZ.needsUpdate = true;
                 }
@@ -3234,7 +3281,14 @@
                                     colors7[screen7Index * 3 + 2] = newColors[particleIndex * 3 + 2];
 
                                     if (geom7.attributes.initialZ) {
-                                        geom7.attributes.initialZ.array[screen7Index] = newDepths[particleIndex];
+                                        const oldDepth = geom7.attributes.initialZ.array[screen7Index];
+                                        const newDepth = newDepths[particleIndex];
+                                        const depthDelta = Math.abs(newDepth - oldDepth);
+
+                                        // Apply smoothing: only update if change exceeds threshold
+                                        if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
+                                            geom7.attributes.initialZ.array[screen7Index] = newDepth;
+                                        }
                                     }
                                     screen7Index++;
                                 }
@@ -3278,7 +3332,14 @@
                                     colors3[screen3Index * 3 + 2] = newColors[particleIndex * 3 + 2];
 
                                     if (geom3.attributes.initialZ) {
-                                        geom3.attributes.initialZ.array[screen3Index] = newDepths[particleIndex];
+                                        const oldDepth = geom3.attributes.initialZ.array[screen3Index];
+                                        const newDepth = newDepths[particleIndex];
+                                        const depthDelta = Math.abs(newDepth - oldDepth);
+
+                                        // Apply smoothing: only update if change exceeds threshold
+                                        if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
+                                            geom3.attributes.initialZ.array[screen3Index] = newDepth;
+                                        }
                                     }
                                     screen3Index++;
                                 }
