@@ -1008,16 +1008,24 @@
                 }
             }
 
+            // S: Size/Resize mode (when screen selected) OR Save positions (when no screen)
+            if (e.code === 'KeyS' && !e.ctrlKey) {
+                e.preventDefault();
+                if (selectedScreen) {
+                    // Activate SIZE mode (geometry resize)
+                    transformControls.setMode('scale');
+                    scaleMode = 'resize'; // Special mode for geometry resizing
+                    console.log('Mode: REDIMENSIONNEMENT (change geometry, pas scale)');
+                    console.log('Drag les handles pour changer les dimensions de l\'écran');
+                } else {
+                    saveAllPositions();
+                }
+            }
+
             // Escape: Deselect screen
             if (e.code === 'Escape' && selectedScreen) {
                 e.preventDefault();
                 deselectScreen();
-            }
-
-            // S: Save all positions (only if no screen selected)
-            if (e.code === 'KeyS' && !selectedScreen && !e.ctrlKey) {
-                e.preventDefault();
-                saveAllPositions();
             }
 
             // Ctrl+Z: Undo
@@ -1905,14 +1913,48 @@
                 }
             });
 
-            // Enforce uniform scaling when in uniform mode
+            // Handle scale modes: uniform, free, and resize
+            let lastResizeScale = {x: 1, y: 1, z: 1};
             transformControls.addEventListener('objectChange', function() {
-                if (transformControls.mode === 'scale' && scaleMode === 'uniform' && selectedScreen && allScreens[selectedScreen]) {
+                if (transformControls.mode === 'scale' && selectedScreen && allScreens[selectedScreen]) {
                     const screen = allScreens[selectedScreen];
-                    // Calculate average scale across all axes
-                    const avgScale = (screen.scale.x + screen.scale.y + screen.scale.z) / 3;
-                    // Apply uniform scale to maintain proportions
-                    screen.scale.set(avgScale, avgScale, avgScale);
+
+                    if (scaleMode === 'uniform') {
+                        // UNIFORM mode: proportional scaling
+                        const avgScale = (screen.scale.x + screen.scale.y + screen.scale.z) / 3;
+                        screen.scale.set(avgScale, avgScale, avgScale);
+                    } else if (scaleMode === 'resize') {
+                        // RESIZE mode: change geometry dimensions, not scale
+                        // Only works if screen has a geometry (PlaneGeometry)
+                        if (screen.geometry && screen.geometry.type === 'PlaneGeometry') {
+                            const currentScale = {x: screen.scale.x, y: screen.scale.y, z: screen.scale.z};
+
+                            // Detect which axis changed
+                            const deltaX = currentScale.x / lastResizeScale.x;
+                            const deltaY = currentScale.y / lastResizeScale.y;
+
+                            if (deltaX !== 1 || deltaY !== 1) {
+                                // Get current geometry dimensions
+                                const currentWidth = screen.geometry.parameters.width;
+                                const currentHeight = screen.geometry.parameters.height;
+
+                                // Calculate new dimensions based on scale change
+                                const newWidth = currentWidth * deltaX;
+                                const newHeight = currentHeight * deltaY;
+
+                                // Recreate geometry with new dimensions
+                                screen.geometry.dispose();
+                                screen.geometry = new THREE.PlaneGeometry(newWidth, newHeight);
+
+                                // Reset scale to 1 (geometry changed, not scale)
+                                screen.scale.set(1, 1, 1);
+                                lastResizeScale = {x: 1, y: 1, z: 1};
+
+                                console.log(`Redimensionné: ${Math.round(newWidth)} x ${Math.round(newHeight)}`);
+                            }
+                        }
+                    }
+                    // FREE mode: do nothing, allow non-uniform scaling
                 }
             });
 
