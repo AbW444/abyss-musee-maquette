@@ -756,6 +756,13 @@
         const GRAVITY = -0.8;
         const PLAYER_HEIGHT = 10; // Hauteur des yeux du joueur au-dessus du sol (quelques unités)
 
+        // Movement acceleration
+        let currentSpeed = 0;
+        const MIN_SPEED = 0;
+        const MAX_SPEED = 2.5; // Vitesse maximale réduite
+        const ACCELERATION = 0.15; // Vitesse d'accélération
+        const DECELERATION = 0.3; // Vitesse de décélération
+
         // Undo/Redo system
         let undoHistory = [];
         let redoHistory = [];
@@ -2331,17 +2338,17 @@
 
             camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 10000);
             // Position de spawn au centre de la forme 11, à quelques unités au-dessus du sol
-            // Sol de la forme 11: y = -111.773, on spawn à +17 unités
-            camera.position.set(-274.876, -95, 112.79);
+            // Sol de la forme 11: y = -111.773, on spawn à +30 unités
+            camera.position.set(-274.876, -82, 112.79);
 
-            // Orienter la caméra vers l'écran 7 puis tourner de 90° anti-horaire
-            const lookAtTarget = new THREE.Vector3(599.938, -95, 112.546);
+            // Orienter la caméra vers l'écran 7 puis tourner d'un quart de tour supplémentaire
+            const lookAtTarget = new THREE.Vector3(599.938, -82, 112.546);
             camera.lookAt(lookAtTarget);
 
             // Calculer yaw et pitch initiaux basés sur l'orientation
             const direction = new THREE.Vector3();
             direction.subVectors(lookAtTarget, camera.position).normalize();
-            cameraYaw = Math.atan2(direction.x, direction.z) + Math.PI / 2; // +90° anti-horaire
+            cameraYaw = Math.atan2(direction.x, direction.z) + Math.PI; // +180° (quart de tour supplémentaire)
             cameraPitch = 0; // Vision horizontale
 
             renderer = new THREE.WebGLRenderer({
@@ -2576,23 +2583,36 @@
                 }
             }
 
-            // Zoom with mouse wheel
+            // Mouse wheel movement
             renderer.domElement.addEventListener('wheel', function(e) {
                 e.preventDefault();
-                const zoomSpeed = 10;
+
+                // Vitesse réduite et bridée
+                const scrollSpeed = 2; // Réduit de 10 à 2
                 const delta = e.deltaY > 0 ? 1 : -1;
 
-                // Move camera forward/backward along its direction
+                // Get movement direction
                 const forward = new THREE.Vector3();
                 camera.getWorldDirection(forward);
 
                 if (fpsMode) {
-                    // En mode FPS: avancer/reculer horizontalement seulement (pas de mouvement vertical)
+                    // En mode FPS: déplacement horizontal avec collisions
                     forward.y = 0;
                     forward.normalize();
-                }
 
-                camera.position.addScaledVector(forward, -delta * zoomSpeed);
+                    // Store previous position for collision detection
+                    const prevPosition = camera.position.clone();
+                    camera.position.addScaledVector(forward, -delta * scrollSpeed);
+
+                    // Check collisions (mêmes règles que le déplacement aux touches)
+                    if (checkCollision(camera.position, prevPosition)) {
+                        // Collision détectée, revenir à la position précédente
+                        camera.position.copy(prevPosition);
+                    }
+                } else {
+                    // Mode normal: zoom libre
+                    camera.position.addScaledVector(forward, -delta * scrollSpeed);
+                }
             });
 
             // Setup parameter controls
@@ -4191,6 +4211,45 @@
             }
         }
 
+        // Collision detection function (for FPS mode)
+        function checkCollision(newPosition, prevPosition) {
+            if (!fpsMode) return false; // Pas de collision en mode normal
+
+            const collisionMargin = 25;
+
+            // Create player bounding box at new position
+            const playerBox = new THREE.Box3(
+                new THREE.Vector3(
+                    newPosition.x - collisionMargin,
+                    newPosition.y - PLAYER_HEIGHT,
+                    newPosition.z - collisionMargin
+                ),
+                new THREE.Vector3(
+                    newPosition.x + collisionMargin,
+                    newPosition.y + 5,
+                    newPosition.z + collisionMargin
+                )
+            );
+
+            // Check collision with all walls (not floors 11 and 3)
+            for (const key in allScreens) {
+                // Skip floors
+                if (key === '11' || key === '3') continue;
+
+                const screen = allScreens[key];
+                if (screen && screen.userData.isColorSurface && screen.visible !== false) {
+                    const screenBox = new THREE.Box3().setFromObject(screen);
+                    screenBox.expandByScalar(5);
+
+                    if (playerBox.intersectsBox(screenBox)) {
+                        return true; // Collision détectée
+                    }
+                }
+            }
+
+            return false; // Pas de collision
+        }
+
         // Animation with subtle breathing movement and video texture updates
         function animate() {
             requestAnimationFrame(animate);
@@ -4431,24 +4490,61 @@
                 right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
                 right.normalize();
 
-                // Apply sprint multiplier if shift is held
-                const currentSpeed = cameraKeys.sprint ? CAMERA_SPEED * CAMERA_SPRINT_MULTIPLIER : CAMERA_SPEED;
+                // Check if any movement key is pressed
+                const isMoving = cameraKeys.forward || cameraKeys.backward || cameraKeys.left || cameraKeys.right;
 
-                // Store previous position for collision detection
-                const prevPosition = camera.position.clone();
+                if (fpsMode) {
+                    // ===== MODE FPS: Vitesse graduée avec accélération =====
 
-                // Horizontal movement (same for both modes)
-                if (cameraKeys.forward) {
-                    camera.position.addScaledVector(forward, currentSpeed);
-                }
-                if (cameraKeys.backward) {
-                    camera.position.addScaledVector(forward, -currentSpeed);
-                }
-                if (cameraKeys.left) {
-                    camera.position.addScaledVector(right, -currentSpeed);
-                }
-                if (cameraKeys.right) {
-                    camera.position.addScaledVector(right, currentSpeed);
+                    if (isMoving) {
+                        // Accélération progressive
+                        currentSpeed = Math.min(currentSpeed + ACCELERATION, MAX_SPEED);
+                        if (cameraKeys.sprint) {
+                            currentSpeed = Math.min(currentSpeed, MAX_SPEED * 1.5); // Sprint limité
+                        }
+                    } else {
+                        // Décélération
+                        currentSpeed = Math.max(currentSpeed - DECELERATION, MIN_SPEED);
+                    }
+
+                    // Store previous position for collision detection
+                    const prevPosition = camera.position.clone();
+
+                    // Apply movement
+                    if (cameraKeys.forward) {
+                        camera.position.addScaledVector(forward, currentSpeed);
+                    }
+                    if (cameraKeys.backward) {
+                        camera.position.addScaledVector(forward, -currentSpeed);
+                    }
+                    if (cameraKeys.left) {
+                        camera.position.addScaledVector(right, -currentSpeed);
+                    }
+                    if (cameraKeys.right) {
+                        camera.position.addScaledVector(right, currentSpeed);
+                    }
+
+                    // Check collisions
+                    if (checkCollision(camera.position, prevPosition)) {
+                        camera.position.copy(prevPosition);
+                    }
+                } else {
+                    // ===== MODE NORMAL: Vitesse fixe, pas de collision =====
+
+                    const normalSpeed = cameraKeys.sprint ? CAMERA_SPEED * CAMERA_SPRINT_MULTIPLIER : CAMERA_SPEED;
+
+                    if (cameraKeys.forward) {
+                        camera.position.addScaledVector(forward, normalSpeed);
+                    }
+                    if (cameraKeys.backward) {
+                        camera.position.addScaledVector(forward, -normalSpeed);
+                    }
+                    if (cameraKeys.left) {
+                        camera.position.addScaledVector(right, -normalSpeed);
+                    }
+                    if (cameraKeys.right) {
+                        camera.position.addScaledVector(right, normalSpeed);
+                    }
                 }
 
                 if (fpsMode) {
@@ -4476,44 +4572,6 @@
                             camera.position.y = groundY;
                             playerVelocityY = 0;
                         }
-                    }
-
-                    // Collision horizontale avec surfaces (murs)
-                    const collisionMargin = 25;
-                    let hasCollision = false;
-
-                    const playerBox = new THREE.Box3(
-                        new THREE.Vector3(
-                            camera.position.x - collisionMargin,
-                            camera.position.y - PLAYER_HEIGHT, // Pieds du joueur
-                            camera.position.z - collisionMargin
-                        ),
-                        new THREE.Vector3(
-                            camera.position.x + collisionMargin,
-                            camera.position.y + 5, // Tête du joueur
-                            camera.position.z + collisionMargin
-                        )
-                    );
-
-                    for (const key in allScreens) {
-                        // Ne pas checker collision avec les sols (11 et 3)
-                        if (key === '11' || key === '3') continue;
-
-                        const screen = allScreens[key];
-                        if (screen && screen.userData.isColorSurface && screen.visible !== false) {
-                            const screenBox = new THREE.Box3().setFromObject(screen);
-                            screenBox.expandByScalar(5);
-
-                            if (playerBox.intersectsBox(screenBox)) {
-                                hasCollision = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (hasCollision) {
-                        camera.position.x = prevPosition.x;
-                        camera.position.z = prevPosition.z;
                     }
 
                     // Head bobbing effect when moving
