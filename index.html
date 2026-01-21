@@ -1687,8 +1687,8 @@
             const names = [
                 'Wall Back Left (particles)',
                 'Wall Back Right (particlesRight)',
-                'Floor Left (floorLeft)',
-                'Floor Right (floorRight)',
+                'Floor Rectangle (screen3)',
+                null, // Écran 4 supprimé
                 'Wall Front Left (wallOppA)',
                 'Wall Front Right (wallOppB)'
             ];
@@ -2533,29 +2533,98 @@
             // Add second screen to group
             screensGroup.add(particlesRight);
 
-            // Create floor left as clone of particles
-            const floorLeft = particles.clone();
-            floorLeft.geometry = particles.geometry;
-            floorLeft.material = particles.material;
+            // === ÉCRAN 3: SOL RECTANGLE (largeur double = screenW x screenH) ===
+            // Créer une géométrie rectangulaire : largeur = screenW, hauteur = screenH
+            // L'image garde sa taille normale et "dépasse" de l'écran (comme les autres)
+            const screen3Positions = [];
+            const screen3Colors = [];
+            const screen3InitialZ = [];
 
-            // Écran 3 - Position de base
-            floorLeft.position.set(0, -112.5, 112.5);
-            floorLeft.rotation.set(1.570796, 0, 0); // 90° rotation sur X
+            // Dimensions du rectangle
+            const halfW = screenW / 2; // Demi-largeur pour centrage
+            const halfH = screenH / 2; // Demi-hauteur pour centrage (112.5)
 
-            // Add to group
-            screensGroup.add(floorLeft);
+            // Filtrer les particules pour faire un rectangle : largeur complète, hauteur normale
+            for (let i = 0; i < positions.length / 3; i++) {
+                const x = positions[i * 3];
+                const y = positions[i * 3 + 1];
+                const z = positions[i * 3 + 2];
 
-            // Create floor right as clone of particlesRight
-            const floorRight = particlesRight.clone();
-            floorRight.geometry = particles.geometry;
-            floorRight.material = particles.material;
+                // Rectangle : largeur complète, hauteur normale
+                if (x >= -halfW && x <= halfW && y >= -halfH && y <= halfH) {
+                    screen3Positions.push(x, y, z);
+                    screen3Colors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
+                    screen3InitialZ.push(initialZ[i]);
+                }
+            }
 
-            // Écran 4 - Position de base
-            floorRight.position.set(400, -112.5, 112.5);
-            floorRight.rotation.set(1.570796, 0, 0); // 90° rotation sur X
+            let screen3;
+            if (is3DMode) {
+                // Mode 3D : créer InstancedMesh avec les particules du rectangle
+                const count3 = screen3Positions.length / 3;
+                let baseGeometry3;
+                const size = pointSize * 3;
 
-            // Add to group
-            screensGroup.add(floorRight);
+                switch(currentShape) {
+                    case 'square':
+                        baseGeometry3 = new THREE.BoxGeometry(size, size, size);
+                        break;
+                    case 'circle':
+                        baseGeometry3 = new THREE.SphereGeometry(size * 0.5, 8, 6);
+                        break;
+                    case 'diamond':
+                        baseGeometry3 = new THREE.OctahedronGeometry(size * 0.5);
+                        break;
+                    case 'star':
+                        baseGeometry3 = new THREE.TetrahedronGeometry(size * 0.6);
+                        break;
+                    default:
+                        baseGeometry3 = new THREE.SphereGeometry(size * 0.5, 8, 6);
+                }
+
+                screen3 = new THREE.InstancedMesh(baseGeometry3, material, count3);
+                screen3.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+                const instanceColors3 = new Float32Array(count3 * 3);
+                for (let i = 0; i < count3; i++) {
+                    instanceColors3[i * 3] = screen3Colors[i * 3];
+                    instanceColors3[i * 3 + 1] = screen3Colors[i * 3 + 1];
+                    instanceColors3[i * 3 + 2] = screen3Colors[i * 3 + 2];
+                }
+                screen3.instanceColor = new THREE.InstancedBufferAttribute(instanceColors3, 3);
+
+                for (let i = 0; i < count3; i++) {
+                    reusableMatrix.setPosition(
+                        screen3Positions[i * 3],
+                        screen3Positions[i * 3 + 1],
+                        screen3Positions[i * 3 + 2]
+                    );
+                    screen3.setMatrixAt(i, reusableMatrix);
+                    reusableColor.setRGB(screen3Colors[i * 3], screen3Colors[i * 3 + 1], screen3Colors[i * 3 + 2]);
+                    screen3.setColorAt(i, reusableColor);
+                }
+
+                screen3.instanceMatrix.needsUpdate = true;
+                screen3.userData.initialZ = screen3InitialZ;
+                screen3.userData.positions = screen3Positions;
+                screen3.userData.is3D = true;
+
+            } else {
+                // Mode 2D : créer Points avec les particules du rectangle
+                const geometry3 = new THREE.BufferGeometry();
+                geometry3.setAttribute('position', new THREE.Float32BufferAttribute(screen3Positions, 3));
+                geometry3.setAttribute('color', new THREE.Float32BufferAttribute(screen3Colors, 3));
+                geometry3.setAttribute('initialZ', new THREE.Float32BufferAttribute(screen3InitialZ, 1));
+
+                screen3 = new THREE.Points(geometry3, material);
+            }
+
+            // Position et orientation de base
+            screen3.position.set(200.858, -112.500, 112.500);
+            screen3.rotation.set(1.570796, 0.000000, 0.000000); // 90° sur X
+            screen3.scale.set(1, 1, 1); // PAS de scale, geometry filtrée
+
+            screensGroup.add(screen3);
 
             // --- Opposite wall (in front of right wall), hinged to the floor end ---
 
@@ -2689,11 +2758,10 @@
             allScreens = {
                 1: particles,           // Wall back left
                 2: particlesRight,      // Wall back right
-                3: floorLeft,           // Floor left
-                4: floorRight,          // Floor right
+                3: screen3,             // Floor rectangle (largeur double)
                 5: wallOppA,            // Wall front left
                 6: wallOppB,            // Wall front right
-                7: screen7,             // Side panel (demi-largeur)
+                7: screen7,             // Side panel (carré)
                 ...customShapes         // Restore custom shapes
             };
 
@@ -3034,6 +3102,46 @@
                     screen7.instanceColor.needsUpdate = true;
                 }
 
+                // CRITICAL: Also update screen 3 if it exists (3D mode)
+                if (allScreens[3] && allScreens[3].instanceColor) {
+                    const screen3 = allScreens[3];
+                    const colors3 = screen3.instanceColor.array;
+                    const halfW = TARGET_WIDTH * scaleFactor / 2; // Same as screenW / 2
+                    const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
+
+                    // Filter newColors and newDepths for screen 3 rectangle
+                    let particleIndex = 0;
+                    let screen3Index = 0;
+                    for (let y = 0; y < TARGET_HEIGHT; y += step) {
+                        for (let x = 0; x < TARGET_WIDTH; x += step) {
+                            const i = (y * TARGET_WIDTH + x) * 4;
+                            const alpha = data[i + 3];
+
+                            if (alpha > 30) {
+                                const maxColor = Math.max(data[i], data[i + 1], data[i + 2]);
+
+                                // Calculate particle position
+                                const px = (x - halfWidth) * scaleFactor;
+                                const py = -(y - halfHeight) * scaleFactor;
+
+                                // Check if this particle is in screen 3 rectangle
+                                if (px >= -halfW && px <= halfW && py >= -halfH && py <= halfH) {
+                                    colors3[screen3Index * 3] = newColors[particleIndex * 3];
+                                    colors3[screen3Index * 3 + 1] = newColors[particleIndex * 3 + 1];
+                                    colors3[screen3Index * 3 + 2] = newColors[particleIndex * 3 + 2];
+
+                                    if (screen3.userData.initialZ) {
+                                        screen3.userData.initialZ[screen3Index] = newDepths[particleIndex];
+                                    }
+                                    screen3Index++;
+                                }
+                                particleIndex++;
+                            }
+                        }
+                    }
+                    screen3.instanceColor.needsUpdate = true;
+                }
+
             } else if (geometry && geometry.attributes.color) {
                 // 2D Mode: Update vertex colors and initial depths
                 const colors = geometry.attributes.color.array;
@@ -3091,6 +3199,50 @@
                     geom7.attributes.color.needsUpdate = true;
                     if (geom7.attributes.initialZ) {
                         geom7.attributes.initialZ.needsUpdate = true;
+                    }
+                }
+
+                // CRITICAL: Also update screen 3 if it exists (2D mode)
+                if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.color) {
+                    const screen3 = allScreens[3];
+                    const geom3 = screen3.geometry;
+                    const colors3 = geom3.attributes.color.array;
+                    const halfW = TARGET_WIDTH * scaleFactor / 2; // Same as screenW / 2
+                    const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
+
+                    // Filter newColors and newDepths for screen 3 rectangle
+                    let particleIndex = 0;
+                    let screen3Index = 0;
+                    for (let y = 0; y < TARGET_HEIGHT; y += step) {
+                        for (let x = 0; x < TARGET_WIDTH; x += step) {
+                            const i = (y * TARGET_WIDTH + x) * 4;
+                            const alpha = data[i + 3];
+
+                            if (alpha > 30) {
+                                const maxColor = Math.max(data[i], data[i + 1], data[i + 2]);
+
+                                // Calculate particle position
+                                const px = (x - halfWidth) * scaleFactor;
+                                const py = -(y - halfHeight) * scaleFactor;
+
+                                // Check if this particle is in screen 3 rectangle
+                                if (px >= -halfW && px <= halfW && py >= -halfH && py <= halfH) {
+                                    colors3[screen3Index * 3] = newColors[particleIndex * 3];
+                                    colors3[screen3Index * 3 + 1] = newColors[particleIndex * 3 + 1];
+                                    colors3[screen3Index * 3 + 2] = newColors[particleIndex * 3 + 2];
+
+                                    if (geom3.attributes.initialZ) {
+                                        geom3.attributes.initialZ.array[screen3Index] = newDepths[particleIndex];
+                                    }
+                                    screen3Index++;
+                                }
+                                particleIndex++;
+                            }
+                        }
+                    }
+                    geom3.attributes.color.needsUpdate = true;
+                    if (geom3.attributes.initialZ) {
+                        geom3.attributes.initialZ.needsUpdate = true;
                     }
                 }
             }
@@ -3176,6 +3328,38 @@
                         }
                     }
 
+                    // CRITICAL: Also update screen 3 if it has its own geometry (3D mode)
+                    if (allScreens[3] && allScreens[3].userData && allScreens[3].userData.is3D) {
+                        const screen3 = allScreens[3];
+                        const initialZs3 = screen3.userData.initialZ;
+                        const positions3 = screen3.userData.positions;
+
+                        if (initialZs3 && positions3 && initialZs3.length > 0) {
+                            const epsilon = 0.3 * breathSpeed;
+
+                            for (let i = 0; i < initialZs3.length; i++) {
+                                const breathOffset = Math.sin(time + i * 0.01) * epsilon;
+                                const newZ = initialZs3[i] + breathOffset;
+
+                                // Flow movement - circular organic motion
+                                let flowX = 0, flowY = 0;
+                                if (flowIntensity > 0 && flowOffsets[i]) {
+                                    const offset = flowOffsets[i];
+                                    flowX = Math.sin(time * offset.speedX + offset.phaseX) * offset.radiusX * flowIntensity;
+                                    flowY = Math.cos(time * offset.speedY + offset.phaseY) * offset.radiusY * flowIntensity;
+                                }
+
+                                reusableMatrix.setPosition(
+                                    positions3[i * 3] + flowX,
+                                    positions3[i * 3 + 1] + flowY,
+                                    newZ
+                                );
+                                screen3.setMatrixAt(i, reusableMatrix);
+                            }
+                            screen3.instanceMatrix.needsUpdate = true;
+                        }
+                    }
+
                 } else if (geometry && geometry.attributes.position) {
                     // 2D Mode: Update position attribute for breathing and flow animation
                     const positions = geometry.attributes.position.array;
@@ -3245,6 +3429,43 @@
                         }
 
                         geom7.attributes.position.needsUpdate = true;
+                    }
+
+                    // CRITICAL: Also update screen 3 if it has its own geometry (2D mode)
+                    if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.position) {
+                        const screen3 = allScreens[3];
+                        const geom3 = screen3.geometry;
+                        const positions3 = geom3.attributes.position.array;
+                        const initialZs3 = geom3.attributes.initialZ.array;
+
+                        // Store initial positions if not already stored
+                        if (!geom3.userData.initialPositions) {
+                            geom3.userData.initialPositions = new Float32Array(positions3.length);
+                            for (let i = 0; i < positions3.length; i++) {
+                                geom3.userData.initialPositions[i] = positions3[i];
+                            }
+                        }
+
+                        const initialPositions3 = geom3.userData.initialPositions;
+
+                        for (let i = 0; i < positions3.length / 3; i++) {
+                            const epsilon = 0.3 * breathSpeed;
+                            const breathOffset = Math.sin(time + i * 0.01) * epsilon;
+
+                            // Flow movement - circular organic motion
+                            let flowX = 0, flowY = 0;
+                            if (flowIntensity > 0 && flowOffsets[i]) {
+                                const offset = flowOffsets[i];
+                                flowX = Math.sin(time * offset.speedX + offset.phaseX) * offset.radiusX * flowIntensity;
+                                flowY = Math.cos(time * offset.speedY + offset.phaseY) * offset.radiusY * flowIntensity;
+                            }
+
+                            positions3[i * 3] = initialPositions3[i * 3] + flowX;
+                            positions3[i * 3 + 1] = initialPositions3[i * 3 + 1] + flowY;
+                            positions3[i * 3 + 2] = initialZs3[i] + breathOffset;
+                        }
+
+                        geom3.attributes.position.needsUpdate = true;
                     }
                 }
             }
