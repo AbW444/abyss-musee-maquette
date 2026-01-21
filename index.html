@@ -2860,12 +2860,12 @@
                 }
             }
 
-            // CRITICAL: Preserve custom shapes (>20) before clearing
+            // CRITICAL: Preserve custom shapes (>21) before clearing
             const customShapesToPreserve = {};
             if (allScreens) {
                 Object.keys(allScreens).forEach(key => {
                     const num = parseInt(key);
-                    if (num > 20) {
+                    if (num > 21) {
                         customShapesToPreserve[num] = allScreens[num];
                         // Remove from screensGroup temporarily to avoid disposal
                         if (allScreens[num].parent === screensGroup) {
@@ -2874,7 +2874,7 @@
                     }
                 });
             }
-            console.log('💾 Formes personnalisées préservées (>20):', Object.keys(customShapesToPreserve));
+            console.log('💾 Formes personnalisées préservées (>21):', Object.keys(customShapesToPreserve));
 
             // CRITICAL: Detach transform controls before clearing to avoid "object must be part of scene graph" error
             const wasScreenSelected = selectedScreen;
@@ -3217,7 +3217,7 @@
             const height4 = 228.534;
             const geometry4 = new THREE.PlaneGeometry(width4, height4);
             const material4 = new THREE.MeshBasicMaterial({
-                color: 0x0A0A0A, // Dark green (657930 in decimal)
+                color: 0x808080, // Gray (8421504 in decimal)
                 side: THREE.DoubleSide
             });
             const screen4 = new THREE.Mesh(geometry4, material4);
@@ -3230,7 +3230,7 @@
             // Mark as color surface
             screen4.userData.screenNumber = 4;
             screen4.userData.isColorSurface = true;
-            screen4.userData.color = 0x0A0A0A;
+            screen4.userData.color = 0x808080;
 
             screensGroup.add(screen4);
 
@@ -3278,23 +3278,22 @@
             screensGroup.add(screen9);
 
             // ======================
-            // SCREEN 10: Custom shape (color surface) - white panel floor (INVISIBLE - physical surface)
+            // SCREEN 10: Custom shape (color surface) - lighter green panel floor
             // ======================
             const width10 = 964.573;
             const height10 = 228.534;
             const geometry10 = new THREE.PlaneGeometry(width10, height10);
             const material10 = new THREE.MeshBasicMaterial({
-                color: 0xFFFFFF, // White
+                color: 0x1A1A1A, // Lighter green (1710618 in decimal)
                 side: THREE.DoubleSide
             });
             const screen10 = new THREE.Mesh(geometry10, material10);
             screen10.position.set(132.131, -111.773, 112.611);
             screen10.rotation.set(1.570796, 0, 0);
             screen10.scale.set(1, 1, 1);
-            screen10.visible = false; // INVISIBLE - surface physique pour utilisation future
             screen10.userData.screenNumber = 10;
             screen10.userData.isColorSurface = true;
-            screen10.userData.color = 0xFFFFFF;
+            screen10.userData.color = 0x1A1A1A;
             screensGroup.add(screen10);
 
             // ======================
@@ -3308,7 +3307,7 @@
                 side: THREE.DoubleSide
             });
             const screen11 = new THREE.Mesh(geometry11, material11);
-            screen11.position.set(-276.503, -111.773, 112.79);
+            screen11.position.set(-274.876, -111.773, 112.79);
             screen11.rotation.set(1.570796, 0, 0);
             screen11.scale.set(1, 1, 1);
             screen11.userData.screenNumber = 11;
@@ -3336,25 +3335,6 @@
             screensGroup.add(screen12);
 
             // ======================
-            // SCREEN 13: Custom shape (color surface) - dark green large horizontal panel
-            // ======================
-            const width13 = 163.506;
-            const height13 = 3371.307;
-            const geometry13 = new THREE.PlaneGeometry(width13, height13);
-            const material13 = new THREE.MeshBasicMaterial({
-                color: 0x0A0A0A, // Dark green
-                side: THREE.DoubleSide
-            });
-            const screen13 = new THREE.Mesh(geometry13, material13);
-            screen13.position.set(-196.314, 27.158, 110.218);
-            screen13.rotation.set(1.570796, 1.570796, 0);
-            screen13.scale.set(1, 1, 1);
-            screen13.userData.screenNumber = 13;
-            screen13.userData.isColorSurface = true;
-            screen13.userData.color = 0x0A0A0A;
-            screensGroup.add(screen13);
-
-            // ======================
             // SCREEN 14: Custom shape (color surface) - dark green thin panel
             // ======================
             const width14 = 96.102;
@@ -3365,7 +3345,7 @@
                 side: THREE.DoubleSide
             });
             const screen14 = new THREE.Mesh(geometry14, material14);
-            screen14.position.set(-197.183, -6.589, 178.672);
+            screen14.position.set(-197.183, 3.851, 178.672);
             screen14.rotation.set(0, 1.570796, 0);
             screen14.scale.set(1, 1, 1);
             screen14.userData.screenNumber = 14;
@@ -3384,7 +3364,7 @@
                 side: THREE.DoubleSide
             });
             const screen15 = new THREE.Mesh(geometry15, material15);
-            screen15.position.set(-197.107, -6.485, 47.768);
+            screen15.position.set(-197.107, 3.769, 47.768);
             screen15.rotation.set(0, 1.570796, 0);
             screen15.scale.set(1, 1, 1);
             screen15.userData.screenNumber = 15;
@@ -3393,17 +3373,17 @@
             screensGroup.add(screen15);
 
             // ======================
-            // SCREEN 16: Custom shape (color surface) - dark green large horizontal panel
+            // SCREEN 16: Custom shape (color surface) - dark green horizontal panel
             // ======================
             const width16 = 163.506;
-            const height16 = 3371.307;
+            const height16 = 239.079;
             const geometry16 = new THREE.PlaneGeometry(width16, height16);
             const material16 = new THREE.MeshBasicMaterial({
                 color: 0x0A0A0A, // Dark green
                 side: THREE.DoubleSide
             });
             const screen16 = new THREE.Mesh(geometry16, material16);
-            screen16.position.set(-200.884, 27.158, 110.278);
+            screen16.position.set(-197.04, 27.158, 110.291);
             screen16.rotation.set(1.570796, 1.570796, 0);
             screen16.scale.set(1, 1, 1);
             screen16.userData.screenNumber = 16;
@@ -3412,13 +3392,13 @@
             screensGroup.add(screen16);
 
             // ======================
-            // SCREEN 17: Custom shape (color surface) - dark green thin panel
+            // SCREEN 17: Custom shape (color surface) - gray thin panel
             // ======================
             const width17 = 96.102;
             const height17 = 231.29;
             const geometry17 = new THREE.PlaneGeometry(width17, height17);
             const material17 = new THREE.MeshBasicMaterial({
-                color: 0x0A0A0A, // Dark green
+                color: 0x808080, // Gray (8421504 in decimal)
                 side: THREE.DoubleSide
             });
             const screen17 = new THREE.Mesh(geometry17, material17);
@@ -3427,17 +3407,17 @@
             screen17.scale.set(1, 1, 1);
             screen17.userData.screenNumber = 17;
             screen17.userData.isColorSurface = true;
-            screen17.userData.color = 0x0A0A0A;
+            screen17.userData.color = 0x808080;
             screensGroup.add(screen17);
 
             // ======================
-            // SCREEN 18: Custom shape (color surface) - dark green thin panel
+            // SCREEN 18: Custom shape (color surface) - gray thin panel
             // ======================
             const width18 = 96.102;
             const height18 = 231.29;
             const geometry18 = new THREE.PlaneGeometry(width18, height18);
             const material18 = new THREE.MeshBasicMaterial({
-                color: 0x0A0A0A, // Dark green
+                color: 0x808080, // Gray (8421504 in decimal)
                 side: THREE.DoubleSide
             });
             const screen18 = new THREE.Mesh(geometry18, material18);
@@ -3446,17 +3426,17 @@
             screen18.scale.set(1, 1, 1);
             screen18.userData.screenNumber = 18;
             screen18.userData.isColorSurface = true;
-            screen18.userData.color = 0x0A0A0A;
+            screen18.userData.color = 0x808080;
             screensGroup.add(screen18);
 
             // ======================
-            // SCREEN 19: Custom shape (color surface) - lighter green thin panel
+            // SCREEN 19: Custom shape (color surface) - gray thin panel
             // ======================
             const width19 = 96.102;
             const height19 = 231.29;
             const geometry19 = new THREE.PlaneGeometry(width19, height19);
             const material19 = new THREE.MeshBasicMaterial({
-                color: 0x1A1A1A, // Lighter green (1710618 in decimal)
+                color: 0x808080, // Gray (8421504 in decimal)
                 side: THREE.DoubleSide
             });
             const screen19 = new THREE.Mesh(geometry19, material19);
@@ -3465,61 +3445,60 @@
             screen19.scale.set(1, 1, 1);
             screen19.userData.screenNumber = 19;
             screen19.userData.isColorSurface = true;
-            screen19.userData.color = 0x1A1A1A;
+            screen19.userData.color = 0x808080;
             screensGroup.add(screen19);
 
             // ======================
-            // SCREEN 20: Custom shape (color surface) - dark green thin panel
+            // SCREEN 21: Custom shape (color surface) - gray horizontal panel
             // ======================
-            const width20 = 96.102;
-            const height20 = 231.29;
-            const geometry20 = new THREE.PlaneGeometry(width20, height20);
-            const material20 = new THREE.MeshBasicMaterial({
-                color: 0x0A0A0A, // Dark green
+            const width21 = 163.506;
+            const height21 = 239.079;
+            const geometry21 = new THREE.PlaneGeometry(width21, height21);
+            const material21 = new THREE.MeshBasicMaterial({
+                color: 0x808080, // Gray (8421504 in decimal)
                 side: THREE.DoubleSide
             });
-            const screen20 = new THREE.Mesh(geometry20, material20);
-            screen20.position.set(-200.877, -6.116, 47.768);
-            screen20.rotation.set(0, 1.570796, 0);
-            screen20.scale.set(1, 1, 1);
-            screen20.userData.screenNumber = 20;
-            screen20.userData.isColorSurface = true;
-            screen20.userData.color = 0x0A0A0A;
-            screensGroup.add(screen20);
+            const screen21 = new THREE.Mesh(geometry21, material21);
+            screen21.position.set(-200.871, 27.391, 110.392);
+            screen21.rotation.set(1.570796, 1.570796, 0);
+            screen21.scale.set(1, 1, 1);
+            screen21.userData.screenNumber = 21;
+            screen21.userData.isColorSurface = true;
+            screen21.userData.color = 0x808080;
+            screensGroup.add(screen21);
 
-            // Restore custom shapes (>20) - both in allScreens and screensGroup
-            console.log('🔄 Restauration des formes personnalisées (>20):', Object.keys(customShapesToPreserve));
+            // Restore custom shapes (>21) - both in allScreens and screensGroup
+            console.log('🔄 Restauration des formes personnalisées (>21):', Object.keys(customShapesToPreserve));
             Object.keys(customShapesToPreserve).forEach(key => {
                 const shape = customShapesToPreserve[key];
                 screensGroup.add(shape); // Re-add to scene
                 console.log(`  ✓ Forme #${key} réajoutée à la scène`);
             });
 
-            // Update volumetric screens 1-20 (1,2,3,5,6,7 volumetric + 4,8-20 custom color surfaces)
+            // Update volumetric screens 1-21 (1,2,3,5,6,7 volumetric + 4,8-21 custom color surfaces)
             allScreens = {
                 1: particles,           // Wall back left (volumetric)
                 2: particlesRight,      // Wall back right (volumetric)
                 3: screen3,             // Floor rectangle (volumetric - double width)
-                4: screen4,             // Ceiling dark green panel (custom color surface)
+                4: screen4,             // Ceiling gray panel (custom color surface)
                 5: wallOppA,            // Wall front left (volumetric)
                 6: wallOppB,            // Wall front right (volumetric)
                 7: screen7,             // Side panel (volumetric)
                 8: screen8,             // Center gray panel (custom color surface)
                 9: screen9,             // Back gray panel (custom color surface)
-                10: screen10,           // Floor white panel INVISIBLE (custom color surface)
+                10: screen10,           // Floor lighter green panel (custom color surface)
                 11: screen11,           // Small dark green panel (custom color surface)
                 12: screen12,           // Dark green vertical panel (custom color surface)
-                13: screen13,           // Large dark green horizontal panel (custom color surface)
                 14: screen14,           // Dark green thin panel 1 (custom color surface)
                 15: screen15,           // Dark green thin panel 2 (custom color surface)
-                16: screen16,           // Large dark green horizontal panel 2 (custom color surface)
-                17: screen17,           // Dark green thin panel 3 (custom color surface)
-                18: screen18,           // Dark green thin panel 4 (custom color surface)
-                19: screen19,           // Lighter green thin panel (custom color surface)
-                20: screen20,           // Dark green thin panel 5 (custom color surface)
-                ...customShapesToPreserve // Restore custom shapes (>20)
+                16: screen16,           // Dark green horizontal panel (custom color surface)
+                17: screen17,           // Gray thin panel 1 (custom color surface)
+                18: screen18,           // Gray thin panel 2 (custom color surface)
+                19: screen19,           // Gray thin panel 3 (custom color surface)
+                21: screen21,           // Gray horizontal panel (custom color surface)
+                ...customShapesToPreserve // Restore custom shapes (>21)
             };
-            console.log('✅ Tous les écrans restaurés (1-20 + custom):', Object.keys(allScreens));
+            console.log('✅ Tous les écrans restaurés (1-21 + custom):', Object.keys(allScreens));
 
             // CRITICAL: Update screen list UI immediately after allScreens is populated
             updateScreenList();
