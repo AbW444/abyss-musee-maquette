@@ -755,6 +755,7 @@
         let playerVelocityY = 0;
         const GRAVITY = -0.8;
         const PLAYER_HEIGHT = 10; // Hauteur des yeux du joueur au-dessus du sol (quelques unités)
+        let isOnGround = false; // Pour savoir si le joueur est au sol
 
         // Movement acceleration
         let currentSpeed = 0;
@@ -4595,10 +4596,6 @@
                 if (fpsMode) {
                     // ===== MODE FPS: Gravité et marche sur le sol =====
 
-                    // Appliquer la gravité
-                    playerVelocityY += GRAVITY;
-                    camera.position.y += playerVelocityY;
-
                     // Raycasting vers le bas pour détecter le sol (formes 11 et 3)
                     const raycaster = new THREE.Raycaster();
                     raycaster.set(camera.position, new THREE.Vector3(0, -1, 0));
@@ -4611,12 +4608,24 @@
 
                     if (intersects.length > 0) {
                         const groundY = intersects[0].point.y + PLAYER_HEIGHT;
+                        const distanceToGround = camera.position.y - groundY;
 
-                        // Si on est proche du sol ou en dessous, poser le joueur
-                        if (camera.position.y <= groundY) {
+                        if (distanceToGround <= 1) {
+                            // On est au sol - fixer Y et annuler vélocité
                             camera.position.y = groundY;
                             playerVelocityY = 0;
+                            isOnGround = true;
+                        } else {
+                            // On est en l'air - appliquer gravité
+                            isOnGround = false;
+                            playerVelocityY += GRAVITY;
+                            camera.position.y += playerVelocityY;
                         }
+                    } else {
+                        // Pas de sol détecté - tomber
+                        isOnGround = false;
+                        playerVelocityY += GRAVITY;
+                        camera.position.y += playerVelocityY;
                     }
 
                     // Head bobbing effect when moving
