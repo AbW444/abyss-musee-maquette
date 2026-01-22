@@ -508,7 +508,7 @@
 
     <!-- FPS Settings Panel (Bottom Center) -->
     <div id="fps-settings-panel" class="hidden">
-        <h3>⚙️ FPS & Glassmorphisme Settings</h3>
+        <h3>⚙️ FPS & Verre Settings</h3>
 
         <div class="fps-param">
             <label>Vitesse touches <span class="fps-param-value" id="val-fps-speed">1.50</span></label>
@@ -561,33 +561,18 @@
         </div>
 
         <div class="fps-param">
-            <label>Opacité verre <span class="fps-param-value" id="val-glass-opacity">0.15</span></label>
-            <input type="range" id="glass-opacity" min="0" max="1" step="0.05" value="0.15">
+            <label>Opacité verre <span class="fps-param-value" id="val-glass-opacity">0.25</span></label>
+            <input type="range" id="glass-opacity" min="0" max="1" step="0.05" value="0.25">
         </div>
 
         <div class="fps-param">
-            <label>Rugosité verre <span class="fps-param-value" id="val-glass-roughness">0.05</span></label>
-            <input type="range" id="glass-roughness" min="0" max="1" step="0.05" value="0.05">
+            <label>Rugosité verre <span class="fps-param-value" id="val-glass-roughness">0.10</span></label>
+            <input type="range" id="glass-roughness" min="0" max="1" step="0.05" value="0.1">
         </div>
 
         <div class="fps-param">
-            <label>Metalness verre <span class="fps-param-value" id="val-glass-metalness">0.10</span></label>
-            <input type="range" id="glass-metalness" min="0" max="1" step="0.05" value="0.1">
-        </div>
-
-        <div class="fps-param">
-            <label>Transmission <span class="fps-param-value" id="val-glass-transmission">0.95</span></label>
-            <input type="range" id="glass-transmission" min="0" max="1" step="0.05" value="0.95">
-        </div>
-
-        <div class="fps-param">
-            <label>Épaisseur verre <span class="fps-param-value" id="val-glass-thickness">2.0</span></label>
-            <input type="range" id="glass-thickness" min="0.1" max="10" step="0.1" value="2.0">
-        </div>
-
-        <div class="fps-param">
-            <label>IOR (réfraction) <span class="fps-param-value" id="val-glass-ior">1.50</span></label>
-            <input type="range" id="glass-ior" min="1.0" max="2.5" step="0.05" value="1.5">
+            <label>Metalness verre <span class="fps-param-value" id="val-glass-metalness">0.20</span></label>
+            <input type="range" id="glass-metalness" min="0" max="1" step="0.05" value="0.2">
         </div>
 
         <button id="fps-export-btn" style="grid-column: 1 / -1;">📋 Export (Ctrl+S)</button>
@@ -952,12 +937,9 @@
             fpsScrollSpeed: 3,          // Vitesse de déplacement à la molette
             fpsMouseSensitivity: 0.001, // Sensibilité souris
             // Glassmorphisme écran 10
-            glassOpacity: 0.15,         // Opacité du verre (plus transparent)
-            glassRoughness: 0.05,       // Rugosité de surface (plus lisse)
-            glassMetalness: 0.1,        // Aspect métallique (moins métallique)
-            glassTransmission: 0.95,    // Transmission de lumière (plus transparent)
-            glassThickness: 2.0,        // Épaisseur du verre (plus fin)
-            glassIOR: 1.5               // Indice de réfraction
+            glassOpacity: 0.25,         // Opacité du verre
+            glassRoughness: 0.1,        // Rugosité de surface
+            glassMetalness: 0.2         // Aspect métallique
         };
 
         // Undo/Redo system
@@ -3690,16 +3672,14 @@
             const width10 = 804.246;
             const height10 = 228.534;
             const geometry10 = new THREE.PlaneGeometry(width10, height10);
-            const material10 = new THREE.MeshPhysicalMaterial({
-                color: 0xffffff,
+            const material10 = new THREE.MeshStandardMaterial({
+                color: 0xaaaaaa,
                 metalness: fpsSettings.glassMetalness,
                 roughness: fpsSettings.glassRoughness,
                 opacity: fpsSettings.glassOpacity,
                 transparent: true,
-                transmission: fpsSettings.glassTransmission,
-                thickness: fpsSettings.glassThickness,
-                ior: fpsSettings.glassIOR,
                 side: THREE.DoubleSide,
+                depthWrite: false,
                 envMapIntensity: 1.0
             });
             const screen10 = new THREE.Mesh(geometry10, material10);
@@ -3709,8 +3689,9 @@
             screen10.userData.screenNumber = 10;
             screen10.userData.isColorSurface = true;
             screen10.userData.isGlass = true; // Marquer comme verre
-            screen10.userData.color = 0xffffff;
+            screen10.userData.color = 0xaaaaaa;
             screen10.visible = true; // Écran 10 visible
+            screen10.renderOrder = 1000; // Rendre après les objets opaques
             screensGroup.add(screen10);
 
             // ======================
@@ -4998,10 +4979,14 @@
                 mat.metalness = fpsSettings.glassMetalness;
                 mat.roughness = fpsSettings.glassRoughness;
                 mat.opacity = fpsSettings.glassOpacity;
-                mat.transmission = fpsSettings.glassTransmission;
-                mat.thickness = fpsSettings.glassThickness;
-                mat.ior = fpsSettings.glassIOR;
                 mat.needsUpdate = true;
+                console.log('🔄 Matériau verre mis à jour:', {
+                    opacity: fpsSettings.glassOpacity,
+                    metalness: fpsSettings.glassMetalness,
+                    roughness: fpsSettings.glassRoughness
+                });
+            } else {
+                console.warn('⚠️ Écran 10 pas encore créé ou pas marqué comme verre');
             }
         }
 
@@ -5022,10 +5007,7 @@
                 'fps-hitbox-height': { var: 'fpsHitboxHeight', display: 'val-fps-hitbox-height', decimals: 0 },
                 'glass-opacity': { var: 'glassOpacity', display: 'val-glass-opacity', decimals: 2, callback: updateGlassMaterial },
                 'glass-roughness': { var: 'glassRoughness', display: 'val-glass-roughness', decimals: 2, callback: updateGlassMaterial },
-                'glass-metalness': { var: 'glassMetalness', display: 'val-glass-metalness', decimals: 2, callback: updateGlassMaterial },
-                'glass-transmission': { var: 'glassTransmission', display: 'val-glass-transmission', decimals: 2, callback: updateGlassMaterial },
-                'glass-thickness': { var: 'glassThickness', display: 'val-glass-thickness', decimals: 1, callback: updateGlassMaterial },
-                'glass-ior': { var: 'glassIOR', display: 'val-glass-ior', decimals: 2, callback: updateGlassMaterial }
+                'glass-metalness': { var: 'glassMetalness', display: 'val-glass-metalness', decimals: 2, callback: updateGlassMaterial }
             };
 
             // Setup sliders
@@ -5043,11 +5025,19 @@
                     const displayValue = value.toFixed(config.decimals);
                     document.getElementById(config.display).textContent = displayValue;
 
-                    console.log(`📊 ${config.var} = ${displayValue}`);
+                    console.log(`✅ ${config.var} = ${displayValue}`);
 
                     // Call callback if provided
                     if (config.callback) {
                         config.callback();
+                    }
+
+                    // Log hitbox changes specifically
+                    if (config.var === 'fpsHitboxWidth' || config.var === 'fpsHitboxHeight') {
+                        console.log('🎯 Hitbox mise à jour:', {
+                            largeur: fpsSettings.fpsHitboxWidth,
+                            hauteur: fpsSettings.fpsHitboxHeight
+                        });
                     }
                 });
             });
