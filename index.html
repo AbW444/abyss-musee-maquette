@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Dispersed Volume - Prototype 1.3.1</title>
-    <link rel="icon" type="image/png" href="img/presences_rares_favicon.png">
+    <link rel="icon" type="image/png" href="presences_rares_favicon.png">
     <!-- Version 1.3.1 - Video projection with luminance-based depth -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -490,6 +490,30 @@
         #fps-export-btn:hover {
             background: rgba(0,255,136,0.25);
         }
+
+        /* Video Paused Indicator */
+        #video-paused-indicator {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 200;
+            background: rgba(255, 100, 0, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 150, 0, 0.8);
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        #video-paused-indicator.visible {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -505,6 +529,10 @@
         <button class="shape-btn" data-shape="star" title="Star">★</button>
         <button class="shape-btn" id="mode-3d-btn" title="Toggle 3D Mode">3D</button>
     </div>
+
+    <!-- Video Paused Indicator -->
+    <div id="video-paused-indicator">⏸️ VIDEO PAUSED</div>
+
     <div id="canvas"></div>
 
     <!-- FPS Settings Panel (Bottom Center) -->
@@ -1374,9 +1402,11 @@
                     console.log('👁️ HITBOX VISIBLE');
                 } else {
                     console.log('🚫 HITBOX MASQUÉE');
-                    // Remove hitbox helper if exists
+                    // Remove hitbox helper if exists and dispose properly to prevent memory leak
                     if (hitboxHelper) {
                         scene.remove(hitboxHelper);
+                        if (hitboxHelper.geometry) hitboxHelper.geometry.dispose();
+                        if (hitboxHelper.material) hitboxHelper.material.dispose();
                         hitboxHelper = null;
                     }
                 }
@@ -3198,16 +3228,19 @@
                 }
 
                 const zRange = maxZ - minZ;
-                const cullThreshold = minZ + zRange * depthCullPower;
+                // Prevent division by zero or invalid culling when all particles have same depth
+                if (zRange > 0) {
+                    const cullThreshold = minZ + zRange * depthCullPower;
 
-                // Remove particles below threshold (make them black = invisible)
-                for (let i = 0; i < initialZ.length; i++) {
-                    const z = initialZ[i];
-                    if (z < cullThreshold) {
-                        // Set to pure black = invisible
-                        colors[i * 3] = 0;
-                        colors[i * 3 + 1] = 0;
-                        colors[i * 3 + 2] = 0;
+                    // Remove particles below threshold (make them black = invisible)
+                    for (let i = 0; i < initialZ.length; i++) {
+                        const z = initialZ[i];
+                        if (z < cullThreshold) {
+                            // Set to pure black = invisible
+                            colors[i * 3] = 0;
+                            colors[i * 3 + 1] = 0;
+                            colors[i * 3 + 2] = 0;
+                        }
                     }
                 }
             }
@@ -3860,7 +3893,8 @@
             Object.keys(customShapesToPreserve).forEach(key => {
                 const shape = customShapesToPreserve[key];
                 screensGroup.add(shape); // Re-add to scene
-                console.log(`  ✓ Forme #${key} réajoutée à la scène`);
+                allScreens[key] = shape; // CRITICAL: Re-add to allScreens to prevent orphaning
+                console.log(`  ✓ Forme #${key} réajoutée à la scène et à allScreens`);
             });
 
             // Update volumetric screens 1-21 (1,2,3,5,6,7 volumetric + 4,8-21 custom color surfaces)
@@ -4004,7 +4038,18 @@
             lastVideoUpdateTime = now;
 
             // Optimization: Skip if video is paused (no need to update)
-            if (currentVideo.paused) return;
+            // Show visual indicator to user
+            const pausedIndicator = document.getElementById('video-paused-indicator');
+            if (currentVideo.paused) {
+                if (pausedIndicator && !pausedIndicator.classList.contains('visible')) {
+                    pausedIndicator.classList.add('visible');
+                }
+                return;
+            } else {
+                if (pausedIndicator && pausedIndicator.classList.contains('visible')) {
+                    pausedIndicator.classList.remove('visible');
+                }
+            }
 
             const { step, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor, halfWidth, halfHeight, depthMultiplier } = videoSamplingData;
 
@@ -4044,6 +4089,43 @@
             const useContrast = contrast !== 1.0;
             const useSaturation = saturation !== 1.0;
 
+            // v1.3.1 — Detect background color from edges if hideBackground is enabled
+            let bgR = 0, bgG = 0, bgB = 0;
+            if (hideBackground) {
+                const edgeSamples = [];
+                const sampleSize = 20; // Sample 20 pixels from each edge
+
+                // Top and bottom edges
+                for (let x = 0; x < TARGET_WIDTH; x += Math.floor(TARGET_WIDTH / sampleSize)) {
+                    // Top edge
+                    const iTop = x * 4;
+                    edgeSamples.push([data[iTop], data[iTop + 1], data[iTop + 2]]);
+                    // Bottom edge
+                    const iBottom = ((TARGET_HEIGHT - 1) * TARGET_WIDTH + x) * 4;
+                    edgeSamples.push([data[iBottom], data[iBottom + 1], data[iBottom + 2]]);
+                }
+
+                // Left and right edges
+                for (let y = 0; y < TARGET_HEIGHT; y += Math.floor(TARGET_HEIGHT / sampleSize)) {
+                    // Left edge
+                    const iLeft = (y * TARGET_WIDTH) * 4;
+                    edgeSamples.push([data[iLeft], data[iLeft + 1], data[iLeft + 2]]);
+                    // Right edge
+                    const iRight = (y * TARGET_WIDTH + (TARGET_WIDTH - 1)) * 4;
+                    edgeSamples.push([data[iRight], data[iRight + 1], data[iRight + 2]]);
+                }
+
+                // Calculate average background color
+                edgeSamples.forEach(sample => {
+                    bgR += sample[0];
+                    bgG += sample[1];
+                    bgB += sample[2];
+                });
+                bgR = Math.floor(bgR / edgeSamples.length);
+                bgG = Math.floor(bgG / edgeSamples.length);
+                bgB = Math.floor(bgB / edgeSamples.length);
+            }
+
             // FIRST PASS: Find minimum luminance
             let minLuminance = Infinity;
             for (let y = 0; y < TARGET_HEIGHT; y += step) {
@@ -4060,6 +4142,14 @@
                         // Skip if hideBlack and below threshold
                         if (hideBlack && maxColor < blackThreshold) {
                             continue;
+                        }
+
+                        // v1.3.1 — Skip background particles if hideBackground is enabled
+                        if (hideBackground) {
+                            const colorDist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+                            if (colorDist < bgThreshold) {
+                                continue;
+                            }
                         }
 
                         const luminance = (r + g + b) * rgbToLumFactor;
@@ -4085,16 +4175,27 @@
                         const b = data[i + 2];
                         const maxColor = Math.max(r, g, b);
 
+                        // Skip if hideBlack and below threshold
+                        if (hideBlack && maxColor < blackThreshold) {
+                            continue;
+                        }
+
+                        // v1.3.1 — Skip background particles if hideBackground is enabled
+                        if (hideBackground) {
+                            const colorDist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+                            if (colorDist < bgThreshold) {
+                                continue;
+                            }
+                        }
+
                         // v1.3.1 — Update luminance-based depth anchored to minimum
                         // Particules les moins lumineuses restent à z=0 (point fixe)
                         const luminance = (r + g + b) * rgbToLumFactor;
                         const pz = (luminance - minLuminance) * depthSpread;
                         newDepths.push(pz);
 
-                        // Skip if hideBlack and below threshold (but keep same particle count)
-                        if (hideBlack && maxColor < blackThreshold) {
-                            newColors.push(0, 0, 0);
-                        } else {
+                        // Calculate colors with effects
+                        {
                             // v1.3.1 — Apply contrast and saturation effects (optimized)
                             let rNorm = r * 0.00392156862745098; // r / 255
                             let gNorm = g * 0.00392156862745098; // g / 255
@@ -4162,16 +4263,19 @@
                 }
 
                 const zRange = maxZ - minZ;
-                const cullThreshold = minZ + zRange * depthCullPower;
+                // Prevent division by zero or invalid culling when all particles have same depth
+                if (zRange > 0) {
+                    const cullThreshold = minZ + zRange * depthCullPower;
 
-                // Remove particles below threshold (make them black = invisible)
-                for (let i = 0; i < newDepths.length; i++) {
-                    const z = newDepths[i];
-                    if (z < cullThreshold) {
-                        // Set to pure black = invisible
-                        newColors[i * 3] = 0;
-                        newColors[i * 3 + 1] = 0;
-                        newColors[i * 3 + 2] = 0;
+                    // Remove particles below threshold (make them black = invisible)
+                    for (let i = 0; i < newDepths.length; i++) {
+                        const z = newDepths[i];
+                        if (z < cullThreshold) {
+                            // Set to pure black = invisible
+                            newColors[i * 3] = 0;
+                            newColors[i * 3 + 1] = 0;
+                            newColors[i * 3 + 2] = 0;
+                        }
                     }
                 }
             }
@@ -4428,12 +4532,14 @@
             const hitboxHeight = fpsSettings.fpsHitboxHeight / 2; // Demi-hauteur
 
             // Collecter tous les murs (pas les sols 3, 10 et 11)
+            // Inclut à la fois les écrans volumétriques (1,2,5,6,7) et les surfaces de couleur (4,8-21+)
             const walls = [];
             for (const key in allScreens) {
-                if (key === '3' || key === '10' || key === '11') continue;
+                if (key === '3' || key === '10' || key === '11') continue; // Skip floors
 
                 const screen = allScreens[key];
-                if (screen && screen.userData.isColorSurface && screen.visible !== false) {
+                // Include both volumetric screens and color surfaces (all non-floor screens)
+                if (screen && screen.visible !== false) {
                     walls.push(screen);
                 }
             }
