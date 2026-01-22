@@ -541,8 +541,8 @@
         </div>
 
         <div class="fps-param">
-            <label>Hauteur yeux <span class="fps-param-value" id="val-fps-eye">30</span></label>
-            <input type="range" id="fps-eye" min="5" max="100" step="1" value="30">
+            <label>Hauteur yeux <span class="fps-param-value" id="val-fps-eye">41</span></label>
+            <input type="range" id="fps-eye" min="5" max="100" step="1" value="41">
         </div>
 
         <div class="fps-param">
@@ -551,28 +551,28 @@
         </div>
 
         <div class="fps-param">
-            <label>Largeur hitbox <span class="fps-param-value" id="val-fps-hitbox-width">1</span></label>
+            <label>Largeur hitbox <span class="fps-param-value" id="val-fps-hitbox-width">1.0</span></label>
             <input type="range" id="fps-hitbox-width" min="0.1" max="20" step="0.1" value="1">
         </div>
 
         <div class="fps-param">
-            <label>Hauteur hitbox <span class="fps-param-value" id="val-fps-hitbox-height">10</span></label>
-            <input type="range" id="fps-hitbox-height" min="1" max="100" step="1" value="10">
+            <label>Hauteur hitbox <span class="fps-param-value" id="val-fps-hitbox-height">13</span></label>
+            <input type="range" id="fps-hitbox-height" min="1" max="100" step="1" value="13">
         </div>
 
         <div class="fps-param">
-            <label>Opacité verre <span class="fps-param-value" id="val-glass-opacity">0.25</span></label>
-            <input type="range" id="glass-opacity" min="0" max="1" step="0.05" value="0.25">
+            <label>Opacité verre <span class="fps-param-value" id="val-glass-opacity">0.00</span></label>
+            <input type="range" id="glass-opacity" min="0" max="1" step="0.05" value="0">
         </div>
 
         <div class="fps-param">
-            <label>Rugosité verre <span class="fps-param-value" id="val-glass-roughness">0.10</span></label>
-            <input type="range" id="glass-roughness" min="0" max="1" step="0.05" value="0.1">
+            <label>Rugosité verre <span class="fps-param-value" id="val-glass-roughness">1.00</span></label>
+            <input type="range" id="glass-roughness" min="0" max="1" step="0.05" value="1">
         </div>
 
         <div class="fps-param">
-            <label>Metalness verre <span class="fps-param-value" id="val-glass-metalness">0.20</span></label>
-            <input type="range" id="glass-metalness" min="0" max="1" step="0.05" value="0.2">
+            <label>Metalness verre <span class="fps-param-value" id="val-glass-metalness">1.00</span></label>
+            <input type="range" id="glass-metalness" min="0" max="1" step="0.05" value="1">
         </div>
 
         <button id="fps-export-btn" style="grid-column: 1 / -1;">📋 Export (Ctrl+S)</button>
@@ -927,19 +927,19 @@
         var fpsSettings = {
             fpsCameraHeight: -96,       // Hauteur de spawn de la caméra
             fpsGravity: -1.5,           // Gravité
-            fpsPlayerHeight: 30,        // Hauteur des yeux du joueur au-dessus du sol
+            fpsPlayerHeight: 41,        // Hauteur des yeux du joueur au-dessus du sol
             fpsMaxSpeed: 1.5,           // Vitesse maximale
             fpsAcceleration: 0.1,       // Vitesse d'accélération
             fpsDeceleration: 0.3,       // Vitesse de décélération
-            fpsCollisionRadius: 0.5,    // Rayon de collision (réduit par 10)
-            fpsHitboxWidth: 1,          // Largeur de la hitbox (réduit par 10)
-            fpsHitboxHeight: 10,        // Hauteur de la hitbox (réduit par 10)
+            fpsCollisionRadius: 0.5,    // Rayon de collision
+            fpsHitboxWidth: 1,          // Largeur de la hitbox
+            fpsHitboxHeight: 13,        // Hauteur de la hitbox
             fpsScrollSpeed: 3,          // Vitesse de déplacement à la molette
             fpsMouseSensitivity: 0.001, // Sensibilité souris
             // Glassmorphisme écran 10
-            glassOpacity: 0.25,         // Opacité du verre
-            glassRoughness: 0.1,        // Rugosité de surface
-            glassMetalness: 0.2         // Aspect métallique
+            glassOpacity: 0,            // Opacité du verre (transparent)
+            glassRoughness: 1,          // Rugosité de surface
+            glassMetalness: 1           // Aspect métallique
         };
 
         // Undo/Redo system
@@ -1356,6 +1356,9 @@
                     console.log('   - ESC pour sortir du PointerLock');
                     console.log('   - B pour désactiver le mode FPS');
                     console.log('   - H pour afficher/masquer la hitbox');
+
+                    // Initialiser l'ambiance sonore
+                    initAmbientSound();
                 } else {
                     console.log('🖱️ MODE NORMAL ACTIVÉ (B pour mode FPS)');
                     // Release pointer lock if active
@@ -2559,38 +2562,165 @@
             renderer.toneMappingExposure = 1.2;
             document.getElementById('canvas').appendChild(renderer.domElement);
 
-            // Museum-style lighting: soft ambient + key spotlights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            // ==================== ÉCLAIRAGE PROFESSIONNEL ====================
+
+            // Lumière ambiante douce - base d'éclairage
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
             scene.add(ambientLight);
 
-            // Lumière principale (key light) - simule éclairage zénithal de musée
-            const keyLight = new THREE.DirectionalLight(0xfff5e6, 0.8);
-            keyLight.position.set(0, 300, 0);
-            keyLight.castShadow = true;
-            keyLight.shadow.mapSize.width = 2048;
-            keyLight.shadow.mapSize.height = 2048;
-            keyLight.shadow.camera.near = 0.5;
-            keyLight.shadow.camera.far = 500;
-            scene.add(keyLight);
+            // Hemisphère light - simule lumière du ciel et du sol
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+            hemiLight.position.set(0, 500, 0);
+            scene.add(hemiLight);
 
-            // Lumière de remplissage (fill light) - adoucit les ombres
-            const fillLight = new THREE.DirectionalLight(0xe6f2ff, 0.3);
-            fillLight.position.set(-200, 100, 200);
-            scene.add(fillLight);
+            // Lumière principale directionnelle avec ombres haute qualité
+            const mainLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            mainLight.position.set(100, 200, 50);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 4096;
+            mainLight.shadow.mapSize.height = 4096;
+            mainLight.shadow.camera.near = 0.5;
+            mainLight.shadow.camera.far = 1000;
+            mainLight.shadow.camera.left = -500;
+            mainLight.shadow.camera.right = 500;
+            mainLight.shadow.camera.top = 500;
+            mainLight.shadow.camera.bottom = -500;
+            mainLight.shadow.bias = -0.0001;
+            scene.add(mainLight);
 
-            // Lumière arrière (rim light) - crée de la profondeur
-            const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
-            rimLight.position.set(0, 50, -200);
-            scene.add(rimLight);
+            // Lumières d'accentuation pour profondeur
+            const accentLight1 = new THREE.SpotLight(0xffa500, 0.5, 300, Math.PI / 4, 0.5, 2);
+            accentLight1.position.set(200, 150, 0);
+            accentLight1.castShadow = true;
+            scene.add(accentLight1);
 
-            // Point lights subtils pour créer de l'atmosphère
-            const spotLight1 = new THREE.PointLight(0xfff5e6, 0.6, 400);
-            spotLight1.position.set(200, 100, 0);
-            scene.add(spotLight1);
+            const accentLight2 = new THREE.SpotLight(0x00aaff, 0.4, 300, Math.PI / 4, 0.5, 2);
+            accentLight2.position.set(-200, 150, 200);
+            accentLight2.castShadow = true;
+            scene.add(accentLight2);
 
-            const spotLight2 = new THREE.PointLight(0xfff5e6, 0.6, 400);
-            spotLight2.position.set(-200, 100, 200);
-            scene.add(spotLight2);
+            // Point lights dynamiques pour ambiance
+            const pointLights = [];
+            const pointLightPositions = [
+                {x: 0, y: 50, z: 0, color: 0xffffff, intensity: 0.8},
+                {x: 300, y: 80, z: 100, color: 0xffeecc, intensity: 0.6},
+                {x: -300, y: 80, z: 100, color: 0xcceeff, intensity: 0.6},
+                {x: 0, y: 100, z: 300, color: 0xffddbb, intensity: 0.5}
+            ];
+
+            pointLightPositions.forEach(lightData => {
+                const pointLight = new THREE.PointLight(lightData.color, lightData.intensity, 400);
+                pointLight.position.set(lightData.x, lightData.y, lightData.z);
+                pointLight.castShadow = true;
+                pointLight.shadow.mapSize.width = 1024;
+                pointLight.shadow.mapSize.height = 1024;
+                scene.add(pointLight);
+                pointLights.push(pointLight);
+            });
+
+            // Lumière qui suit le joueur (torche virtuelle)
+            const playerLight = new THREE.PointLight(0xffffff, 0.8, 100);
+            playerLight.position.copy(camera.position);
+            scene.add(playerLight);
+
+            // ==================== SYSTÈME AUDIO ====================
+
+            // Audio Context et Listener
+            const audioListener = new THREE.AudioListener();
+            camera.add(audioListener);
+
+            // Sons de pas (simulés avec oscillateur - en production utiliser de vrais fichiers audio)
+            let footstepAudio = null;
+            let lastFootstepTime = 0;
+            let footstepInterval = 500; // ms entre chaque pas
+            const FOOTSTEP_WALK_INTERVAL = 500;
+            const FOOTSTEP_SPRINT_INTERVAL = 300;
+
+            // Fonction pour créer un son de pas synthétique
+            function playFootstepSound() {
+                if (!audioListener.context) return;
+
+                try {
+                    const now = Date.now();
+                    if (now - lastFootstepTime < footstepInterval) return;
+
+                    lastFootstepTime = now;
+
+                    // Créer un son synthétique de pas (basse fréquence)
+                    const context = audioListener.context;
+                    const oscillator = context.createOscillator();
+                    const gainNode = context.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(context.destination);
+
+                    // Paramètres du son de pas
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(80 + Math.random() * 40, context.currentTime);
+
+                    gainNode.gain.setValueAtTime(0.08, context.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.15);
+
+                    oscillator.start(context.currentTime);
+                    oscillator.stop(context.currentTime + 0.15);
+
+                    // Son de frottement (haute fréquence pour réalisme)
+                    const noiseOsc = context.createOscillator();
+                    const noiseGain = context.createGain();
+                    const filter = context.createBiquadFilter();
+
+                    noiseOsc.type = 'triangle';
+                    noiseOsc.frequency.setValueAtTime(2000 + Math.random() * 1000, context.currentTime);
+
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(3000, context.currentTime);
+
+                    noiseOsc.connect(filter);
+                    filter.connect(noiseGain);
+                    noiseGain.connect(context.destination);
+
+                    noiseGain.gain.setValueAtTime(0.02, context.currentTime);
+                    noiseGain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.1);
+
+                    noiseOsc.start(context.currentTime);
+                    noiseOsc.stop(context.currentTime + 0.1);
+                } catch(e) {
+                    console.warn('Erreur audio:', e);
+                }
+            }
+
+            // Ambiance sonore de fond (murmure léger)
+            let ambientSound = null;
+            function initAmbientSound() {
+                if (ambientSound || !audioListener.context) return;
+
+                try {
+                    const context = audioListener.context;
+                    const oscillator = context.createOscillator();
+                    const gainNode = context.createGain();
+                    const filter = context.createBiquadFilter();
+
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(40, context.currentTime);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(200, context.currentTime);
+                    filter.Q.setValueAtTime(5, context.currentTime);
+
+                    oscillator.connect(filter);
+                    filter.connect(gainNode);
+                    gainNode.connect(context.destination);
+
+                    gainNode.gain.setValueAtTime(0.01, context.currentTime);
+
+                    oscillator.start();
+                    ambientSound = oscillator;
+
+                    console.log('🔊 Ambiance sonore activée');
+                } catch(e) {
+                    console.warn('Erreur ambiance:', e);
+                }
+            }
 
             // FREE CAMERA: Pas d'OrbitControls, caméra complètement libre
             // Rotation avec clic droit + drag, mouvement avec flèches
@@ -4816,8 +4946,17 @@
                         headBobTimer += HEAD_BOB_SPEED * (cameraKeys.sprint ? 1.5 : 1);
                         const bobOffset = Math.sin(headBobTimer) * HEAD_BOB_AMOUNT;
                         camera.position.y += bobOffset;
+
+                        // Bruits de pas
+                        footstepInterval = cameraKeys.sprint ? FOOTSTEP_SPRINT_INTERVAL : FOOTSTEP_WALK_INTERVAL;
+                        playFootstepSound();
                     } else {
                         headBobTimer *= 0.9;
+                    }
+
+                    // Mettre à jour la lumière du joueur
+                    if (playerLight) {
+                        playerLight.position.copy(camera.position);
                     }
 
                     // FOV kick during sprint
