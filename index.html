@@ -397,34 +397,40 @@
             padding: 12px;
         }
 
-        /* FPS Settings Panel - Bottom Left */
+        /* FPS Settings Panel - Bottom Center */
         #fps-settings-panel {
             position: fixed;
             bottom: 20px;
-            left: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 100;
             background: rgba(0,0,0,0.85);
             backdrop-filter: blur(10px);
-            padding: 15px;
+            padding: 15px 20px;
             border-radius: 8px;
             border: 1px solid rgba(255,255,255,0.2);
-            min-width: 280px;
-            max-width: 320px;
+            min-width: 600px;
+            max-width: 800px;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: white;
-            font-size: 12px;
+            font-size: 11px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
         }
-        #fps-settings-panel.hidden { display: none; }
+        #fps-settings-panel.hidden { display: none !important; }
         #fps-settings-panel h3 {
-            margin: 0 0 12px 0;
+            grid-column: 1 / -1;
+            margin: 0 0 8px 0;
             font-size: 13px;
             font-weight: 600;
             color: #00ff88;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            text-align: center;
         }
         .fps-param {
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
         .fps-param label {
             display: block;
@@ -500,12 +506,12 @@
     </div>
     <div id="canvas"></div>
 
-    <!-- FPS Settings Panel (Bottom Left) -->
+    <!-- FPS Settings Panel (Bottom Center) -->
     <div id="fps-settings-panel" class="hidden">
-        <h3>⚙️ FPS Settings</h3>
+        <h3>⚙️ FPS & Glassmorphisme Settings</h3>
 
         <div class="fps-param">
-            <label>Vitesse déplacement touches <span class="fps-param-value" id="val-fps-speed">1.50</span></label>
+            <label>Vitesse touches <span class="fps-param-value" id="val-fps-speed">1.50</span></label>
             <input type="range" id="fps-speed" min="0.5" max="10" step="0.1" value="1.5">
         </div>
 
@@ -530,17 +536,12 @@
         </div>
 
         <div class="fps-param">
-            <label>Rayon hitbox <span class="fps-param-value" id="val-fps-collision">5</span></label>
-            <input type="range" id="fps-collision" min="1" max="20" step="1" value="5">
-        </div>
-
-        <div class="fps-param">
             <label>Gravité <span class="fps-param-value" id="val-fps-gravity">-1.50</span></label>
             <input type="range" id="fps-gravity" min="-3.0" max="-0.1" step="0.1" value="-1.5">
         </div>
 
         <div class="fps-param">
-            <label>Hauteur yeux joueur <span class="fps-param-value" id="val-fps-eye">30</span></label>
+            <label>Hauteur yeux <span class="fps-param-value" id="val-fps-eye">30</span></label>
             <input type="range" id="fps-eye" min="5" max="100" step="1" value="30">
         </div>
 
@@ -549,7 +550,47 @@
             <input type="range" id="fps-mouse" min="0.0005" max="0.01" step="0.0005" value="0.001">
         </div>
 
-        <button id="fps-export-btn">📋 Export (Ctrl+S)</button>
+        <div class="fps-param">
+            <label>Largeur hitbox <span class="fps-param-value" id="val-fps-hitbox-width">10</span></label>
+            <input type="range" id="fps-hitbox-width" min="1" max="50" step="1" value="10">
+        </div>
+
+        <div class="fps-param">
+            <label>Hauteur hitbox <span class="fps-param-value" id="val-fps-hitbox-height">100</span></label>
+            <input type="range" id="fps-hitbox-height" min="10" max="200" step="5" value="100">
+        </div>
+
+        <div class="fps-param">
+            <label>Opacité verre <span class="fps-param-value" id="val-glass-opacity">0.30</span></label>
+            <input type="range" id="glass-opacity" min="0" max="1" step="0.05" value="0.3">
+        </div>
+
+        <div class="fps-param">
+            <label>Rugosité verre <span class="fps-param-value" id="val-glass-roughness">0.10</span></label>
+            <input type="range" id="glass-roughness" min="0" max="1" step="0.05" value="0.1">
+        </div>
+
+        <div class="fps-param">
+            <label>Metalness verre <span class="fps-param-value" id="val-glass-metalness">0.90</span></label>
+            <input type="range" id="glass-metalness" min="0" max="1" step="0.05" value="0.9">
+        </div>
+
+        <div class="fps-param">
+            <label>Transmission <span class="fps-param-value" id="val-glass-transmission">1.00</span></label>
+            <input type="range" id="glass-transmission" min="0" max="1" step="0.05" value="1.0">
+        </div>
+
+        <div class="fps-param">
+            <label>Épaisseur verre <span class="fps-param-value" id="val-glass-thickness">5.0</span></label>
+            <input type="range" id="glass-thickness" min="0.1" max="10" step="0.1" value="5.0">
+        </div>
+
+        <div class="fps-param">
+            <label>IOR (réfraction) <span class="fps-param-value" id="val-glass-ior">1.50</span></label>
+            <input type="range" id="glass-ior" min="1.0" max="2.5" step="0.05" value="1.5">
+        </div>
+
+        <button id="fps-export-btn" style="grid-column: 1 / -1;">📋 Export (Ctrl+S)</button>
     </div>
 
     <!-- Hidden video element for texture source -->
@@ -905,9 +946,18 @@
             fpsMaxSpeed: 1.5,           // Vitesse maximale
             fpsAcceleration: 0.1,       // Vitesse d'accélération
             fpsDeceleration: 0.3,       // Vitesse de décélération
-            fpsCollisionRadius: 5,      // Rayon de collision
+            fpsCollisionRadius: 5,      // Rayon de collision (largeur)
+            fpsHitboxWidth: 10,         // Largeur de la hitbox
+            fpsHitboxHeight: 100,       // Hauteur de la hitbox
             fpsScrollSpeed: 3,          // Vitesse de déplacement à la molette
-            fpsMouseSensitivity: 0.001  // Sensibilité souris
+            fpsMouseSensitivity: 0.001, // Sensibilité souris
+            // Glassmorphisme écran 10
+            glassOpacity: 0.3,          // Opacité du verre
+            glassRoughness: 0.1,        // Rugosité de surface
+            glassMetalness: 0.9,        // Aspect métallique
+            glassTransmission: 1.0,     // Transmission de lumière
+            glassThickness: 5.0,        // Épaisseur du verre
+            glassIOR: 1.5               // Indice de réfraction
         };
 
         // Undo/Redo system
@@ -3635,14 +3685,22 @@
             screensGroup.add(screen9);
 
             // ======================
-            // SCREEN 10: Custom shape (color surface) - lighter green panel floor
+            // SCREEN 10: Custom shape (glassmorphisme) - transparent glass floor panel
             // ======================
             const width10 = 804.246;
             const height10 = 228.534;
             const geometry10 = new THREE.PlaneGeometry(width10, height10);
-            const material10 = new THREE.MeshBasicMaterial({
-                color: 0x1A1A1A, // Lighter green (1710618 in decimal)
-                side: THREE.DoubleSide
+            const material10 = new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                metalness: fpsSettings.glassMetalness,
+                roughness: fpsSettings.glassRoughness,
+                opacity: fpsSettings.glassOpacity,
+                transparent: true,
+                transmission: fpsSettings.glassTransmission,
+                thickness: fpsSettings.glassThickness,
+                ior: fpsSettings.glassIOR,
+                side: THREE.DoubleSide,
+                envMapIntensity: 1.0
             });
             const screen10 = new THREE.Mesh(geometry10, material10);
             screen10.position.set(205.307, -111.773, 112.611);
@@ -3650,7 +3708,8 @@
             screen10.scale.set(1, 1, 1);
             screen10.userData.screenNumber = 10;
             screen10.userData.isColorSurface = true;
-            screen10.userData.color = 0x1A1A1A;
+            screen10.userData.isGlass = true; // Marquer comme verre
+            screen10.userData.color = 0xffffff;
             screen10.visible = true; // Écran 10 visible
             screensGroup.add(screen10);
 
@@ -4784,16 +4843,10 @@
 
                     // Visualisation de la hitbox
                     if (showHitbox) {
-                        const collisionRadius = fpsSettings.fpsCollisionRadius;
-
                         // Créer ou mettre à jour le helper
                         if (!hitboxHelper) {
                             // Créer un wireframe box pour visualiser la hitbox
-                            const hitboxGeometry = new THREE.BoxGeometry(
-                                collisionRadius * 2,
-                                100,
-                                collisionRadius * 2
-                            );
+                            const hitboxGeometry = new THREE.BoxGeometry(1, 1, 1); // Base size
                             const hitboxMaterial = new THREE.MeshBasicMaterial({
                                 color: 0x00ff00,
                                 wireframe: true,
@@ -4804,12 +4857,12 @@
                             scene.add(hitboxHelper);
                         }
 
-                        // Mettre à jour la position et la taille de la hitbox
+                        // Mettre à jour la position et la taille de la hitbox dynamiquement
                         hitboxHelper.position.copy(camera.position);
                         hitboxHelper.scale.set(
-                            1,
-                            1,
-                            1
+                            fpsSettings.fpsHitboxWidth,
+                            fpsSettings.fpsHitboxHeight,
+                            fpsSettings.fpsHitboxWidth
                         );
                         hitboxHelper.visible = true;
                     } else if (hitboxHelper) {
@@ -4937,6 +4990,20 @@
         // Timeline click to seek
         document.getElementById('timeline').addEventListener('click', seekVideo);
 
+        // Update glass material for screen 10
+        function updateGlassMaterial() {
+            if (allScreens[10] && allScreens[10].userData.isGlass) {
+                const mat = allScreens[10].material;
+                mat.metalness = fpsSettings.glassMetalness;
+                mat.roughness = fpsSettings.glassRoughness;
+                mat.opacity = fpsSettings.glassOpacity;
+                mat.transmission = fpsSettings.glassTransmission;
+                mat.thickness = fpsSettings.glassThickness;
+                mat.ior = fpsSettings.glassIOR;
+                mat.needsUpdate = true;
+            }
+        }
+
         // FPS Settings Panel Management
         function setupFPSSettings() {
             const panel = document.getElementById('fps-settings-panel');
@@ -4949,7 +5016,15 @@
                 'fps-collision': { var: 'fpsCollisionRadius', display: 'val-fps-collision', decimals: 0 },
                 'fps-gravity': { var: 'fpsGravity', display: 'val-fps-gravity', decimals: 2 },
                 'fps-eye': { var: 'fpsPlayerHeight', display: 'val-fps-eye', decimals: 0 },
-                'fps-mouse': { var: 'fpsMouseSensitivity', display: 'val-fps-mouse', decimals: 4 }
+                'fps-mouse': { var: 'fpsMouseSensitivity', display: 'val-fps-mouse', decimals: 4 },
+                'fps-hitbox-width': { var: 'fpsHitboxWidth', display: 'val-fps-hitbox-width', decimals: 0 },
+                'fps-hitbox-height': { var: 'fpsHitboxHeight', display: 'val-fps-hitbox-height', decimals: 0 },
+                'glass-opacity': { var: 'glassOpacity', display: 'val-glass-opacity', decimals: 2, callback: updateGlassMaterial },
+                'glass-roughness': { var: 'glassRoughness', display: 'val-glass-roughness', decimals: 2, callback: updateGlassMaterial },
+                'glass-metalness': { var: 'glassMetalness', display: 'val-glass-metalness', decimals: 2, callback: updateGlassMaterial },
+                'glass-transmission': { var: 'glassTransmission', display: 'val-glass-transmission', decimals: 2, callback: updateGlassMaterial },
+                'glass-thickness': { var: 'glassThickness', display: 'val-glass-thickness', decimals: 1, callback: updateGlassMaterial },
+                'glass-ior': { var: 'glassIOR', display: 'val-glass-ior', decimals: 2, callback: updateGlassMaterial }
             };
 
             // Setup sliders
@@ -4968,6 +5043,11 @@
                     document.getElementById(config.display).textContent = displayValue;
 
                     console.log(`📊 ${config.var} = ${displayValue}`);
+
+                    // Call callback if provided
+                    if (config.callback) {
+                        config.callback();
+                    }
                 });
             });
 
