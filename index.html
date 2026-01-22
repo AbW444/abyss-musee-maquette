@@ -483,6 +483,85 @@
         #fps-export-btn:hover {
             background: rgba(0,255,136,0.25);
         }
+
+        /* Glass Settings Panel - Bottom Center */
+        #glass-settings-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(138,43,226,0.5);
+            min-width: 320px;
+            max-width: 400px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: white;
+            font-size: 12px;
+        }
+        #glass-settings-panel.hidden { display: none; }
+        #glass-settings-panel h3 {
+            margin: 0 0 12px 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ba55d3;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .glass-param {
+            margin-bottom: 10px;
+        }
+        .glass-param label {
+            display: block;
+            font-size: 10px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .glass-param input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .glass-param input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ba55d3;
+            cursor: pointer;
+        }
+        .glass-param input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ba55d3;
+            cursor: pointer;
+            border: none;
+        }
+        .glass-param-value {
+            display: inline-block;
+            float: right;
+            color: #ba55d3;
+            font-weight: 600;
+            font-size: 11px;
+        }
+        .glass-color-input {
+            width: 100%;
+            height: 30px;
+            border: 1px solid rgba(186,85,211,0.5);
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -550,6 +629,46 @@
         </div>
 
         <button id="fps-export-btn">📋 Export (Ctrl+S)</button>
+    </div>
+
+    <!-- Glass Settings Panel (Bottom Center) -->
+    <div id="glass-settings-panel" class="hidden">
+        <h3>🪟 Glassmorphisme Écran 10</h3>
+
+        <div class="glass-param">
+            <label>Opacité <span class="glass-param-value" id="val-glass-opacity">0.30</span></label>
+            <input type="range" id="glass-opacity" min="0" max="1" step="0.05" value="0.3">
+        </div>
+
+        <div class="glass-param">
+            <label>Transmission (effet verre) <span class="glass-param-value" id="val-glass-transmission">0.90</span></label>
+            <input type="range" id="glass-transmission" min="0" max="1" step="0.05" value="0.9">
+        </div>
+
+        <div class="glass-param">
+            <label>Métallicité <span class="glass-param-value" id="val-glass-metalness">0.10</span></label>
+            <input type="range" id="glass-metalness" min="0" max="1" step="0.05" value="0.1">
+        </div>
+
+        <div class="glass-param">
+            <label>Rugosité <span class="glass-param-value" id="val-glass-roughness">0.10</span></label>
+            <input type="range" id="glass-roughness" min="0" max="1" step="0.05" value="0.1">
+        </div>
+
+        <div class="glass-param">
+            <label>Épaisseur <span class="glass-param-value" id="val-glass-thickness">5.0</span></label>
+            <input type="range" id="glass-thickness" min="0" max="20" step="0.5" value="5">
+        </div>
+
+        <div class="glass-param">
+            <label>Réflexion environnement <span class="glass-param-value" id="val-glass-env">1.00</span></label>
+            <input type="range" id="glass-env" min="0" max="3" step="0.1" value="1">
+        </div>
+
+        <div class="glass-param">
+            <label>Couleur</label>
+            <input type="color" id="glass-color" class="glass-color-input" value="#ffffff">
+        </div>
     </div>
 
     <!-- Hidden video element for texture source -->
@@ -905,7 +1024,19 @@
             fpsDeceleration: 0.3,       // Vitesse de décélération
             fpsCollisionRadius: 5,      // Rayon de collision
             fpsScrollSpeed: 3,          // Vitesse de déplacement à la molette
-            fpsMouseSensitivity: 0.001  // Sensibilité souris
+            fpsMouseSensitivity: 0.001, // Sensibilité souris
+            stepTolerance: 15           // Tolérance hauteur pour petites marches (unités)
+        };
+
+        // Glass Settings pour écran 10
+        var glassSettings = {
+            opacity: 0.3,           // Opacité du verre
+            color: 0xffffff,        // Couleur de base
+            metalness: 0.1,         // Métallicité
+            roughness: 0.1,         // Rugosité
+            transmission: 0.9,      // Transmission (effet verre)
+            thickness: 5,           // Épaisseur du verre
+            envMapIntensity: 1.0    // Intensité réflexion environnement
         };
 
         // Undo/Redo system
@@ -2778,6 +2909,7 @@
             console.log('   B            - Activer/désactiver MODE FPS');
             console.log('   N            - Afficher/Cacher interfaces (cachées par défaut)');
             console.log('   F            - Afficher/Cacher FPS Settings (bas gauche)');
+            console.log('   G            - Afficher/Cacher Glass Settings (milieu bas)');
             console.log('   Ctrl+S       - Exporter paramètres FPS dans console');
             console.log('');
             console.log('📍 MODE NORMAL (par défaut):');
@@ -3621,9 +3753,18 @@
             const width10 = 964.573;
             const height10 = 228.534;
             const geometry10 = new THREE.PlaneGeometry(width10, height10);
-            const material10 = new THREE.MeshBasicMaterial({
-                color: 0x1A1A1A, // Lighter green (1710618 in decimal)
-                side: THREE.DoubleSide
+            const material10 = new THREE.MeshPhysicalMaterial({
+                color: glassSettings.color,
+                metalness: glassSettings.metalness,
+                roughness: glassSettings.roughness,
+                transmission: glassSettings.transmission,
+                thickness: glassSettings.thickness,
+                opacity: glassSettings.opacity,
+                transparent: true,
+                side: THREE.DoubleSide,
+                envMapIntensity: glassSettings.envMapIntensity,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1
             });
             const screen10 = new THREE.Mesh(geometry10, material10);
             screen10.position.set(132.131, -111.773, 112.611);
@@ -3631,8 +3772,9 @@
             screen10.scale.set(1, 1, 1);
             screen10.userData.screenNumber = 10;
             screen10.userData.isColorSurface = true;
-            screen10.userData.color = 0x1A1A1A;
-            screen10.visible = false; // Écran 10 invisible selon JSON
+            screen10.userData.isGlass = true; // Marquer comme verre pour mise à jour
+            screen10.userData.color = 0xffffff;
+            screen10.visible = true; // Écran 10 visible avec effet verre
             screensGroup.add(screen10);
 
             // ======================
@@ -4371,11 +4513,12 @@
             }
         }
 
-        // Collision detection function (for FPS mode) - VERSION FINALE
+        // Collision detection function (for FPS mode) - VERSION FINALE avec step tolerance
         function checkCollision(newPosition, prevPosition) {
             if (!fpsMode) return false;
 
             const collisionRadius = fpsSettings.fpsCollisionRadius; // Rayon de collision configurable
+            const stepTolerance = fpsSettings.stepTolerance; // Tolérance pour petites marches
 
             // Collecter tous les murs (pas les sols 11 et 3)
             const walls = [];
@@ -4405,12 +4548,53 @@
             );
 
             // Tester collision avec chaque mur
+            let hasCollision = false;
             for (let i = 0; i < walls.length; i++) {
                 const wall = walls[i];
                 const wallBox = new THREE.Box3().setFromObject(wall);
 
                 if (playerBox.intersectsBox(wallBox)) {
-                    return true; // Collision détectée !
+                    hasCollision = true;
+
+                    // Si collision, tenter de monter (step tolerance)
+                    // Essayer de monter progressivement jusqu'à stepTolerance
+                    for (let step = 1; step <= stepTolerance; step++) {
+                        const testPosition = newPosition.clone();
+                        testPosition.y += step;
+
+                        const testBox = new THREE.Box3(
+                            new THREE.Vector3(
+                                testPosition.x - collisionRadius,
+                                testPosition.y - 50,
+                                testPosition.z - collisionRadius
+                            ),
+                            new THREE.Vector3(
+                                testPosition.x + collisionRadius,
+                                testPosition.y + 50,
+                                testPosition.z + collisionRadius
+                            )
+                        );
+
+                        // Tester si on peut passer en montant
+                        let canPass = true;
+                        for (let j = 0; j < walls.length; j++) {
+                            const testWall = walls[j];
+                            const testWallBox = new THREE.Box3().setFromObject(testWall);
+                            if (testBox.intersectsBox(testWallBox)) {
+                                canPass = false;
+                                break;
+                            }
+                        }
+
+                        if (canPass) {
+                            // On peut passer en montant de "step" unités
+                            newPosition.y += step;
+                            return false; // Pas de collision finale, on monte
+                        }
+                    }
+
+                    // Si aucune montée ne fonctionne, collision réelle
+                    return true;
                 }
             }
 
@@ -4723,7 +4907,7 @@
 
                     const floorScreens = [];
                     if (allScreens[11]) floorScreens.push(allScreens[11]);
-                    if (allScreens[3]) floorScreens.push(allScreens[3]);
+                    // Note: écran 3 retiré (non physique)
 
                     const intersects = raycaster.intersectObjects(floorScreens, false);
 
@@ -4973,9 +5157,75 @@
             }
         });
 
+        // Glass Settings Panel Management
+        function setupGlassSettings() {
+            const sliders = {
+                'glass-opacity': { var: 'opacity', display: 'val-glass-opacity', decimals: 2 },
+                'glass-transmission': { var: 'transmission', display: 'val-glass-transmission', decimals: 2 },
+                'glass-metalness': { var: 'metalness', display: 'val-glass-metalness', decimals: 2 },
+                'glass-roughness': { var: 'roughness', display: 'val-glass-roughness', decimals: 2 },
+                'glass-thickness': { var: 'thickness', display: 'val-glass-thickness', decimals: 1 },
+                'glass-env': { var: 'envMapIntensity', display: 'val-glass-env', decimals: 2 }
+            };
+
+            // Setup sliders
+            Object.keys(sliders).forEach(sliderId => {
+                const slider = document.getElementById(sliderId);
+                const config = sliders[sliderId];
+
+                slider.addEventListener('input', function() {
+                    const value = parseFloat(this.value);
+
+                    // Update variable in glassSettings
+                    glassSettings[config.var] = value;
+
+                    // Update display
+                    const displayValue = value.toFixed(config.decimals);
+                    document.getElementById(config.display).textContent = displayValue;
+
+                    // Update material on screen 10
+                    updateGlassMaterial();
+
+                    console.log(`🪟 ${config.var} = ${displayValue}`);
+                });
+            });
+
+            // Color picker
+            document.getElementById('glass-color').addEventListener('input', function() {
+                const colorHex = this.value;
+                glassSettings.color = parseInt(colorHex.replace('#', '0x'), 16);
+                updateGlassMaterial();
+                console.log(`🪟 color = ${colorHex}`);
+            });
+        }
+
+        function updateGlassMaterial() {
+            if (allScreens[10] && allScreens[10].material) {
+                const mat = allScreens[10].material;
+                mat.color.setHex(glassSettings.color);
+                mat.opacity = glassSettings.opacity;
+                mat.metalness = glassSettings.metalness;
+                mat.roughness = glassSettings.roughness;
+                mat.transmission = glassSettings.transmission;
+                mat.thickness = glassSettings.thickness;
+                mat.envMapIntensity = glassSettings.envMapIntensity;
+                mat.needsUpdate = true;
+            }
+        }
+
+        // Toggle Glass panel with G key
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'KeyG' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+                const panel = document.getElementById('glass-settings-panel');
+                panel.classList.toggle('hidden');
+                console.log(panel.classList.contains('hidden') ? '🪟 Glass Settings cachés (G pour afficher)' : '🪟 Glass Settings affichés (G pour cacher)');
+            }
+        });
+
         window.onload = function() {
             init();
             setupFPSSettings();
+            setupGlassSettings();
         };
     </script>
 </body>
