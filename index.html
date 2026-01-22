@@ -540,13 +540,13 @@
         <h3>⚙️ FPS & Verre Settings</h3>
 
         <div class="fps-param">
-            <label>Vitesse touches <span class="fps-param-value" id="val-fps-speed">1.50</span></label>
-            <input type="range" id="fps-speed" min="0.5" max="10" step="0.1" value="1.5">
+            <label>Vitesse touches <span class="fps-param-value" id="val-fps-speed">2.25</span></label>
+            <input type="range" id="fps-speed" min="0.5" max="10" step="0.1" value="2.25">
         </div>
 
         <div class="fps-param">
-            <label>Vitesse molette <span class="fps-param-value" id="val-fps-scroll">3.0</span></label>
-            <input type="range" id="fps-scroll" min="0.5" max="15" step="0.5" value="3">
+            <label>Vitesse molette <span class="fps-param-value" id="val-fps-scroll">4.5</span></label>
+            <input type="range" id="fps-scroll" min="0.5" max="15" step="0.5" value="4.5">
         </div>
 
         <div class="fps-param">
@@ -590,8 +590,8 @@
         </div>
 
         <div class="fps-param">
-            <label>Opacité verre <span class="fps-param-value" id="val-glass-opacity">0.25</span></label>
-            <input type="range" id="glass-opacity" min="0" max="1" step="0.05" value="0.25">
+            <label>Opacité verre <span class="fps-param-value" id="val-glass-opacity">0.05</span></label>
+            <input type="range" id="glass-opacity" min="0" max="1" step="0.05" value="0.05">
         </div>
 
         <div class="fps-param">
@@ -910,10 +910,6 @@
         // Flow movement data - stores random offsets for each particle
         let flowOffsets = null;
 
-        // Info mode - detailed screen information
-        let infoMode = false;
-        let infoSprites = [];
-
         // Performance optimization: Reusable objects to avoid GC pressure
         const reusableMatrix = new THREE.Matrix4();
         const reusableColor = new THREE.Color();
@@ -957,13 +953,13 @@
             fpsCameraHeight: -96,       // Hauteur de spawn de la caméra
             fpsGravity: -1.5,           // Gravité
             fpsPlayerHeight: 30,        // Hauteur des yeux du joueur au-dessus du sol
-            fpsMaxSpeed: 1.5,           // Vitesse maximale
+            fpsMaxSpeed: 2.25,          // Vitesse maximale
             fpsAcceleration: 0.1,       // Vitesse d'accélération
             fpsDeceleration: 0.3,       // Vitesse de décélération
             fpsCollisionRadius: 0.5,    // Rayon de collision (réduit par 10)
             fpsHitboxWidth: 1,          // Largeur de la hitbox (réduit par 10)
             fpsHitboxHeight: 10,        // Hauteur de la hitbox (réduit par 10)
-            fpsScrollSpeed: 3,          // Vitesse de déplacement à la molette
+            fpsScrollSpeed: 4.5,        // Vitesse de déplacement à la molette
             fpsMouseSensitivity: 0.001, // Sensibilité souris
             // Glassmorphisme écran 10
             glassOpacity: 0.05,         // Opacité du verre
@@ -1287,12 +1283,6 @@
             if (e.code === 'Space' && currentVideo) {
                 e.preventDefault();
                 toggleVideo();
-            }
-
-            // I: toggle info mode
-            if (e.code === 'KeyI') {
-                e.preventDefault();
-                toggleInfoMode();
             }
 
             // Number keys 1-7: Select screen (keyboard + numpad)
@@ -2203,257 +2193,6 @@
 
             console.log('✅ Positions complètes (avec dimensions) sauvegardées dans le fichier JSON téléchargé');
             console.log(`📦 ${Object.keys(allScreens).length} écrans exportés`);
-        }
-
-        // Create text sprite for 3D labels
-        function createTextSprite(text, parameters) {
-            if (parameters === undefined) parameters = {};
-            const fontface = parameters.hasOwnProperty("fontface") ? parameters["fontface"] : "Courier New";
-            const fontsize = parameters.hasOwnProperty("fontsize") ? parameters["fontsize"] : 18;
-            const backgroundColor = parameters.hasOwnProperty("backgroundColor") ? parameters["backgroundColor"] : { r: 0, g: 0, b: 0, a: 0.8 };
-            const textColor = parameters.hasOwnProperty("textColor") ? parameters["textColor"] : { r: 255, g: 255, b: 255, a: 1.0 };
-
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            context.font = fontsize + "px " + fontface;
-
-            // Split text by lines
-            const lines = text.split('\n');
-            const lineHeight = fontsize * 1.2;
-
-            // Measure max width
-            let maxWidth = 0;
-            lines.forEach(line => {
-                const metrics = context.measureText(line);
-                maxWidth = Math.max(maxWidth, metrics.width);
-            });
-
-            // Set canvas size
-            canvas.width = maxWidth + 20;
-            canvas.height = (lines.length * lineHeight) + 20;
-
-            // Re-set font after canvas resize
-            context.font = fontsize + "px " + fontface;
-            context.textAlign = "left";
-            context.textBaseline = "top";
-
-            // Background
-            context.fillStyle = "rgba(" + backgroundColor.r + "," + backgroundColor.g + "," + backgroundColor.b + "," + backgroundColor.a + ")";
-            context.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Text
-            context.fillStyle = "rgba(" + textColor.r + "," + textColor.g + "," + textColor.b + "," + textColor.a + ")";
-            lines.forEach((line, i) => {
-                context.fillText(line, 10, 10 + (i * lineHeight));
-            });
-
-            // Create sprite
-            const texture = new THREE.Texture(canvas);
-            texture.needsUpdate = true;
-
-            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false });
-            const sprite = new THREE.Sprite(spriteMaterial);
-
-            // Scale sprite (canvas is in pixels, scale to world units)
-            const scale = 0.5;
-            sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
-
-            return sprite;
-        }
-
-        // Toggle detailed info mode - show 3D labels on screens
-        function toggleInfoMode() {
-            infoMode = !infoMode;
-
-            if (infoMode) {
-                console.log('[INFO MODE] ENABLED - Showing 3D labels on screens');
-
-                if (screensGroup && screensGroup.children.length > 0) {
-                    screensGroup.updateMatrixWorld(true);
-
-                    // Get screen dimensions
-                    const TARGET_WIDTH = 800;
-                    const TARGET_HEIGHT = 450;
-                    const scaleFactor = 0.5;
-                    const screenW = TARGET_WIDTH * scaleFactor;
-                    const screenH = TARGET_HEIGHT * scaleFactor;
-
-                    // Create label for each screen
-                    screensGroup.children.forEach((screen, index) => {
-                        const screenNum = index + 1;
-                        const pos = screen.position;
-                        const rot = screen.rotation;
-                        const box = new THREE.Box3().setFromObject(screen);
-
-                        // Build text for this screen
-                        let labelText = `ECRAN #${screenNum}\n`;
-                        labelText += `${getScreenName(index)}\n`;
-                        labelText += `\n`;
-                        labelText += `POS: X=${pos.x.toFixed(1)} Y=${pos.y.toFixed(1)} Z=${pos.z.toFixed(1)}\n`;
-                        labelText += `ROT: X=${(rot.x * 180 / Math.PI).toFixed(0)}° Y=${(rot.y * 180 / Math.PI).toFixed(0)}° Z=${(rot.z * 180 / Math.PI).toFixed(0)}°\n`;
-                        labelText += `\n`;
-                        labelText += `EDGES:\n`;
-                        labelText += `TOP: Y=${box.max.y.toFixed(1)}\n`;
-                        labelText += `BOTTOM: Y=${box.min.y.toFixed(1)}\n`;
-                        labelText += `LEFT: X=${box.min.x.toFixed(1)}\n`;
-                        labelText += `RIGHT: X=${box.max.x.toFixed(1)}\n`;
-                        labelText += `FRONT: Z=${box.max.z.toFixed(1)}\n`;
-                        labelText += `BACK: Z=${box.min.z.toFixed(1)}\n`;
-                        labelText += `\n`;
-                        labelText += `TYPE: ${getScreenType(rot)}\n`;
-                        labelText += `FACE: ${getFaceDirection(rot)}`;
-
-                        // Create sprite
-                        const sprite = createTextSprite(labelText, {
-                            fontsize: 14,
-                            backgroundColor: { r: 0, g: 0, b: 0, a: 0.9 },
-                            textColor: { r: 0, g: 255, b: 255, a: 1.0 }
-                        });
-
-                        // Position sprite in front of screen center
-                        const center = box.getCenter(new THREE.Vector3());
-
-                        // Offset sprite forward based on screen orientation
-                        const normal = new THREE.Vector3(0, 0, 1);
-                        normal.applyEuler(screen.rotation);
-                        sprite.position.copy(center).add(normal.multiplyScalar(50));
-
-                        scene.add(sprite);
-                        infoSprites.push(sprite);
-                    });
-
-                } else {
-                    console.log('⚠️  No screens found in screensGroup');
-                }
-
-                console.log('[INFO MODE] 3D labels displayed - Press I to hide');
-
-            } else {
-                // Remove all sprites
-                infoSprites.forEach(sprite => {
-                    scene.remove(sprite);
-                    if (sprite.material.map) sprite.material.map.dispose();
-                    sprite.material.dispose();
-                });
-                infoSprites = [];
-                console.log('[INFO MODE] DISABLED');
-            }
-        }
-
-        // Helper functions for descriptions
-        function getScreenName(index) {
-            const names = [
-                'Wall Back Left (particles)',
-                'Wall Back Right (particlesRight)',
-                'Floor Rectangle (screen3)',
-                null, // Écran 4 supprimé
-                'Wall Front Left (wallOppA)',
-                'Wall Front Right (wallOppB)'
-            ];
-            return names[index] || `Screen ${index + 1}`;
-        }
-
-        function getXDescription(x, screenW) {
-            if (Math.abs(x) < 0.01) return 'left edge';
-            if (Math.abs(x - screenW) < 0.01) return 'right edge';
-            if (Math.abs(x - screenW/2) < 0.01) return 'centered';
-            return x < screenW/2 ? 'left side' : 'right side';
-        }
-
-        function getYDescription(y, screenH) {
-            if (Math.abs(y) < 0.01) return 'centered vertically';
-            if (Math.abs(y + screenH/2) < 0.01) return 'bottom edge';
-            if (Math.abs(y - screenH/2) < 0.01) return 'top edge';
-            return y < 0 ? 'below center' : 'above center';
-        }
-
-        function getZDescription(z, screenH) {
-            if (Math.abs(z) < 0.01) return 'back wall';
-            if (Math.abs(z - screenH) < 0.01) return 'front wall';
-            if (Math.abs(z - screenH/2) < 0.01) return 'middle depth';
-            return z < screenH/2 ? 'closer to back' : 'closer to front';
-        }
-
-        function getRotXDescription(radians) {
-            const deg = radians * 180 / Math.PI;
-            if (Math.abs(deg) < 1) return 'vertical (no tilt)';
-            if (Math.abs(deg + 90) < 1) return 'horizontal (floor)';
-            if (Math.abs(deg - 90) < 1) return 'horizontal (ceiling)';
-            return deg < 0 ? 'tilted down' : 'tilted up';
-        }
-
-        function getRotYDescription(radians) {
-            const deg = radians * 180 / Math.PI;
-            if (Math.abs(deg) < 1) return 'facing +Z (forward)';
-            if (Math.abs(deg - 90) < 1) return 'facing +X (right)';
-            if (Math.abs(deg + 90) < 1) return 'facing -X (left)';
-            if (Math.abs(Math.abs(deg) - 180) < 1) return 'facing -Z (backward)';
-            return 'angled';
-        }
-
-        function getRotZDescription(radians) {
-            const deg = radians * 180 / Math.PI;
-            if (Math.abs(deg) < 1) return 'not rolled';
-            return 'rolled ' + deg.toFixed(1) + '°';
-        }
-
-        function getFaceDirection(rotation) {
-            const y = rotation.y * 180 / Math.PI;
-            if (Math.abs(y) < 45) return '+Z (forward)';
-            if (Math.abs(y - 90) < 45) return '+X (right)';
-            if (Math.abs(y + 90) < 45) return '-X (left)';
-            if (Math.abs(Math.abs(y) - 180) < 45) return '-Z (backward)';
-            return 'angled';
-        }
-
-        function getScreenType(rotation) {
-            const x = Math.abs(rotation.x * 180 / Math.PI);
-            if (x < 45) return 'VERTICAL WALL';
-            if (x > 135) return 'VERTICAL WALL (inverted)';
-            return 'HORIZONTAL (floor/ceiling)';
-        }
-
-        function analyzeHinges(group) {
-            const screens = group.children;
-            if (screens.length < 2) return;
-
-            // Common hinges to check
-            const hingeChecks = [
-                { name: 'Wall-Floor Hinge (left)', screen1: 0, screen2: 2, edge1: 'bottom', edge2: 'top', axis: 'Y' },
-                { name: 'Wall-Floor Hinge (right)', screen1: 1, screen2: 3, edge1: 'bottom', edge2: 'top', axis: 'Y' },
-                { name: 'Floor-FrontWall Hinge (left)', screen1: 2, screen2: 4, edge1: 'front', edge2: 'bottom', axis: 'Y' },
-                { name: 'Floor-FrontWall Hinge (right)', screen1: 3, screen2: 5, edge1: 'front', edge2: 'bottom', axis: 'Y' },
-                { name: 'BackWall Left-Right', screen1: 0, screen2: 1, edge1: 'right', edge2: 'left', axis: 'X' },
-                { name: 'FrontWall Left-Right', screen1: 4, screen2: 5, edge1: 'right', edge2: 'left', axis: 'X' }
-            ];
-
-            hingeChecks.forEach(check => {
-                if (check.screen1 < screens.length && check.screen2 < screens.length) {
-                    const box1 = new THREE.Box3().setFromObject(screens[check.screen1]);
-                    const box2 = new THREE.Box3().setFromObject(screens[check.screen2]);
-
-                    let val1, val2, gap;
-                    if (check.axis === 'Y') {
-                        val1 = check.edge1 === 'bottom' ? box1.min.y : (check.edge1 === 'top' ? box1.max.y : box1.max.z);
-                        val2 = check.edge2 === 'top' ? box2.max.y : (check.edge2 === 'bottom' ? box2.min.y : box2.min.y);
-                    } else if (check.axis === 'X') {
-                        val1 = check.edge1 === 'right' ? box1.max.x : box1.min.x;
-                        val2 = check.edge2 === 'left' ? box2.min.x : box2.max.x;
-                    } else {
-                        val1 = box1.max.z;
-                        val2 = box2.min.z;
-                    }
-
-                    gap = Math.abs(val1 - val2);
-                    const status = gap < 0.1 ? '✅ GOOD' : (gap < 1 ? '⚠️  SMALL GAP' : '❌ GAP');
-
-                    console.log(`  ${check.name}:`);
-                    console.log(`    Edge 1 (${getScreenName(check.screen1)}): ${val1.toFixed(3)}`);
-                    console.log(`    Edge 2 (${getScreenName(check.screen2)}): ${val2.toFixed(3)}`);
-                    console.log(`    Gap: ${gap.toFixed(6)} ${status}`);
-                    console.log('');
-                }
-            });
         }
 
         // Shape texture generators
