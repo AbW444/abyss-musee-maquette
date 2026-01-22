@@ -2559,8 +2559,8 @@
             renderer.toneMappingExposure = 1.2;
             document.getElementById('canvas').appendChild(renderer.domElement);
 
-            // Lumière ambiante minimale pour les réflexions
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.15);
+            // Lumière ambiante
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
             scene.add(ambientLight);
 
             // FREE CAMERA: Pas d'OrbitControls, caméra complètement libre
