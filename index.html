@@ -876,6 +876,8 @@
         // Free camera (no orbit controls, no pivot)
         let freeCameraEnabled = true;
         let fpsMode = false; // Mode FPS activé avec touche B
+        let showHitbox = false; // Affichage de la hitbox activé avec touche H
+        let hitboxHelper = null; // Helper pour visualiser la hitbox
         let cameraYaw = 0; // Rotation horizontale (Y axis)
         let cameraPitch = 0; // Rotation verticale (X axis)
         let isMouseLocked = false;
@@ -1321,11 +1323,28 @@
                     console.log('   - Shift pour sprinter');
                     console.log('   - ESC pour sortir du PointerLock');
                     console.log('   - B pour désactiver le mode FPS');
+                    console.log('   - H pour afficher/masquer la hitbox');
                 } else {
                     console.log('🖱️ MODE NORMAL ACTIVÉ (B pour mode FPS)');
                     // Release pointer lock if active
                     if (document.exitPointerLock) {
                         document.exitPointerLock();
+                    }
+                }
+            }
+
+            // H: Toggle hitbox visibility
+            if (e.code === 'KeyH') {
+                e.preventDefault();
+                showHitbox = !showHitbox;
+                if (showHitbox) {
+                    console.log('👁️ HITBOX VISIBLE');
+                } else {
+                    console.log('🚫 HITBOX MASQUÉE');
+                    // Remove hitbox helper if exists
+                    if (hitboxHelper) {
+                        scene.remove(hitboxHelper);
+                        hitboxHelper = null;
                     }
                 }
             }
@@ -4377,10 +4396,10 @@
 
             const collisionRadius = fpsSettings.fpsCollisionRadius; // Rayon de collision configurable
 
-            // Collecter tous les murs (pas les sols 11 et 3)
+            // Collecter tous les murs (pas les sols 3, 10 et 11)
             const walls = [];
             for (const key in allScreens) {
-                if (key === '11' || key === '3') continue;
+                if (key === '3' || key === '10' || key === '11') continue;
 
                 const screen = allScreens[key];
                 if (screen && screen.userData.isColorSurface && screen.visible !== false) {
@@ -4717,13 +4736,14 @@
                 if (fpsMode) {
                     // ===== MODE FPS: Gravité et marche sur le sol =====
 
-                    // Raycasting vers le bas pour détecter le sol (formes 11 et 3)
+                    // Raycasting vers le bas pour détecter le sol (formes 3, 10 et 11)
                     const raycaster = new THREE.Raycaster();
                     raycaster.set(camera.position, new THREE.Vector3(0, -1, 0));
 
                     const floorScreens = [];
-                    if (allScreens[11]) floorScreens.push(allScreens[11]);
                     if (allScreens[3]) floorScreens.push(allScreens[3]);
+                    if (allScreens[10]) floorScreens.push(allScreens[10]);
+                    if (allScreens[11]) floorScreens.push(allScreens[11]);
 
                     const intersects = raycaster.intersectObjects(floorScreens, false);
 
@@ -4761,6 +4781,40 @@
 
                     // FOV kick during sprint
                     targetFOV = cameraKeys.sprint ? DEFAULT_FOV + SPRINT_FOV_INCREASE : DEFAULT_FOV;
+
+                    // Visualisation de la hitbox
+                    if (showHitbox) {
+                        const collisionRadius = fpsSettings.fpsCollisionRadius;
+
+                        // Créer ou mettre à jour le helper
+                        if (!hitboxHelper) {
+                            // Créer un wireframe box pour visualiser la hitbox
+                            const hitboxGeometry = new THREE.BoxGeometry(
+                                collisionRadius * 2,
+                                100,
+                                collisionRadius * 2
+                            );
+                            const hitboxMaterial = new THREE.MeshBasicMaterial({
+                                color: 0x00ff00,
+                                wireframe: true,
+                                transparent: true,
+                                opacity: 0.5
+                            });
+                            hitboxHelper = new THREE.Mesh(hitboxGeometry, hitboxMaterial);
+                            scene.add(hitboxHelper);
+                        }
+
+                        // Mettre à jour la position et la taille de la hitbox
+                        hitboxHelper.position.copy(camera.position);
+                        hitboxHelper.scale.set(
+                            1,
+                            1,
+                            1
+                        );
+                        hitboxHelper.visible = true;
+                    } else if (hitboxHelper) {
+                        hitboxHelper.visible = false;
+                    }
 
                 } else {
                     // ===== MODE NORMAL: Déplacement libre avec O/L =====
