@@ -2559,38 +2559,9 @@
             renderer.toneMappingExposure = 1.2;
             document.getElementById('canvas').appendChild(renderer.domElement);
 
-            // Museum-style lighting: soft ambient + key spotlights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            // Lumière ambiante minimale pour les réflexions
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.15);
             scene.add(ambientLight);
-
-            // Lumière principale (key light) - simule éclairage zénithal de musée
-            const keyLight = new THREE.DirectionalLight(0xfff5e6, 0.8);
-            keyLight.position.set(0, 300, 0);
-            keyLight.castShadow = true;
-            keyLight.shadow.mapSize.width = 2048;
-            keyLight.shadow.mapSize.height = 2048;
-            keyLight.shadow.camera.near = 0.5;
-            keyLight.shadow.camera.far = 500;
-            scene.add(keyLight);
-
-            // Lumière de remplissage (fill light) - adoucit les ombres
-            const fillLight = new THREE.DirectionalLight(0xe6f2ff, 0.3);
-            fillLight.position.set(-200, 100, 200);
-            scene.add(fillLight);
-
-            // Lumière arrière (rim light) - crée de la profondeur
-            const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
-            rimLight.position.set(0, 50, -200);
-            scene.add(rimLight);
-
-            // Point lights subtils pour créer de l'atmosphère
-            const spotLight1 = new THREE.PointLight(0xfff5e6, 0.6, 400);
-            spotLight1.position.set(200, 100, 0);
-            scene.add(spotLight1);
-
-            const spotLight2 = new THREE.PointLight(0xfff5e6, 0.6, 400);
-            spotLight2.position.set(-200, 100, 200);
-            scene.add(spotLight2);
 
             // FREE CAMERA: Pas d'OrbitControls, caméra complètement libre
             // Rotation avec clic droit + drag, mouvement avec flèches
