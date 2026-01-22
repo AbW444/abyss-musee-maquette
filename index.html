@@ -3632,7 +3632,7 @@
             screen10.userData.screenNumber = 10;
             screen10.userData.isColorSurface = true;
             screen10.userData.color = 0x1A1A1A;
-            screen10.visible = false; // Écran 10 invisible selon JSON
+            screen10.visible = true; // Écran 10 visible
             screensGroup.add(screen10);
 
             // ======================
@@ -4745,7 +4745,7 @@
                     } else {
                         // Pas de sol détecté - tomber
                         isOnGround = false;
-                        playerVelocityY += GRAVITY;
+                        playerVelocityY += fpsSettings.fpsGravity;
                         camera.position.y += playerVelocityY;
                     }
 
