@@ -551,38 +551,38 @@
         </div>
 
         <div class="fps-param">
-            <label>Largeur hitbox <span class="fps-param-value" id="val-fps-hitbox-width">10</span></label>
-            <input type="range" id="fps-hitbox-width" min="1" max="50" step="1" value="10">
+            <label>Largeur hitbox <span class="fps-param-value" id="val-fps-hitbox-width">1</span></label>
+            <input type="range" id="fps-hitbox-width" min="0.1" max="20" step="0.1" value="1">
         </div>
 
         <div class="fps-param">
-            <label>Hauteur hitbox <span class="fps-param-value" id="val-fps-hitbox-height">100</span></label>
-            <input type="range" id="fps-hitbox-height" min="10" max="200" step="5" value="100">
+            <label>Hauteur hitbox <span class="fps-param-value" id="val-fps-hitbox-height">10</span></label>
+            <input type="range" id="fps-hitbox-height" min="1" max="100" step="1" value="10">
         </div>
 
         <div class="fps-param">
-            <label>Opacité verre <span class="fps-param-value" id="val-glass-opacity">0.30</span></label>
-            <input type="range" id="glass-opacity" min="0" max="1" step="0.05" value="0.3">
+            <label>Opacité verre <span class="fps-param-value" id="val-glass-opacity">0.15</span></label>
+            <input type="range" id="glass-opacity" min="0" max="1" step="0.05" value="0.15">
         </div>
 
         <div class="fps-param">
-            <label>Rugosité verre <span class="fps-param-value" id="val-glass-roughness">0.10</span></label>
-            <input type="range" id="glass-roughness" min="0" max="1" step="0.05" value="0.1">
+            <label>Rugosité verre <span class="fps-param-value" id="val-glass-roughness">0.05</span></label>
+            <input type="range" id="glass-roughness" min="0" max="1" step="0.05" value="0.05">
         </div>
 
         <div class="fps-param">
-            <label>Metalness verre <span class="fps-param-value" id="val-glass-metalness">0.90</span></label>
-            <input type="range" id="glass-metalness" min="0" max="1" step="0.05" value="0.9">
+            <label>Metalness verre <span class="fps-param-value" id="val-glass-metalness">0.10</span></label>
+            <input type="range" id="glass-metalness" min="0" max="1" step="0.05" value="0.1">
         </div>
 
         <div class="fps-param">
-            <label>Transmission <span class="fps-param-value" id="val-glass-transmission">1.00</span></label>
-            <input type="range" id="glass-transmission" min="0" max="1" step="0.05" value="1.0">
+            <label>Transmission <span class="fps-param-value" id="val-glass-transmission">0.95</span></label>
+            <input type="range" id="glass-transmission" min="0" max="1" step="0.05" value="0.95">
         </div>
 
         <div class="fps-param">
-            <label>Épaisseur verre <span class="fps-param-value" id="val-glass-thickness">5.0</span></label>
-            <input type="range" id="glass-thickness" min="0.1" max="10" step="0.1" value="5.0">
+            <label>Épaisseur verre <span class="fps-param-value" id="val-glass-thickness">2.0</span></label>
+            <input type="range" id="glass-thickness" min="0.1" max="10" step="0.1" value="2.0">
         </div>
 
         <div class="fps-param">
@@ -946,17 +946,17 @@
             fpsMaxSpeed: 1.5,           // Vitesse maximale
             fpsAcceleration: 0.1,       // Vitesse d'accélération
             fpsDeceleration: 0.3,       // Vitesse de décélération
-            fpsCollisionRadius: 5,      // Rayon de collision (largeur)
-            fpsHitboxWidth: 10,         // Largeur de la hitbox
-            fpsHitboxHeight: 100,       // Hauteur de la hitbox
+            fpsCollisionRadius: 0.5,    // Rayon de collision (réduit par 10)
+            fpsHitboxWidth: 1,          // Largeur de la hitbox (réduit par 10)
+            fpsHitboxHeight: 10,        // Hauteur de la hitbox (réduit par 10)
             fpsScrollSpeed: 3,          // Vitesse de déplacement à la molette
             fpsMouseSensitivity: 0.001, // Sensibilité souris
             // Glassmorphisme écran 10
-            glassOpacity: 0.3,          // Opacité du verre
-            glassRoughness: 0.1,        // Rugosité de surface
-            glassMetalness: 0.9,        // Aspect métallique
-            glassTransmission: 1.0,     // Transmission de lumière
-            glassThickness: 5.0,        // Épaisseur du verre
+            glassOpacity: 0.15,         // Opacité du verre (plus transparent)
+            glassRoughness: 0.05,       // Rugosité de surface (plus lisse)
+            glassMetalness: 0.1,        // Aspect métallique (moins métallique)
+            glassTransmission: 0.95,    // Transmission de lumière (plus transparent)
+            glassThickness: 2.0,        // Épaisseur du verre (plus fin)
             glassIOR: 1.5               // Indice de réfraction
         };
 
@@ -4453,7 +4453,8 @@
         function checkCollision(newPosition, prevPosition) {
             if (!fpsMode) return false;
 
-            const collisionRadius = fpsSettings.fpsCollisionRadius; // Rayon de collision configurable
+            const hitboxWidth = fpsSettings.fpsHitboxWidth / 2; // Demi-largeur
+            const hitboxHeight = fpsSettings.fpsHitboxHeight / 2; // Demi-hauteur
 
             // Collecter tous les murs (pas les sols 3, 10 et 11)
             const walls = [];
@@ -4471,14 +4472,14 @@
             // Créer une bounding box autour de la nouvelle position du joueur
             const playerBox = new THREE.Box3(
                 new THREE.Vector3(
-                    newPosition.x - collisionRadius,
-                    newPosition.y - 50,
-                    newPosition.z - collisionRadius
+                    newPosition.x - hitboxWidth,
+                    newPosition.y - hitboxHeight,
+                    newPosition.z - hitboxWidth
                 ),
                 new THREE.Vector3(
-                    newPosition.x + collisionRadius,
-                    newPosition.y + 50,
-                    newPosition.z + collisionRadius
+                    newPosition.x + hitboxWidth,
+                    newPosition.y + hitboxHeight,
+                    newPosition.z + hitboxWidth
                 )
             );
 
@@ -5017,7 +5018,7 @@
                 'fps-gravity': { var: 'fpsGravity', display: 'val-fps-gravity', decimals: 2 },
                 'fps-eye': { var: 'fpsPlayerHeight', display: 'val-fps-eye', decimals: 0 },
                 'fps-mouse': { var: 'fpsMouseSensitivity', display: 'val-fps-mouse', decimals: 4 },
-                'fps-hitbox-width': { var: 'fpsHitboxWidth', display: 'val-fps-hitbox-width', decimals: 0 },
+                'fps-hitbox-width': { var: 'fpsHitboxWidth', display: 'val-fps-hitbox-width', decimals: 1 },
                 'fps-hitbox-height': { var: 'fpsHitboxHeight', display: 'val-fps-hitbox-height', decimals: 0 },
                 'glass-opacity': { var: 'glassOpacity', display: 'val-glass-opacity', decimals: 2, callback: updateGlassMaterial },
                 'glass-roughness': { var: 'glassRoughness', display: 'val-glass-roughness', decimals: 2, callback: updateGlassMaterial },
