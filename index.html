@@ -505,18 +505,18 @@
         <h3>⚙️ FPS Settings</h3>
 
         <div class="fps-param">
-            <label>Vitesse déplacement touches <span class="fps-param-value" id="val-fps-speed">2.50</span></label>
-            <input type="range" id="fps-speed" min="0.5" max="10" step="0.1" value="2.5">
+            <label>Vitesse déplacement touches <span class="fps-param-value" id="val-fps-speed">1.50</span></label>
+            <input type="range" id="fps-speed" min="0.5" max="10" step="0.1" value="1.5">
         </div>
 
         <div class="fps-param">
-            <label>Vitesse molette <span class="fps-param-value" id="val-fps-scroll">2.0</span></label>
-            <input type="range" id="fps-scroll" min="0.5" max="15" step="0.5" value="2">
+            <label>Vitesse molette <span class="fps-param-value" id="val-fps-scroll">3.0</span></label>
+            <input type="range" id="fps-scroll" min="0.5" max="15" step="0.5" value="3">
         </div>
 
         <div class="fps-param">
-            <label>Accélération <span class="fps-param-value" id="val-fps-accel">0.15</span></label>
-            <input type="range" id="fps-accel" min="0.05" max="1.0" step="0.05" value="0.15">
+            <label>Accélération <span class="fps-param-value" id="val-fps-accel">0.10</span></label>
+            <input type="range" id="fps-accel" min="0.05" max="1.0" step="0.05" value="0.1">
         </div>
 
         <div class="fps-param">
@@ -525,28 +525,28 @@
         </div>
 
         <div class="fps-param">
-            <label>Hauteur caméra <span class="fps-param-value" id="val-fps-height">-62</span></label>
-            <input type="range" id="fps-height" min="-150" max="-10" step="1" value="-62">
+            <label>Hauteur caméra <span class="fps-param-value" id="val-fps-height">-96</span></label>
+            <input type="range" id="fps-height" min="-150" max="-10" step="1" value="-96">
         </div>
 
         <div class="fps-param">
-            <label>Rayon hitbox <span class="fps-param-value" id="val-fps-collision">12</span></label>
-            <input type="range" id="fps-collision" min="5" max="50" step="1" value="12">
+            <label>Rayon hitbox <span class="fps-param-value" id="val-fps-collision">5</span></label>
+            <input type="range" id="fps-collision" min="1" max="20" step="1" value="5">
         </div>
 
         <div class="fps-param">
-            <label>Gravité <span class="fps-param-value" id="val-fps-gravity">-0.80</span></label>
-            <input type="range" id="fps-gravity" min="-3.0" max="-0.1" step="0.1" value="-0.8">
+            <label>Gravité <span class="fps-param-value" id="val-fps-gravity">-1.50</span></label>
+            <input type="range" id="fps-gravity" min="-3.0" max="-0.1" step="0.1" value="-1.5">
         </div>
 
         <div class="fps-param">
-            <label>Hauteur yeux joueur <span class="fps-param-value" id="val-fps-eye">10</span></label>
-            <input type="range" id="fps-eye" min="5" max="30" step="1" value="10">
+            <label>Hauteur yeux joueur <span class="fps-param-value" id="val-fps-eye">30</span></label>
+            <input type="range" id="fps-eye" min="5" max="100" step="1" value="30">
         </div>
 
         <div class="fps-param">
-            <label>Sensibilité souris <span class="fps-param-value" id="val-fps-mouse">0.002</span></label>
-            <input type="range" id="fps-mouse" min="0.0005" max="0.01" step="0.0005" value="0.002">
+            <label>Sensibilité souris <span class="fps-param-value" id="val-fps-mouse">0.0010</span></label>
+            <input type="range" id="fps-mouse" min="0.0005" max="0.01" step="0.0005" value="0.001">
         </div>
 
         <button id="fps-export-btn">📋 Export (Ctrl+S)</button>
@@ -897,15 +897,15 @@
 
         // FPS Settings Object (accessible globalement)
         var fpsSettings = {
-            fpsCameraHeight: -62,      // Hauteur de spawn de la caméra
-            fpsGravity: -0.8,           // Gravité
-            fpsPlayerHeight: 10,        // Hauteur des yeux du joueur au-dessus du sol
-            fpsMaxSpeed: 2.5,           // Vitesse maximale
-            fpsAcceleration: 0.15,      // Vitesse d'accélération
+            fpsCameraHeight: -96,       // Hauteur de spawn de la caméra
+            fpsGravity: -1.5,           // Gravité
+            fpsPlayerHeight: 30,        // Hauteur des yeux du joueur au-dessus du sol
+            fpsMaxSpeed: 1.5,           // Vitesse maximale
+            fpsAcceleration: 0.1,       // Vitesse d'accélération
             fpsDeceleration: 0.3,       // Vitesse de décélération
-            fpsCollisionRadius: 12,     // Rayon de collision
-            fpsScrollSpeed: 2,          // Vitesse de déplacement à la molette
-            fpsMouseSensitivity: 0.002  // Sensibilité souris
+            fpsCollisionRadius: 5,      // Rayon de collision
+            fpsScrollSpeed: 3,          // Vitesse de déplacement à la molette
+            fpsMouseSensitivity: 0.001  // Sensibilité souris
         };
 
         // Undo/Redo system
@@ -2483,11 +2483,11 @@
 
             camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 10000);
             // Position de spawn au centre de la forme 11, à quelques unités au-dessus du sol
-            // Sol de la forme 11: y = -111.773, on spawn à +50 unités
-            camera.position.set(-274.876, -62, 112.79);
+            // Sol de la forme 11: y = -111.773, on spawn à fpsCameraHeight
+            camera.position.set(-274.876, fpsSettings.fpsCameraHeight, 112.79);
 
             // Orienter la caméra vers l'écran 7 puis tourner d'un quart de tour supplémentaire
-            const lookAtTarget = new THREE.Vector3(599.938, -62, 112.546);
+            const lookAtTarget = new THREE.Vector3(599.938, fpsSettings.fpsCameraHeight, 112.546);
             camera.lookAt(lookAtTarget);
 
             // Calculer yaw et pitch initiaux basés sur l'orientation
@@ -4377,10 +4377,10 @@
 
             const collisionRadius = fpsSettings.fpsCollisionRadius; // Rayon de collision configurable
 
-            // Collecter tous les murs (pas les sols 11 et 3, ni l'écran invisible 10)
+            // Collecter tous les murs (pas les sols 11 et 3)
             const walls = [];
             for (const key in allScreens) {
-                if (key === '11' || key === '3' || key === '10') continue;
+                if (key === '11' || key === '3') continue;
 
                 const screen = allScreens[key];
                 if (screen && screen.userData.isColorSurface && screen.visible !== false) {
