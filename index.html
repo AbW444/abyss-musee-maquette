@@ -396,6 +396,93 @@
             max-width: 280px;
             padding: 12px;
         }
+
+        /* FPS Settings Panel - Bottom Left */
+        #fps-settings-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            min-width: 280px;
+            max-width: 320px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: white;
+            font-size: 12px;
+        }
+        #fps-settings-panel.hidden { display: none; }
+        #fps-settings-panel h3 {
+            margin: 0 0 12px 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #00ff88;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .fps-param {
+            margin-bottom: 10px;
+        }
+        .fps-param label {
+            display: block;
+            font-size: 10px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .fps-param input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .fps-param input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+        }
+        .fps-param input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+            border: none;
+        }
+        .fps-param-value {
+            display: inline-block;
+            float: right;
+            color: #00ff88;
+            font-weight: 600;
+            font-size: 11px;
+        }
+        #fps-export-btn {
+            margin-top: 10px;
+            width: 100%;
+            padding: 8px;
+            background: rgba(0,255,136,0.15);
+            border: 1px solid #00ff88;
+            border-radius: 4px;
+            color: #00ff88;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        #fps-export-btn:hover {
+            background: rgba(0,255,136,0.25);
+        }
     </style>
 </head>
 <body>
@@ -412,6 +499,58 @@
         <button class="shape-btn" id="mode-3d-btn" title="Toggle 3D Mode">3D</button>
     </div>
     <div id="canvas"></div>
+
+    <!-- FPS Settings Panel (Bottom Left) -->
+    <div id="fps-settings-panel" class="hidden">
+        <h3>⚙️ FPS Settings</h3>
+
+        <div class="fps-param">
+            <label>Vitesse déplacement touches <span class="fps-param-value" id="val-fps-speed">2.50</span></label>
+            <input type="range" id="fps-speed" min="0.5" max="10" step="0.1" value="2.5">
+        </div>
+
+        <div class="fps-param">
+            <label>Vitesse molette <span class="fps-param-value" id="val-fps-scroll">2.0</span></label>
+            <input type="range" id="fps-scroll" min="0.5" max="15" step="0.5" value="2">
+        </div>
+
+        <div class="fps-param">
+            <label>Accélération <span class="fps-param-value" id="val-fps-accel">0.15</span></label>
+            <input type="range" id="fps-accel" min="0.05" max="1.0" step="0.05" value="0.15">
+        </div>
+
+        <div class="fps-param">
+            <label>Décélération <span class="fps-param-value" id="val-fps-decel">0.30</span></label>
+            <input type="range" id="fps-decel" min="0.05" max="1.0" step="0.05" value="0.3">
+        </div>
+
+        <div class="fps-param">
+            <label>Hauteur caméra <span class="fps-param-value" id="val-fps-height">-62</span></label>
+            <input type="range" id="fps-height" min="-150" max="-10" step="1" value="-62">
+        </div>
+
+        <div class="fps-param">
+            <label>Rayon hitbox <span class="fps-param-value" id="val-fps-collision">12</span></label>
+            <input type="range" id="fps-collision" min="5" max="50" step="1" value="12">
+        </div>
+
+        <div class="fps-param">
+            <label>Gravité <span class="fps-param-value" id="val-fps-gravity">-0.80</span></label>
+            <input type="range" id="fps-gravity" min="-3.0" max="-0.1" step="0.1" value="-0.8">
+        </div>
+
+        <div class="fps-param">
+            <label>Hauteur yeux joueur <span class="fps-param-value" id="val-fps-eye">10</span></label>
+            <input type="range" id="fps-eye" min="5" max="30" step="1" value="10">
+        </div>
+
+        <div class="fps-param">
+            <label>Sensibilité souris <span class="fps-param-value" id="val-fps-mouse">0.002</span></label>
+            <input type="range" id="fps-mouse" min="0.0005" max="0.01" step="0.0005" value="0.002">
+        </div>
+
+        <button id="fps-export-btn">📋 Export (Ctrl+S)</button>
+    </div>
 
     <!-- Hidden video element for texture source -->
     <div class="hidden-video">
@@ -739,7 +878,6 @@
         let fpsMode = false; // Mode FPS activé avec touche B
         let cameraYaw = 0; // Rotation horizontale (Y axis)
         let cameraPitch = 0; // Rotation verticale (X axis)
-        let mouseSensitivity = 0.002;
         let isMouseLocked = false;
 
         // FPS visual effects
@@ -751,18 +889,24 @@
         let currentFOV = DEFAULT_FOV;
         let targetFOV = DEFAULT_FOV;
 
-        // FPS Physics
+        // FPS Physics (paramètres configurables via interface)
         let playerVelocityY = 0;
-        const GRAVITY = -0.8;
-        const PLAYER_HEIGHT = 10; // Hauteur des yeux du joueur au-dessus du sol (quelques unités)
-        let isOnGround = false; // Pour savoir si le joueur est au sol
-
-        // Movement acceleration
+        let isOnGround = false;
         let currentSpeed = 0;
         const MIN_SPEED = 0;
-        const MAX_SPEED = 2.5; // Vitesse maximale réduite
-        const ACCELERATION = 0.15; // Vitesse d'accélération
-        const DECELERATION = 0.3; // Vitesse de décélération
+
+        // FPS Settings Object (accessible globalement)
+        var fpsSettings = {
+            fpsCameraHeight: -62,      // Hauteur de spawn de la caméra
+            fpsGravity: -0.8,           // Gravité
+            fpsPlayerHeight: 10,        // Hauteur des yeux du joueur au-dessus du sol
+            fpsMaxSpeed: 2.5,           // Vitesse maximale
+            fpsAcceleration: 0.15,      // Vitesse d'accélération
+            fpsDeceleration: 0.3,       // Vitesse de décélération
+            fpsCollisionRadius: 12,     // Rayon de collision
+            fpsScrollSpeed: 2,          // Vitesse de déplacement à la molette
+            fpsMouseSensitivity: 0.002  // Sensibilité souris
+        };
 
         // Undo/Redo system
         let undoHistory = [];
@@ -2535,8 +2679,8 @@
                     const deltaX = e.movementX || 0;
                     const deltaY = e.movementY || 0;
 
-                    cameraYaw -= deltaX * mouseSensitivity;
-                    cameraPitch -= deltaY * mouseSensitivity;
+                    cameraYaw -= deltaX * fpsSettings.fpsMouseSensitivity;
+                    cameraPitch -= deltaY * fpsSettings.fpsMouseSensitivity;
 
                     // Clamp pitch to avoid flipping
                     cameraPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraPitch));
@@ -2546,8 +2690,8 @@
                     const deltaX = e.clientX - lastMouseX;
                     const deltaY = e.clientY - lastMouseY;
 
-                    cameraYaw -= deltaX * mouseSensitivity;
-                    cameraPitch -= deltaY * mouseSensitivity;
+                    cameraYaw -= deltaX * fpsSettings.fpsMouseSensitivity;
+                    cameraPitch -= deltaY * fpsSettings.fpsMouseSensitivity;
 
                     // Clamp pitch to avoid flipping
                     cameraPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraPitch));
@@ -2588,7 +2732,7 @@
             renderer.domElement.addEventListener('wheel', function(e) {
                 e.preventDefault();
 
-                const scrollSpeed = 2; // Vitesse réduite
+                const scrollSpeed = fpsSettings.fpsScrollSpeed; // Vitesse configurable
                 const delta = e.deltaY > 0 ? 1 : -1;
 
                 const forward = new THREE.Vector3();
@@ -2633,6 +2777,8 @@
             console.log('🔄 BASCULER ENTRE MODES:');
             console.log('   B            - Activer/désactiver MODE FPS');
             console.log('   N            - Afficher/Cacher interfaces (cachées par défaut)');
+            console.log('   F            - Afficher/Cacher FPS Settings (bas gauche)');
+            console.log('   Ctrl+S       - Exporter paramètres FPS dans console');
             console.log('');
             console.log('📍 MODE NORMAL (par défaut):');
             console.log('   Flèches/WASD - Déplacement horizontal');
@@ -4229,7 +4375,7 @@
         function checkCollision(newPosition, prevPosition) {
             if (!fpsMode) return false;
 
-            const collisionRadius = 12; // Rayon de collision réduit autour du joueur
+            const collisionRadius = fpsSettings.fpsCollisionRadius; // Rayon de collision configurable
 
             // Collecter tous les murs (pas les sols 11 et 3, ni l'écran invisible 10)
             const walls = [];
@@ -4519,13 +4665,13 @@
 
                     if (isMoving) {
                         // Accélération progressive
-                        currentSpeed = Math.min(currentSpeed + ACCELERATION, MAX_SPEED);
+                        currentSpeed = Math.min(currentSpeed + fpsSettings.fpsAcceleration, fpsSettings.fpsMaxSpeed);
                         if (cameraKeys.sprint) {
-                            currentSpeed = Math.min(currentSpeed, MAX_SPEED * 1.5); // Sprint limité
+                            currentSpeed = Math.min(currentSpeed, fpsSettings.fpsMaxSpeed * 1.5); // Sprint limité
                         }
                     } else {
                         // Décélération
-                        currentSpeed = Math.max(currentSpeed - DECELERATION, MIN_SPEED);
+                        currentSpeed = Math.max(currentSpeed - fpsSettings.fpsDeceleration, MIN_SPEED);
                     }
 
                     // Store previous position for collision detection
@@ -4582,7 +4728,7 @@
                     const intersects = raycaster.intersectObjects(floorScreens, false);
 
                     if (intersects.length > 0) {
-                        const groundY = intersects[0].point.y + PLAYER_HEIGHT;
+                        const groundY = intersects[0].point.y + fpsSettings.fpsPlayerHeight;
                         const distanceToGround = camera.position.y - groundY;
 
                         if (distanceToGround <= 1) {
@@ -4593,7 +4739,7 @@
                         } else {
                             // On est en l'air - appliquer gravité
                             isOnGround = false;
-                            playerVelocityY += GRAVITY;
+                            playerVelocityY += fpsSettings.fpsGravity;
                             camera.position.y += playerVelocityY;
                         }
                     } else {
@@ -4737,7 +4883,100 @@
         // Timeline click to seek
         document.getElementById('timeline').addEventListener('click', seekVideo);
 
-        window.onload = init;
+        // FPS Settings Panel Management
+        function setupFPSSettings() {
+            const panel = document.getElementById('fps-settings-panel');
+            const sliders = {
+                'fps-speed': { var: 'fpsMaxSpeed', display: 'val-fps-speed', decimals: 2 },
+                'fps-scroll': { var: 'fpsScrollSpeed', display: 'val-fps-scroll', decimals: 1 },
+                'fps-accel': { var: 'fpsAcceleration', display: 'val-fps-accel', decimals: 2 },
+                'fps-decel': { var: 'fpsDeceleration', display: 'val-fps-decel', decimals: 2 },
+                'fps-height': { var: 'fpsCameraHeight', display: 'val-fps-height', decimals: 0 },
+                'fps-collision': { var: 'fpsCollisionRadius', display: 'val-fps-collision', decimals: 0 },
+                'fps-gravity': { var: 'fpsGravity', display: 'val-fps-gravity', decimals: 2 },
+                'fps-eye': { var: 'fpsPlayerHeight', display: 'val-fps-eye', decimals: 0 },
+                'fps-mouse': { var: 'fpsMouseSensitivity', display: 'val-fps-mouse', decimals: 4 }
+            };
+
+            // Setup sliders
+            Object.keys(sliders).forEach(sliderId => {
+                const slider = document.getElementById(sliderId);
+                const config = sliders[sliderId];
+
+                slider.addEventListener('input', function() {
+                    const value = parseFloat(this.value);
+
+                    // Update variable in fpsSettings
+                    fpsSettings[config.var] = value;
+
+                    // Update display
+                    const displayValue = value.toFixed(config.decimals);
+                    document.getElementById(config.display).textContent = displayValue;
+
+                    console.log(`📊 ${config.var} = ${displayValue}`);
+                });
+            });
+
+            // Export button
+            document.getElementById('fps-export-btn').addEventListener('click', exportFPSSettings);
+
+            // Ctrl+S to export
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.code === 'KeyS') {
+                    e.preventDefault();
+                    exportFPSSettings();
+                }
+            });
+        }
+
+        function exportFPSSettings() {
+            console.clear();
+            console.log('═════════════════════════════════════════════');
+            console.log('📋 PARAMÈTRES FPS - EXPORT');
+            console.log('═════════════════════════════════════════════');
+            console.log('');
+            console.log('Copie ces valeurs pour intégration:');
+            console.log('');
+            console.log('fpsMaxSpeed = ' + fpsSettings.fpsMaxSpeed + ';');
+            console.log('fpsScrollSpeed = ' + fpsSettings.fpsScrollSpeed + ';');
+            console.log('fpsAcceleration = ' + fpsSettings.fpsAcceleration + ';');
+            console.log('fpsDeceleration = ' + fpsSettings.fpsDeceleration + ';');
+            console.log('fpsCameraHeight = ' + fpsSettings.fpsCameraHeight + ';');
+            console.log('fpsCollisionRadius = ' + fpsSettings.fpsCollisionRadius + ';');
+            console.log('fpsGravity = ' + fpsSettings.fpsGravity + ';');
+            console.log('fpsPlayerHeight = ' + fpsSettings.fpsPlayerHeight + ';');
+            console.log('fpsMouseSensitivity = ' + fpsSettings.fpsMouseSensitivity + ';');
+            console.log('');
+            console.log('═════════════════════════════════════════════');
+            console.log('✅ Paramètres exportés dans la console!');
+            console.log('   Appuie sur Ctrl+S pour ré-exporter');
+            console.log('═════════════════════════════════════════════');
+
+            // Also copy to clipboard
+            const exportText = Object.entries(fpsSettings)
+                .map(([key, value]) => `${key} = ${value};`)
+                .join('\n');
+
+            navigator.clipboard.writeText(exportText).then(() => {
+                console.log('📋 Copié dans le presse-papier!');
+            }).catch(err => {
+                console.warn('Impossible de copier dans le presse-papier:', err);
+            });
+        }
+
+        // Toggle FPS panel with F key
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'KeyF' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+                const panel = document.getElementById('fps-settings-panel');
+                panel.classList.toggle('hidden');
+                console.log(panel.classList.contains('hidden') ? '🔧 FPS Settings cachés (F pour afficher)' : '🔧 FPS Settings affichés (F pour cacher)');
+            }
+        });
+
+        window.onload = function() {
+            init();
+            setupFPSSettings();
+        };
     </script>
 </body>
 </html>
