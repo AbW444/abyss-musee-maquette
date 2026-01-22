@@ -2338,11 +2338,11 @@
 
             camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 10000);
             // Position de spawn au centre de la forme 11, à quelques unités au-dessus du sol
-            // Sol de la forme 11: y = -111.773, on spawn à +30 unités
-            camera.position.set(-274.876, -82, 112.79);
+            // Sol de la forme 11: y = -111.773, on spawn à +50 unités
+            camera.position.set(-274.876, -62, 112.79);
 
             // Orienter la caméra vers l'écran 7 puis tourner d'un quart de tour supplémentaire
-            const lookAtTarget = new THREE.Vector3(599.938, -82, 112.546);
+            const lookAtTarget = new THREE.Vector3(599.938, -62, 112.546);
             camera.lookAt(lookAtTarget);
 
             // Calculer yaw et pitch initiaux basés sur l'orientation
@@ -2596,13 +2596,20 @@
                 camera.getWorldDirection(forward);
 
                 if (fpsMode) {
-                    // En mode FPS: déplacement horizontal avec collisions
+                    // En mode FPS: déplacement horizontal UNIQUEMENT (X et Z)
+                    // BLOQUER COMPLÈTEMENT l'axe Y
                     forward.y = 0;
                     forward.normalize();
 
-                    // Store previous position for collision detection
+                    // Store previous position and Y for collision detection
                     const prevPosition = camera.position.clone();
+                    const currentY = camera.position.y; // Sauvegarder Y
+
+                    // Apply horizontal movement only
                     camera.position.addScaledVector(forward, -delta * scrollSpeed);
+
+                    // FORCER Y à rester identique (CRITIQUE)
+                    camera.position.y = currentY;
 
                     // Check collisions (mêmes règles que le déplacement aux touches)
                     if (checkCollision(camera.position, prevPosition)) {
@@ -2699,7 +2706,16 @@
 
                 // Auto-play
                 videoElement.play();
+
+                // Apply automatiquement (générer les particules)
+                console.log('🎬 Apply automatique après chargement vidéo...');
                 generate(videoElement); // updateScreenList() is called at the end of this function
+
+                // Double-check: réappliquer après un court délai pour être sûr
+                setTimeout(() => {
+                    console.log('🎬 Apply automatique (2ème passe)...');
+                    generate(videoElement);
+                }, 100);
 
                 // Update timeline duration when metadata is loaded
                 videoElement.addEventListener('loadedmetadata', function() {
@@ -4211,39 +4227,61 @@
             }
         }
 
-        // Collision detection function (for FPS mode)
+        // Collision detection function (for FPS mode) - MÉTHODE PROFESSIONNELLE
         function checkCollision(newPosition, prevPosition) {
             if (!fpsMode) return false; // Pas de collision en mode normal
 
-            const collisionMargin = 25;
+            const collisionDistance = 30; // Distance de collision autour du joueur
 
-            // Create player bounding box at new position
-            const playerBox = new THREE.Box3(
-                new THREE.Vector3(
-                    newPosition.x - collisionMargin,
-                    newPosition.y - PLAYER_HEIGHT,
-                    newPosition.z - collisionMargin
-                ),
-                new THREE.Vector3(
-                    newPosition.x + collisionMargin,
-                    newPosition.y + 5,
-                    newPosition.z + collisionMargin
-                )
-            );
+            // Direction du mouvement
+            const moveDirection = new THREE.Vector3();
+            moveDirection.subVectors(newPosition, prevPosition);
+            const moveLength = moveDirection.length();
 
-            // Check collision with all walls (not floors 11 and 3)
+            if (moveLength === 0) return false; // Pas de mouvement
+
+            moveDirection.normalize();
+
+            // Raycaster pour détecter les obstacles
+            const raycaster = new THREE.Raycaster();
+            raycaster.far = collisionDistance + moveLength;
+
+            // Collecter tous les murs (pas les sols 11 et 3)
+            const walls = [];
             for (const key in allScreens) {
-                // Skip floors
-                if (key === '11' || key === '3') continue;
+                if (key === '11' || key === '3' || key === '10') continue; // Skip sols et écran invisible
 
                 const screen = allScreens[key];
                 if (screen && screen.userData.isColorSurface && screen.visible !== false) {
-                    const screenBox = new THREE.Box3().setFromObject(screen);
-                    screenBox.expandByScalar(5);
+                    walls.push(screen);
+                }
+            }
 
-                    if (playerBox.intersectsBox(screenBox)) {
-                        return true; // Collision détectée
-                    }
+            // Tester 8 directions autour du joueur (comme une hitbox octogonale)
+            const angles = [0, 45, 90, 135, 180, 225, 270, 315];
+            const rayDirections = [];
+
+            for (const angle of angles) {
+                const rad = (angle * Math.PI) / 180;
+                const dir = new THREE.Vector3(
+                    Math.cos(rad),
+                    0,
+                    Math.sin(rad)
+                );
+                rayDirections.push(dir);
+            }
+
+            // Ajouter aussi la direction du mouvement
+            rayDirections.push(moveDirection.clone());
+
+            // Tester chaque rayon
+            for (const rayDir of rayDirections) {
+                raycaster.set(newPosition, rayDir);
+                const intersects = raycaster.intersectObjects(walls, false);
+
+                if (intersects.length > 0 && intersects[0].distance < collisionDistance) {
+                    console.log(`🚫 Collision détectée à ${intersects[0].distance.toFixed(1)} unités`);
+                    return true; // Collision !
                 }
             }
 
