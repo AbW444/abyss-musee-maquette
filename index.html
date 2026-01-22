@@ -848,6 +848,8 @@
         let scene, camera, renderer, particles;
         let geometry, material;
         let screensGroup; // Group to contain all screens for common rotation
+        let playerLight; // Lumière qui suit le joueur (torche virtuelle)
+        let audioListener; // AudioListener pour l'ambiance sonore
         let breathSpeed = 0.0;
         let depthMultiplier = 0.2;
         let depthSmoothing = 0.1; // Seuil pour atténuer micro-mouvements (0 = aucun, 0.1 = élevé)
@@ -927,19 +929,19 @@
         var fpsSettings = {
             fpsCameraHeight: -96,       // Hauteur de spawn de la caméra
             fpsGravity: -1.5,           // Gravité
-            fpsPlayerHeight: 30,        // Hauteur des yeux du joueur au-dessus du sol
+            fpsPlayerHeight: 41,        // Hauteur des yeux du joueur au-dessus du sol
             fpsMaxSpeed: 1.5,           // Vitesse maximale
             fpsAcceleration: 0.1,       // Vitesse d'accélération
             fpsDeceleration: 0.3,       // Vitesse de décélération
-            fpsCollisionRadius: 0.5,    // Rayon de collision (réduit par 10)
-            fpsHitboxWidth: 1,          // Largeur de la hitbox (réduit par 10)
-            fpsHitboxHeight: 10,        // Hauteur de la hitbox (réduit par 10)
+            fpsCollisionRadius: 0.5,    // Rayon de collision
+            fpsHitboxWidth: 1,          // Largeur de la hitbox
+            fpsHitboxHeight: 13,        // Hauteur de la hitbox
             fpsScrollSpeed: 3,          // Vitesse de déplacement à la molette
             fpsMouseSensitivity: 0.001, // Sensibilité souris
             // Glassmorphisme écran 10
-            glassOpacity: 0.25,         // Opacité du verre
-            glassRoughness: 0.1,        // Rugosité de surface
-            glassMetalness: 0.2         // Aspect métallique
+            glassOpacity: 0,            // Opacité du verre (transparent)
+            glassRoughness: 1,          // Rugosité de surface
+            glassMetalness: 1           // Aspect métallique
         };
 
         // Undo/Redo system
@@ -1356,6 +1358,9 @@
                     console.log('   - ESC pour sortir du PointerLock');
                     console.log('   - B pour désactiver le mode FPS');
                     console.log('   - H pour afficher/masquer la hitbox');
+
+                    // Initialiser l'ambiance sonore
+                    initAmbientSound();
                 } else {
                     console.log('🖱️ MODE NORMAL ACTIVÉ (B pour mode FPS)');
                     // Release pointer lock if active
@@ -2533,6 +2538,11 @@
             const aspectRatio = canvasWidth / canvasHeight;
 
             camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 10000);
+
+            // AudioListener pour l'ambiance sonore
+            audioListener = new THREE.AudioListener();
+            camera.add(audioListener);
+
             // Position de spawn au centre de la forme 11, à quelques unités au-dessus du sol
             // Sol de la forme 11: y = -111.773, on spawn à fpsCameraHeight
             camera.position.set(-274.876, fpsSettings.fpsCameraHeight, 112.79);
@@ -2559,38 +2569,110 @@
             renderer.toneMappingExposure = 1.2;
             document.getElementById('canvas').appendChild(renderer.domElement);
 
-            // Museum-style lighting: soft ambient + key spotlights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            // ═══════════════════════════════════════════════════════════════════
+            // SYSTÈME D'ÉCLAIRAGE PROFESSIONNEL - AMBIANCE MUSÉE IMMERSIVE
+            // ═══════════════════════════════════════════════════════════════════
+
+            // Fog atmosphérique pour profondeur et ambiance
+            scene.fog = new THREE.FogExp2(0x0a0a0f, 0.003);
+
+            // Ambient base - lumière douce omniprésente
+            const ambientLight = new THREE.AmbientLight(0x1a1a2e, 0.5);
             scene.add(ambientLight);
 
-            // Lumière principale (key light) - simule éclairage zénithal de musée
-            const keyLight = new THREE.DirectionalLight(0xfff5e6, 0.8);
-            keyLight.position.set(0, 300, 0);
+            // HemisphereLight - simule l'éclairage naturel du ciel et du sol
+            const hemisphereLight = new THREE.HemisphereLight(0x87ceeb, 0x3a3a52, 0.4);
+            scene.add(hemisphereLight);
+
+            // Key Light principal - éclairage zénithal dramatique
+            const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
+            keyLight.position.set(0, 400, 100);
             keyLight.castShadow = true;
-            keyLight.shadow.mapSize.width = 2048;
-            keyLight.shadow.mapSize.height = 2048;
+            keyLight.shadow.mapSize.width = 4096;
+            keyLight.shadow.mapSize.height = 4096;
             keyLight.shadow.camera.near = 0.5;
-            keyLight.shadow.camera.far = 500;
+            keyLight.shadow.camera.far = 1000;
+            keyLight.shadow.camera.left = -500;
+            keyLight.shadow.camera.right = 500;
+            keyLight.shadow.camera.top = 500;
+            keyLight.shadow.camera.bottom = -500;
+            keyLight.shadow.bias = -0.0001;
             scene.add(keyLight);
 
-            // Lumière de remplissage (fill light) - adoucit les ombres
-            const fillLight = new THREE.DirectionalLight(0xe6f2ff, 0.3);
-            fillLight.position.set(-200, 100, 200);
+            // Fill Light - adoucit les ombres (bleu froid)
+            const fillLight = new THREE.DirectionalLight(0x4a6fa5, 0.6);
+            fillLight.position.set(-300, 200, 200);
             scene.add(fillLight);
 
-            // Lumière arrière (rim light) - crée de la profondeur
-            const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
-            rimLight.position.set(0, 50, -200);
+            // Rim Light - contour dramatique
+            const rimLight = new THREE.DirectionalLight(0xffd4a3, 0.5);
+            rimLight.position.set(0, 100, -300);
             scene.add(rimLight);
 
-            // Point lights subtils pour créer de l'atmosphère
-            const spotLight1 = new THREE.PointLight(0xfff5e6, 0.6, 400);
-            spotLight1.position.set(200, 100, 0);
-            scene.add(spotLight1);
+            // Array de point lights pour créer une ambiance riche
+            const pointLights = [];
+            const lightPositions = [
+                { pos: [300, 150, 0], color: 0xfff5e6, intensity: 1.2, distance: 500 },
+                { pos: [-300, 150, 0], color: 0xfff5e6, intensity: 1.2, distance: 500 },
+                { pos: [0, 150, 300], color: 0xffe6d4, intensity: 1.0, distance: 500 },
+                { pos: [0, 150, -300], color: 0xffe6d4, intensity: 1.0, distance: 500 },
+                { pos: [200, 80, 200], color: 0xffd4a3, intensity: 0.8, distance: 400 },
+                { pos: [-200, 80, -200], color: 0xffd4a3, intensity: 0.8, distance: 400 },
+                { pos: [200, 80, -200], color: 0xffe6cc, intensity: 0.7, distance: 350 },
+                { pos: [-200, 80, 200], color: 0xffe6cc, intensity: 0.7, distance: 350 },
+                // Lumières basses pour éclairer le sol et créer des reflets
+                { pos: [0, 20, 0], color: 0xffffff, intensity: 0.5, distance: 200 },
+                { pos: [150, 30, 150], color: 0xf0e6d2, intensity: 0.4, distance: 180 },
+                { pos: [-150, 30, -150], color: 0xf0e6d2, intensity: 0.4, distance: 180 }
+            ];
 
-            const spotLight2 = new THREE.PointLight(0xfff5e6, 0.6, 400);
-            spotLight2.position.set(-200, 100, 200);
-            scene.add(spotLight2);
+            lightPositions.forEach(light => {
+                const pointLight = new THREE.PointLight(light.color, light.intensity, light.distance);
+                pointLight.position.set(...light.pos);
+                pointLight.castShadow = true;
+                pointLight.shadow.mapSize.width = 1024;
+                pointLight.shadow.mapSize.height = 1024;
+                scene.add(pointLight);
+                pointLights.push(pointLight);
+            });
+
+            // Lumière qui suit le joueur (torche virtuelle)
+            playerLight = new THREE.PointLight(0xffffff, 0.8, 100);
+            playerLight.position.copy(camera.position);
+            scene.add(playerLight);
+
+            // Ambiance sonore de fond (murmure léger)
+            let ambientSound = null;
+            function initAmbientSound() {
+                if (ambientSound || !audioListener.context) return;
+
+                try {
+                    const context = audioListener.context;
+                    const oscillator = context.createOscillator();
+                    const gainNode = context.createGain();
+                    const filter = context.createBiquadFilter();
+
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(40, context.currentTime);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(200, context.currentTime);
+                    filter.Q.setValueAtTime(5, context.currentTime);
+
+                    oscillator.connect(filter);
+                    filter.connect(gainNode);
+                    gainNode.connect(context.destination);
+
+                    gainNode.gain.setValueAtTime(0.01, context.currentTime);
+
+                    oscillator.start();
+                    ambientSound = oscillator;
+
+                    console.log('🔊 Ambiance sonore activée');
+                } catch(e) {
+                    console.warn('Erreur ambiance:', e);
+                }
+            }
 
             // FREE CAMERA: Pas d'OrbitControls, caméra complètement libre
             // Rotation avec clic droit + drag, mouvement avec flèches
@@ -4871,6 +4953,11 @@
                 currentFOV += (targetFOV - currentFOV) * 0.1;
                 camera.fov = currentFOV;
                 camera.updateProjectionMatrix();
+            }
+
+            // Mettre à jour la lumière du joueur
+            if (playerLight) {
+                playerLight.position.copy(camera.position);
             }
 
             renderer.render(scene, camera);
