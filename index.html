@@ -4999,7 +4999,6 @@
                 'fps-accel': { var: 'fpsAcceleration', display: 'val-fps-accel', decimals: 2 },
                 'fps-decel': { var: 'fpsDeceleration', display: 'val-fps-decel', decimals: 2 },
                 'fps-height': { var: 'fpsCameraHeight', display: 'val-fps-height', decimals: 0 },
-                'fps-collision': { var: 'fpsCollisionRadius', display: 'val-fps-collision', decimals: 0 },
                 'fps-gravity': { var: 'fpsGravity', display: 'val-fps-gravity', decimals: 2 },
                 'fps-eye': { var: 'fpsPlayerHeight', display: 'val-fps-eye', decimals: 0 },
                 'fps-mouse': { var: 'fpsMouseSensitivity', display: 'val-fps-mouse', decimals: 4 },
@@ -5014,6 +5013,12 @@
             Object.keys(sliders).forEach(sliderId => {
                 const slider = document.getElementById(sliderId);
                 const config = sliders[sliderId];
+
+                // Skip if slider doesn't exist in DOM
+                if (!slider) {
+                    console.warn(`⚠️ Slider "${sliderId}" not found in HTML`);
+                    return;
+                }
 
                 slider.addEventListener('input', function() {
                     const value = parseFloat(this.value);
