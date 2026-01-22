@@ -4229,7 +4229,7 @@
         function checkCollision(newPosition, prevPosition) {
             if (!fpsMode) return false;
 
-            const collisionRadius = 35; // Rayon de collision autour du joueur
+            const collisionRadius = 12; // Rayon de collision réduit autour du joueur
 
             // Collecter tous les murs (pas les sols 11 et 3, ni l'écran invisible 10)
             const walls = [];
