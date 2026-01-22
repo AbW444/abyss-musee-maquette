@@ -2588,44 +2588,34 @@
             renderer.domElement.addEventListener('wheel', function(e) {
                 e.preventDefault();
 
-                console.log('🖱️ Molette utilisée, fpsMode=', fpsMode);
-
-                // Vitesse réduite et bridée
-                const scrollSpeed = 2;
+                const scrollSpeed = 2; // Vitesse réduite
                 const delta = e.deltaY > 0 ? 1 : -1;
 
-                // Get movement direction
                 const forward = new THREE.Vector3();
                 camera.getWorldDirection(forward);
 
                 if (fpsMode) {
-                    console.log('🎮 Mode FPS détecté dans molette');
-
-                    // Sauvegarder Y AVANT tout mouvement
+                    // MODE FPS: Sauvegarder Y pour bloquer mouvement vertical
                     const savedY = camera.position.y;
-                    console.log('💾 Y sauvegardé:', savedY.toFixed(2));
 
-                    // En mode FPS: déplacement horizontal UNIQUEMENT (X et Z)
+                    // Déplacement horizontal uniquement (X et Z)
                     forward.y = 0;
                     forward.normalize();
 
-                    // Store previous position for collision detection
                     const prevPosition = camera.position.clone();
 
-                    // Apply horizontal movement only
+                    // Appliquer mouvement horizontal
                     camera.position.addScaledVector(forward, -delta * scrollSpeed);
 
-                    // FORCER Y à rester EXACTEMENT identique
+                    // CRITIQUE: Restaurer Y pour BLOQUER axe vertical
                     camera.position.y = savedY;
-                    console.log('🔒 Y restauré à:', camera.position.y.toFixed(2));
 
-                    // Check collisions
+                    // Vérifier collisions
                     if (checkCollision(camera.position, prevPosition)) {
                         camera.position.copy(prevPosition);
                     }
                 } else {
-                    console.log('📷 Mode normal - zoom libre');
-                    // Mode normal: zoom libre
+                    // Mode normal: zoom libre (tous axes)
                     camera.position.addScaledVector(forward, -delta * scrollSpeed);
                 }
             });
@@ -4235,20 +4225,13 @@
             }
         }
 
-        // Collision detection function (for FPS mode) - VERSION DEBUG
+        // Collision detection function (for FPS mode) - VERSION FINALE
         function checkCollision(newPosition, prevPosition) {
             if (!fpsMode) return false;
 
-            // Log pour déboguer
-            console.log('🔍 checkCollision appelée', {
-                fpsMode,
-                newPos: {x: newPosition.x.toFixed(1), y: newPosition.y.toFixed(1), z: newPosition.z.toFixed(1)},
-                prevPos: {x: prevPosition.x.toFixed(1), y: prevPosition.y.toFixed(1), z: prevPosition.z.toFixed(1)}
-            });
+            const collisionRadius = 35; // Rayon de collision autour du joueur
 
-            const collisionRadius = 35; // Rayon de collision
-
-            // Collecter tous les murs
+            // Collecter tous les murs (pas les sols 11 et 3, ni l'écran invisible 10)
             const walls = [];
             for (const key in allScreens) {
                 if (key === '11' || key === '3' || key === '10') continue;
@@ -4259,14 +4242,9 @@
                 }
             }
 
-            console.log(`📊 ${walls.length} murs détectés:`, Object.keys(allScreens).filter(k => k !== '11' && k !== '3' && k !== '10'));
+            if (walls.length === 0) return false;
 
-            if (walls.length === 0) {
-                console.warn('⚠️ AUCUN MUR TROUVÉ !');
-                return false;
-            }
-
-            // Créer une bounding box simple autour de la nouvelle position
+            // Créer une bounding box autour de la nouvelle position du joueur
             const playerBox = new THREE.Box3(
                 new THREE.Vector3(
                     newPosition.x - collisionRadius,
@@ -4280,20 +4258,17 @@
                 )
             );
 
-            // Tester chaque mur
+            // Tester collision avec chaque mur
             for (let i = 0; i < walls.length; i++) {
                 const wall = walls[i];
                 const wallBox = new THREE.Box3().setFromObject(wall);
 
                 if (playerBox.intersectsBox(wallBox)) {
-                    const wallKey = Object.keys(allScreens).find(k => allScreens[k] === wall);
-                    console.log(`🚫 COLLISION avec mur ${wallKey} !`);
-                    return true;
+                    return true; // Collision détectée !
                 }
             }
 
-            console.log('✅ Pas de collision');
-            return false;
+            return false; // Pas de collision
         }
 
         // Animation with subtle breathing movement and video texture updates
