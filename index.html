@@ -549,6 +549,47 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* FPS Counter */
+        #fps-counter {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: #00ff88;
+            min-width: 100px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        #fps-counter .fps-value {
+            font-size: 28px;
+            font-weight: 700;
+            display: block;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        #fps-counter .fps-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+        #fps-counter.low-fps {
+            border-color: rgba(255, 100, 0, 0.5);
+            color: #ff6400;
+        }
+        #fps-counter.critical-fps {
+            border-color: rgba(255, 0, 0, 0.5);
+            color: #ff0000;
+        }
     </style>
 </head>
 <body>
@@ -572,6 +613,12 @@
 
     <!-- Video Paused Indicator -->
     <div id="video-paused-indicator">⏸️ VIDEO PAUSED</div>
+
+    <!-- FPS Counter -->
+    <div id="fps-counter">
+        <span class="fps-value">60</span>
+        <span class="fps-label">FPS</span>
+    </div>
 
     <div id="canvas"></div>
 
@@ -951,12 +998,38 @@
         let videoSamplingCtx = null;
         let videoSamplingData = null;
 
+        // FPS Counter variables
+        let fpsFrameCount = 0;
+        let fpsLastTime = performance.now();
+        let fpsCurrentFPS = 60;
+        let fpsUpdateInterval = 500; // Update FPS display every 500ms
+
+        // Cache DOM elements for FPS counter to avoid repeated queries
+        let fpsDOMCache = {
+            counter: null,
+            value: null
+        };
+
+        // CubeCamera optimization: throttle updates
+        let cubeCameraUpdateCounter = 0;
+        const CUBE_CAMERA_UPDATE_INTERVAL = 3; // Update every 3 frames
+
         // Flow movement data - stores random offsets for each particle
         let flowOffsets = null;
 
         // Performance optimization: Reusable objects to avoid GC pressure
         const reusableMatrix = new THREE.Matrix4();
         const reusableColor = new THREE.Color();
+
+        // CRITICAL PERFORMANCE: Reusable objects for collision detection & camera movement
+        const reusablePlayerBox = new THREE.Box3();
+        const reusableWallBox = new THREE.Box3();
+        const reusableRaycaster = new THREE.Raycaster();
+        const downVector = new THREE.Vector3(0, -1, 0);
+        const reusableForward = new THREE.Vector3();
+        const reusableRight = new THREE.Vector3();
+        const reusableUp = new THREE.Vector3(0, 1, 0);
+        const reusablePrevPosition = new THREE.Vector3();
 
         // Performance optimization: Throttle video updates to reduce CPU load
         let lastVideoUpdateTime = 0;
@@ -2602,32 +2675,32 @@
                 const scrollSpeed = fpsSettings.fpsScrollSpeed; // Vitesse configurable
                 const delta = e.deltaY > 0 ? 1 : -1;
 
-                const forward = new THREE.Vector3();
-                camera.getWorldDirection(forward);
+                // OPTIMIZED: Reuse global Vector3
+                camera.getWorldDirection(reusableForward);
 
                 if (fpsMode) {
                     // MODE FPS: Sauvegarder Y pour bloquer mouvement vertical
                     const savedY = camera.position.y;
 
                     // Déplacement horizontal uniquement (X et Z)
-                    forward.y = 0;
-                    forward.normalize();
+                    reusableForward.y = 0;
+                    reusableForward.normalize();
 
-                    const prevPosition = camera.position.clone();
+                    reusablePrevPosition.copy(camera.position);
 
                     // Appliquer mouvement horizontal
-                    camera.position.addScaledVector(forward, -delta * scrollSpeed);
+                    camera.position.addScaledVector(reusableForward, -delta * scrollSpeed);
 
                     // CRITIQUE: Restaurer Y pour BLOQUER axe vertical
                     camera.position.y = savedY;
 
                     // Vérifier collisions
-                    if (checkCollision(camera.position, prevPosition)) {
-                        camera.position.copy(prevPosition);
+                    if (checkCollision(camera.position, reusablePrevPosition)) {
+                        camera.position.copy(reusablePrevPosition);
                     }
                 } else {
                     // Mode normal: zoom libre (tous axes)
-                    camera.position.addScaledVector(forward, -delta * scrollSpeed);
+                    camera.position.addScaledVector(reusableForward, -delta * scrollSpeed);
                 }
             });
 
@@ -2671,6 +2744,11 @@
             console.log('');
             console.log('🚀 Démarrage de la boucle d\'animation...');
             animate();
+
+            // Initialize FPS counter DOM cache
+            fpsDOMCache.counter = document.getElementById('fps-counter');
+            fpsDOMCache.value = fpsDOMCache.counter.querySelector('.fps-value');
+
             console.log('═══════════════════════════════════════════════════════');
             console.log('✅ INIT() TERMINÉ AVEC SUCCÈS');
             console.log('═══════════════════════════════════════════════════════');
@@ -4413,26 +4491,24 @@
 
             if (walls.length === 0) return false;
 
-            // Créer une bounding box autour de la nouvelle position du joueur
-            const playerBox = new THREE.Box3(
-                new THREE.Vector3(
-                    newPosition.x - hitboxWidth,
-                    newPosition.y - hitboxHeight,
-                    newPosition.z - hitboxWidth
-                ),
-                new THREE.Vector3(
-                    newPosition.x + hitboxWidth,
-                    newPosition.y + hitboxHeight,
-                    newPosition.z + hitboxWidth
-                )
+            // OPTIMIZED: Reuse global Box3 objects instead of creating new ones
+            reusablePlayerBox.min.set(
+                newPosition.x - hitboxWidth,
+                newPosition.y - hitboxHeight,
+                newPosition.z - hitboxWidth
+            );
+            reusablePlayerBox.max.set(
+                newPosition.x + hitboxWidth,
+                newPosition.y + hitboxHeight,
+                newPosition.z + hitboxWidth
             );
 
             // Tester collision avec chaque mur
             for (let i = 0; i < walls.length; i++) {
                 const wall = walls[i];
-                const wallBox = new THREE.Box3().setFromObject(wall);
+                reusableWallBox.setFromObject(wall);
 
-                if (playerBox.intersectsBox(wallBox)) {
+                if (reusablePlayerBox.intersectsBox(reusableWallBox)) {
                     return true; // Collision détectée !
                 }
             }
@@ -4444,6 +4520,30 @@
         let animateFrameCount = 0;
         function animate() {
             requestAnimationFrame(animate);
+
+            // FPS Counter calculation
+            fpsFrameCount++;
+            const currentTime = performance.now();
+            const deltaTime = currentTime - fpsLastTime;
+
+            if (deltaTime >= fpsUpdateInterval) {
+                fpsCurrentFPS = Math.round((fpsFrameCount * 1000) / deltaTime);
+                fpsFrameCount = 0;
+                fpsLastTime = currentTime;
+
+                // OPTIMIZED: Use cached DOM elements instead of querying
+                if (fpsDOMCache.value && fpsDOMCache.counter) {
+                    fpsDOMCache.value.textContent = fpsCurrentFPS;
+
+                    // Color coding based on performance
+                    fpsDOMCache.counter.classList.remove('low-fps', 'critical-fps');
+                    if (fpsCurrentFPS < 30) {
+                        fpsDOMCache.counter.classList.add('critical-fps');
+                    } else if (fpsCurrentFPS < 50) {
+                        fpsDOMCache.counter.classList.add('low-fps');
+                    }
+                }
+            }
 
             animateFrameCount++;
             if (animateFrameCount === 1) {
@@ -4679,14 +4779,13 @@
 
             // Camera movement (only when no screen selected and free camera enabled)
             if (!selectedScreen && freeCameraEnabled && camera) {
-                const forward = new THREE.Vector3();
-                camera.getWorldDirection(forward);
-                forward.y = 0; // Mouvement horizontal uniquement
-                forward.normalize();
+                // OPTIMIZED: Reuse global Vector3 objects
+                camera.getWorldDirection(reusableForward);
+                reusableForward.y = 0; // Mouvement horizontal uniquement
+                reusableForward.normalize();
 
-                const right = new THREE.Vector3();
-                right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
-                right.normalize();
+                reusableRight.crossVectors(reusableForward, reusableUp);
+                reusableRight.normalize();
 
                 // Check if any movement key is pressed
                 const isMoving = cameraKeys.forward || cameraKeys.backward || cameraKeys.left || cameraKeys.right;
@@ -4705,26 +4804,26 @@
                         currentSpeed = Math.max(currentSpeed - fpsSettings.fpsDeceleration, MIN_SPEED);
                     }
 
-                    // Store previous position for collision detection
-                    const prevPosition = camera.position.clone();
+                    // OPTIMIZED: Reuse global Vector3 for previous position
+                    reusablePrevPosition.copy(camera.position);
 
                     // Apply movement
                     if (cameraKeys.forward) {
-                        camera.position.addScaledVector(forward, currentSpeed);
+                        camera.position.addScaledVector(reusableForward, currentSpeed);
                     }
                     if (cameraKeys.backward) {
-                        camera.position.addScaledVector(forward, -currentSpeed);
+                        camera.position.addScaledVector(reusableForward, -currentSpeed);
                     }
                     if (cameraKeys.left) {
-                        camera.position.addScaledVector(right, -currentSpeed);
+                        camera.position.addScaledVector(reusableRight, -currentSpeed);
                     }
                     if (cameraKeys.right) {
-                        camera.position.addScaledVector(right, currentSpeed);
+                        camera.position.addScaledVector(reusableRight, currentSpeed);
                     }
 
                     // Check collisions
-                    if (checkCollision(camera.position, prevPosition)) {
-                        camera.position.copy(prevPosition);
+                    if (checkCollision(camera.position, reusablePrevPosition)) {
+                        camera.position.copy(reusablePrevPosition);
                     }
                 } else {
                     // ===== MODE NORMAL: Vitesse fixe, pas de collision =====
@@ -4732,32 +4831,31 @@
                     const normalSpeed = cameraKeys.sprint ? CAMERA_SPEED * CAMERA_SPRINT_MULTIPLIER : CAMERA_SPEED;
 
                     if (cameraKeys.forward) {
-                        camera.position.addScaledVector(forward, normalSpeed);
+                        camera.position.addScaledVector(reusableForward, normalSpeed);
                     }
                     if (cameraKeys.backward) {
-                        camera.position.addScaledVector(forward, -normalSpeed);
+                        camera.position.addScaledVector(reusableForward, -normalSpeed);
                     }
                     if (cameraKeys.left) {
-                        camera.position.addScaledVector(right, -normalSpeed);
+                        camera.position.addScaledVector(reusableRight, -normalSpeed);
                     }
                     if (cameraKeys.right) {
-                        camera.position.addScaledVector(right, normalSpeed);
+                        camera.position.addScaledVector(reusableRight, normalSpeed);
                     }
                 }
 
                 if (fpsMode) {
                     // ===== MODE FPS: Gravité et marche sur le sol =====
 
-                    // Raycasting vers le bas pour détecter le sol (formes 3, 10 et 11)
-                    const raycaster = new THREE.Raycaster();
-                    raycaster.set(camera.position, new THREE.Vector3(0, -1, 0));
+                    // OPTIMIZED: Reuse global raycaster instead of creating new one
+                    reusableRaycaster.set(camera.position, downVector);
 
                     const floorScreens = [];
                     if (allScreens[3]) floorScreens.push(allScreens[3]);
                     if (allScreens[10]) floorScreens.push(allScreens[10]);
                     if (allScreens[11]) floorScreens.push(allScreens[11]);
 
-                    const intersects = raycaster.intersectObjects(floorScreens, false);
+                    const intersects = reusableRaycaster.intersectObjects(floorScreens, false);
 
                     if (intersects.length > 0) {
                         const groundY = intersects[0].point.y + fpsSettings.fpsPlayerHeight;
@@ -4844,13 +4942,17 @@
                 camera.updateProjectionMatrix();
             }
 
-            // Mettre à jour la CubeCamera de l'écran 4
+            // OPTIMIZED: Throttle CubeCamera updates (expensive: renders scene 6 times)
             if (allScreens && allScreens[4] && allScreens[4].userData.cubeCamera) {
-                const screen4 = allScreens[4];
-                const cubeCamera = screen4.userData.cubeCamera;
-                screen4.visible = false;  // Cacher l'écran pour éviter auto-réflexion
-                cubeCamera.update(renderer, scene);  // Capturer l'environnement
-                screen4.visible = true;  // Réafficher l'écran
+                cubeCameraUpdateCounter++;
+                if (cubeCameraUpdateCounter >= CUBE_CAMERA_UPDATE_INTERVAL) {
+                    cubeCameraUpdateCounter = 0;
+                    const screen4 = allScreens[4];
+                    const cubeCamera = screen4.userData.cubeCamera;
+                    screen4.visible = false;  // Cacher l'écran pour éviter auto-réflexion
+                    cubeCamera.update(renderer, scene);  // Capturer l'environnement
+                    screen4.visible = true;  // Réafficher l'écran
+                }
             }
 
             if (animateFrameCount === 1) {
