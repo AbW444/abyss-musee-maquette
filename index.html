@@ -514,9 +514,68 @@
         #video-paused-indicator.visible {
             opacity: 1;
         }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s ease;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 30px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 20px;
+        }
+
+        .loading-progress {
+            color: #00ff88;
+            font-size: 12px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Chargement</div>
+        <div class="loading-progress" id="loading-progress">Initialisation...</div>
+    </div>
+
     <a href="index.html" id="title-link">
         <div id="title">Volumetric Particles</div>
         <div id="subtitle">v1.3.1 — Video projection volumétrique (luminance depth)</div>
@@ -5059,7 +5118,118 @@
             setupFPSSettings();
             console.log('✅ setupFPSSettings() terminé');
             console.log('═══════════════════════════════════════════════════════');
+
+            // Auto-load sequence
+            autoLoadSequence();
         };
+
+        // Auto-load sequence: Load default video → Activate FPS → Show UI → Apply
+        async function autoLoadSequence() {
+            const loadingScreen = document.getElementById('loading-screen');
+            const progressText = document.getElementById('loading-progress');
+
+            try {
+                // Step 1: Load default video
+                progressText.textContent = 'Chargement de la vidéo par défaut...';
+                console.log('🎬 AUTO-LOAD: Chargement de test_01.mp4...');
+
+                await loadDefaultVideo();
+                await sleep(500);
+
+                // Step 2: Activate FPS mode (simulate B key)
+                progressText.textContent = 'Activation du mode FPS...';
+                console.log('🎮 AUTO-LOAD: Activation du mode FPS...');
+                fpsMode = true;
+                await sleep(300);
+
+                // Step 3: Show interfaces (simulate N key)
+                progressText.textContent = 'Affichage des interfaces...';
+                console.log('👁️ AUTO-LOAD: Affichage des interfaces...');
+                toggleAllInterfaces();
+                await sleep(300);
+
+                // Step 4: Apply settings
+                progressText.textContent = 'Application des paramètres...';
+                console.log('⚙️ AUTO-LOAD: Application des paramètres...');
+                applySettings();
+                await sleep(500);
+
+                // Step 5: Hide loading screen
+                progressText.textContent = 'Prêt!';
+                console.log('✅ AUTO-LOAD: Séquence terminée!');
+                await sleep(500);
+
+                loadingScreen.classList.add('hidden');
+
+                // Remove from DOM after transition
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 500);
+
+            } catch (error) {
+                console.error('❌ AUTO-LOAD: Erreur:', error);
+                progressText.textContent = 'Erreur de chargement';
+                progressText.style.color = '#ff4444';
+
+                // Hide loading screen anyway after 2s
+                setTimeout(() => {
+                    loadingScreen.classList.add('hidden');
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 500);
+                }, 2000);
+            }
+        }
+
+        // Helper function to load default video
+        function loadDefaultVideo() {
+            return new Promise((resolve, reject) => {
+                const videoElement = document.getElementById('video-source');
+                const videoPath = 'videos/test_01.mp4';
+
+                videoElement.src = videoPath;
+                videoElement.load();
+
+                videoElement.onloadeddata = function() {
+                    console.log('✅ Vidéo chargée:', videoPath);
+                    currentVideo = videoElement;
+
+                    // Show preview
+                    document.getElementById('preview').innerHTML = '<video src="' + videoPath + '" muted loop playsinline style="max-width:100%;max-height:100%;"></video>';
+                    document.getElementById('preview').classList.add('loaded');
+                    const previewVideo = document.getElementById('preview').querySelector('video');
+                    if (previewVideo) previewVideo.play();
+
+                    // Auto-apply after loading
+                    console.log('🎬 Apply automatique après chargement vidéo...');
+                    applySettings();
+
+                    // Second apply pass (like in original code)
+                    setTimeout(() => {
+                        console.log('🎬 Apply automatique (2ème passe)...');
+                        applySettings();
+                        resolve();
+                    }, 100);
+                };
+
+                videoElement.onerror = function(error) {
+                    console.error('❌ Erreur chargement vidéo:', error);
+                    reject(error);
+                };
+
+                // Timeout fallback
+                setTimeout(() => {
+                    if (!currentVideo) {
+                        reject(new Error('Timeout loading video'));
+                    }
+                }, 5000);
+            });
+        }
+
+        // Helper sleep function
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
     </script>
 </body>
 </html>
