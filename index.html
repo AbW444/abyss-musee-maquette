@@ -3195,9 +3195,10 @@
             // Seules les particules lumineuses sortent vers z positif
             // Position fixe des écrans : z=0 invariant au DEPTH SPREAD
 
-            // Écran 1 - Position de base
-            particles.position.set(0, 0, 0);
+            // Écran 1 - Position de base (alignée avec les autres écrans en Z)
+            particles.position.set(0, 0, 112.5);
             particles.rotation.set(0, 0, 0);
+            console.log(`📍 Écran 1 positionné à: (${particles.position.x}, ${particles.position.y}, ${particles.position.z})`);
 
             // Add first screen to group
             console.log('➕ Ajout des particules au screensGroup...');
@@ -3216,9 +3217,10 @@
             particlesRight.geometry = particles.geometry;
             particlesRight.material = particles.material;
 
-            // Écran 2 - Position de base
-            particlesRight.position.set(400, 0, 0);
+            // Écran 2 - Position de base (alignée avec les autres écrans en Z)
+            particlesRight.position.set(400, 0, 112.5);
             particlesRight.rotation.set(0, 0, 0);
+            console.log(`📍 Écran 2 positionné à: (${particlesRight.position.x}, ${particlesRight.position.y}, ${particlesRight.position.z})`);
 
             // Add second screen to group
             screensGroup.add(particlesRight);
