@@ -1022,7 +1022,7 @@
                     </div>
                 </div>
                 <div class="slider-wrapper">
-                    <input type="range" class="slider" id="depth" min="0.0" max="0.2" step="0.01" value="0.1">
+                    <input type="range" class="slider" id="depth" min="0.0" max="0.2" step="0.01" value="0.08">
                     <div class="center-mark" style="left: 50%;"></div>
                 </div>
             </div>
@@ -1277,6 +1277,8 @@
         let selectedScreen = null;
         let allScreens = {}; // Store all screens by number
         let clipboardScreen = null; // Store copied screen data for copy/paste
+        let screenLabels = {}; // Store screen number labels (sprites) for volumetric screens
+        const VOLUMETRIC_SCREENS = [1, 2, 5, 6, 7]; // Écrans volumétriques (vs formes/murs/sols)
 
         // Free camera (no orbit controls, no pivot)
         let freeCameraEnabled = true;
@@ -1790,7 +1792,7 @@
 
                     // CRITICAL: If video loaded, ensure controls are visible
                     if (currentVideo) {
-                        document.getElementById('load-section')?.classList.add('hidden');
+                        // Keep both load-section and controls visible
                         document.getElementById('controls')?.classList.remove('hidden');
                     }
                 }
@@ -3099,7 +3101,7 @@
                     updateValueDisplay('brightness');
                     updateValueDisplay('glow');
 
-                    document.getElementById('load-section').classList.add('hidden');
+                    // Keep both load-section and controls visible
                     document.getElementById('controls').classList.remove('hidden');
                     document.getElementById('ui').classList.add('loaded');
                     // Interfaces visibility managed by mode system (Spectator/Admin)
