@@ -398,37 +398,32 @@
             padding: 12px;
         }
 
-        /* FPS Settings Panel - Bottom Center */
+        /* FPS Settings Panel - HARMONIZED: Bottom Left */
         #fps-settings-panel {
             position: fixed;
             bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 20px;
             z-index: 100;
             background: rgba(0,0,0,0.85);
             backdrop-filter: blur(10px);
-            padding: 15px 20px;
+            padding: 16px;
             border-radius: 8px;
             border: 1px solid rgba(255,255,255,0.2);
-            min-width: 600px;
-            max-width: 800px;
+            max-width: 350px;
+            width: 350px;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: white;
             font-size: 11px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
         }
         #fps-settings-panel.hidden { display: none !important; }
         #fps-settings-panel h3 {
-            grid-column: 1 / -1;
-            margin: 0 0 8px 0;
-            font-size: 13px;
+            margin: 0 0 12px 0;
+            font-size: 11px;
             font-weight: 600;
-            color: #00ff88;
+            color: rgba(255,255,255,0.7);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            text-align: center;
+            letter-spacing: 0.8px;
+            padding-right: 25px;
         }
         .fps-param {
             margin-bottom: 5px;
@@ -550,6 +545,31 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Panel Close Button (X) */
+        .panel-close-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 20px;
+            height: 20px;
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.5);
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+        .panel-close-btn:hover {
+            color: rgba(255,255,255,0.9);
+            transform: scale(1.1);
+        }
+
         /* FPS Counter */
         #fps-counter {
             position: fixed;
@@ -622,8 +642,9 @@
 
     <div id="canvas"></div>
 
-    <!-- FPS Settings Panel (Bottom Center) -->
+    <!-- FPS Settings Panel (Bottom Left) -->
     <div id="fps-settings-panel" class="hidden">
+        <button class="panel-close-btn" onclick="document.getElementById('fps-settings-panel').classList.add('hidden')" title="Fermer (F pour réafficher)">×</button>
         <h3>⚙️ FPS & Verre Settings</h3>
 
         <div class="fps-param">
@@ -711,6 +732,7 @@
 
     <!-- Screen Management Panel (Left side) -->
     <div id="screen-manager-panel">
+        <button class="panel-close-btn" onclick="document.getElementById('screen-manager-panel').classList.add('hidden')" title="Fermer (N pour réafficher)">×</button>
         <h2>Gestion des Écrans</h2>
         <div class="screen-list" id="screen-list"></div>
         <button class="add-screen-btn" onclick="addNewScreen()">+ Ajouter un Écran</button>
@@ -725,6 +747,7 @@
     </div>
 
     <div id="ui">
+        <button class="panel-close-btn" onclick="document.getElementById('ui').classList.add('hidden')" title="Fermer (N pour réafficher)">×</button>
         <div id="load-section">
             <div class="preview" id="preview">Empty</div>
             <button onclick="document.getElementById('file-input').click()">Load Video</button>
@@ -1312,6 +1335,22 @@
 
         // Keyboard controls
         document.addEventListener('keydown', function(e) {
+            // SPECTATOR MODE: Only allow movement keys and mode toggle
+            if (fpsMode) {
+                const allowedKeys = [
+                    'KeyW', 'KeyA', 'KeyS', 'KeyD',  // WASD movement
+                    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',  // Arrow keys
+                    'ShiftLeft', 'ShiftRight',  // Sprint
+                    'KeyB',  // Toggle to Admin mode
+                    'Escape'  // Exit pointer lock
+                ];
+
+                if (!allowedKeys.includes(e.code)) {
+                    // Block all other keys in Spectator mode
+                    return;
+                }
+            }
+
             // Debug: log all Ctrl key combinations
             if (e.ctrlKey) {
                 console.log('🎹 Touche Ctrl détectée:', e.code, 'ctrlKey:', e.ctrlKey, 'shiftKey:', e.shiftKey);
@@ -1485,19 +1524,40 @@
                 e.preventDefault();
                 fpsMode = !fpsMode;
                 if (fpsMode) {
-                    console.log('🎮 MODE FPS ACTIVÉ');
+                    // ENTERING SPECTATOR MODE: Hide all interfaces
+                    console.log('🎮 MODE SPECTATEUR (FPS) ACTIVÉ');
                     console.log('   - Cliquez sur le canvas pour activer PointerLock');
                     console.log('   - WASD pour se déplacer');
                     console.log('   - Shift pour sprinter');
                     console.log('   - ESC pour sortir du PointerLock');
-                    console.log('   - B pour désactiver le mode FPS');
-                    console.log('   - H pour afficher/masquer la hitbox');
+                    console.log('   - B pour passer en mode ADMIN');
+                    console.log('   - Interfaces désactivées en mode Spectateur');
+
+                    // Hide all UI elements in Spectator mode
+                    document.getElementById('ui')?.classList.add('hidden');
+                    document.getElementById('screen-manager-panel')?.classList.add('hidden');
+                    document.getElementById('shape-selector')?.classList.add('hidden');
+                    document.getElementById('fps-settings-panel')?.classList.add('hidden');
+                    document.getElementById('fps-counter')?.classList.add('hidden');
                 } else {
-                    console.log('🖱️ MODE NORMAL ACTIVÉ (B pour mode FPS)');
+                    // ENTERING ADMIN MODE: Show all interfaces
+                    console.log('🖱️ MODE ADMIN ACTIVÉ');
+                    console.log('   - N pour afficher/cacher les interfaces');
+                    console.log('   - B pour passer en mode SPECTATEUR');
+                    console.log('   - F pour FPS Settings');
+                    console.log('   - Toutes les touches actives');
+
                     // Release pointer lock if active
                     if (document.exitPointerLock) {
                         document.exitPointerLock();
                     }
+
+                    // Show all interfaces in Admin mode
+                    document.getElementById('ui')?.classList.remove('hidden');
+                    document.getElementById('screen-manager-panel')?.classList.remove('hidden');
+                    document.getElementById('shape-selector')?.classList.remove('hidden');
+                    document.getElementById('fps-settings-panel')?.classList.remove('hidden');
+                    document.getElementById('fps-counter')?.classList.remove('hidden');
                 }
             }
 
@@ -1583,11 +1643,19 @@
             }
         }
 
-        // Toggle all interfaces (touche N)
+        // Toggle all interfaces (touche N) - ONLY accessible in Admin mode
         function toggleAllInterfaces() {
+            // CRITICAL: Only allow in Admin mode (not FPS/Spectator mode)
+            if (fpsMode) {
+                console.log('⚠️ Interfaces disponibles uniquement en mode Admin (appuyez sur B)');
+                return;
+            }
+
             const ui = document.getElementById('ui');
             const screenManager = document.getElementById('screen-manager-panel');
             const shapeSelector = document.getElementById('shape-selector');
+            const fpsSettings = document.getElementById('fps-settings-panel');
+            const fpsCounter = document.getElementById('fps-counter');
             const loadSection = document.getElementById('load-section');
 
             const isVisible = !ui.classList.contains('hidden');
@@ -1602,11 +1670,15 @@
                 }
                 screenManager.classList.add('hidden');
                 shapeSelector.classList.add('hidden');
+                fpsSettings.classList.add('hidden');
+                fpsCounter.classList.add('hidden');
                 console.log('🙈 Interfaces cachées (N pour afficher)');
             } else {
                 ui.classList.remove('hidden');
                 screenManager.classList.remove('hidden');
                 shapeSelector.classList.remove('hidden');
+                fpsSettings.classList.remove('hidden');
+                fpsCounter.classList.remove('hidden');
                 console.log('👁️ Interfaces affichées (N pour cacher)');
             }
         }
@@ -5179,9 +5251,9 @@
             });
         }
 
-        // Toggle FPS panel with F key
+        // Toggle FPS panel with F key (Admin mode only)
         document.addEventListener('keydown', function(e) {
-            if (e.code === 'KeyF' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+            if (e.code === 'KeyF' && !e.ctrlKey && !e.shiftKey && !e.altKey && !fpsMode) {
                 const panel = document.getElementById('fps-settings-panel');
                 panel.classList.toggle('hidden');
                 console.log(panel.classList.contains('hidden') ? '🔧 FPS Settings cachés (F pour afficher)' : '🔧 FPS Settings affichés (F pour cacher)');
@@ -5214,17 +5286,19 @@
                 await loadDefaultVideo();
                 await sleep(500);
 
-                // Step 2: Activate FPS mode (simulate B key)
-                console.log('🎮 AUTO-LOAD: Activation du mode FPS...');
+                // Step 2: Activate FPS mode (Spectator mode)
+                console.log('🎮 AUTO-LOAD: Activation du mode SPECTATEUR...');
                 fpsMode = true;
+
+                // Hide all interfaces in Spectator mode
+                document.getElementById('ui')?.classList.add('hidden');
+                document.getElementById('screen-manager-panel')?.classList.add('hidden');
+                document.getElementById('shape-selector')?.classList.add('hidden');
+                document.getElementById('fps-settings-panel')?.classList.add('hidden');
+                document.getElementById('fps-counter')?.classList.add('hidden');
                 await sleep(300);
 
-                // Step 3: Show interfaces (simulate N key)
-                console.log('👁️ AUTO-LOAD: Affichage des interfaces...');
-                toggleAllInterfaces();
-                await sleep(300);
-
-                // Step 4: Apply settings
+                // Step 3: Apply settings
                 console.log('⚙️ AUTO-LOAD: Application des paramètres...');
                 applySettings();
                 await sleep(500);
@@ -5265,6 +5339,13 @@
                 videoElement.onloadeddata = function() {
                     console.log('✅ Vidéo chargée:', videoPath);
                     currentVideo = videoElement;
+
+                    // CRITICAL: Start playing the source video
+                    videoElement.muted = true;
+                    videoElement.loop = true;
+                    videoElement.play().catch(err => {
+                        console.warn('⚠️ Autoplay vidéo source bloqué:', err);
+                    });
 
                     // Show preview
                     document.getElementById('preview').innerHTML = '<video src="' + videoPath + '" muted loop playsinline style="max-width:100%;max-height:100%;"></video>';
