@@ -604,12 +604,13 @@
             padding: 60px 80px;
             text-align: center;
             box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            pointer-events: all;
         }
         .pause-text {
             font-size: 32px;
             font-weight: 300;
             color: rgba(255,255,255,0.9);
-            margin-bottom: 16px;
+            margin-bottom: 8px;
             letter-spacing: 1px;
         }
         .pause-hint {
@@ -617,6 +618,71 @@
             color: rgba(255,255,255,0.5);
             text-transform: uppercase;
             letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+        .pause-controls {
+            margin-top: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: center;
+        }
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .volume-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            min-width: 60px;
+        }
+        .volume-slider {
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+        }
+        .volume-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            border: none;
+        }
+        .mute-button {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #ffffff;
+            padding: 10px 24px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        .mute-button:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        .mute-button.muted {
+            background: rgba(255,100,100,0.2);
+            border-color: rgba(255,100,100,0.4);
         }
         .pause-credits {
             position: absolute;
@@ -744,12 +810,21 @@
     </div>
 
     <!-- Pause Screen (ESC) -->
-    <div id="pause-screen" onclick="resumeExperience()">
+    <div id="pause-screen">
         <div class="pause-content" onclick="event.stopPropagation()">
             <div class="pause-text">En pause</div>
-            <div class="pause-hint">Cliquer pour visionner</div>
+            <div class="pause-hint">Cliquer pour visionner / ESC pour fermer</div>
+
+            <div class="pause-controls">
+                <div class="volume-control">
+                    <span class="volume-label">Volume</span>
+                    <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="30" oninput="updateVolume(this.value)">
+                    <span class="volume-label" id="volume-display">30%</span>
+                </div>
+                <button class="mute-button" id="mute-button" onclick="toggleMute()">🔊 Muet</button>
+            </div>
         </div>
-        <div class="pause-credits">Musique : Teimo.mp3</div>
+        <div class="pause-credits">Musique : Teimo (schluss) par Thomas Thomas Köner</div>
     </div>
 
     <!-- Loading Screen -->
@@ -1634,10 +1709,13 @@
                 }
             }
 
-            // Escape: Show pause screen in Spectator mode OR deselect in Admin mode
+            // Escape: Toggle pause screen in Spectator mode OR deselect in Admin mode
             if (e.code === 'Escape') {
                 e.preventDefault();
-                if (fpsMode && !isPaused) {
+                if (fpsMode && isPaused) {
+                    // Already paused: close pause screen
+                    resumeExperience();
+                } else if (fpsMode && !isPaused) {
                     // Spectator mode: show pause screen
                     showPauseScreen();
                 } else if (selectedScreen) {
@@ -1709,6 +1787,12 @@
                     document.getElementById('shape-selector')?.classList.remove('hidden');
                     document.getElementById('fps-settings-panel')?.classList.remove('hidden');
                     document.getElementById('fps-counter')?.classList.remove('hidden');
+
+                    // CRITICAL: If video loaded, ensure controls are visible
+                    if (currentVideo) {
+                        document.getElementById('load-section')?.classList.add('hidden');
+                        document.getElementById('controls')?.classList.remove('hidden');
+                    }
                 }
             }
 
@@ -5417,9 +5501,31 @@
             element.onmousedown = dragMouseDown;
 
             function dragMouseDown(e) {
-                // Don't drag if clicking on buttons, inputs, or scrollbar
-                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' ||
-                    e.target.tagName === 'SELECT' || e.target.classList.contains('screen-list')) {
+                // Don't drag if clicking on interactive elements
+                const tagName = e.target.tagName;
+                const classList = e.target.classList;
+
+                // Exclude interactive elements
+                if (tagName === 'BUTTON' || tagName === 'INPUT' || tagName === 'SELECT' ||
+                    tagName === 'VIDEO' || tagName === 'A' || tagName === 'TEXTAREA') {
+                    return;
+                }
+
+                // Exclude specific classes
+                if (classList.contains('screen-list') || classList.contains('slider') ||
+                    classList.contains('param-row') || classList.contains('slider-wrapper') ||
+                    classList.contains('video-controls') || classList.contains('timeline-container') ||
+                    classList.contains('preview') || classList.contains('arrow-btn') ||
+                    classList.contains('value')) {
+                    return;
+                }
+
+                // Only drag from the title or empty areas
+                // Allow drag from h2, h3, or the main container background
+                const isTitle = tagName === 'H2' || tagName === 'H3';
+                const isContainer = e.target === element;
+
+                if (!isTitle && !isContainer) {
                     return;
                 }
 
@@ -5461,14 +5567,50 @@
             }
         }
 
-        // Audio system
+        // Audio system with progressive fade
         let backgroundMusic = null;
+        let footstepSound = null;
         let isPaused = false;
+        let targetVolume = 0.3;
+        let currentVolume = 0.3;
+        let volumeFadeInterval = null;
+        let isMuted = false;
 
         function initAudio() {
             backgroundMusic = new Audio('son/Teimo.mp3');
             backgroundMusic.loop = true;
             backgroundMusic.volume = 0.3;
+            currentVolume = 0.3;
+            targetVolume = 0.3;
+
+            // Init footstep sound (vous devez ajouter ce fichier)
+            // footstepSound = new Audio('son/footstep.mp3');
+            // footstepSound.volume = 0.2;
+        }
+
+        function fadeVolume(target, duration = 800) {
+            if (volumeFadeInterval) clearInterval(volumeFadeInterval);
+            targetVolume = target;
+
+            const steps = 30; // 30 steps
+            const stepDuration = duration / steps;
+            const volumeDelta = (targetVolume - currentVolume) / steps;
+
+            let step = 0;
+            volumeFadeInterval = setInterval(() => {
+                step++;
+                currentVolume += volumeDelta;
+
+                if (!isMuted && backgroundMusic) {
+                    backgroundMusic.volume = Math.max(0, Math.min(1, currentVolume));
+                }
+
+                if (step >= steps) {
+                    clearInterval(volumeFadeInterval);
+                    volumeFadeInterval = null;
+                    currentVolume = targetVolume;
+                }
+            }, stepDuration);
         }
 
         function playAudio() {
@@ -5476,13 +5618,53 @@
                 backgroundMusic.play().catch(err => {
                     console.warn('⚠️ Autoplay audio bloqué:', err);
                 });
+                fadeVolume(0.3, 500);
             }
         }
 
         function pauseAudio() {
             if (backgroundMusic) {
-                backgroundMusic.pause();
+                fadeVolume(0, 500);
+                setTimeout(() => {
+                    if (backgroundMusic) backgroundMusic.pause();
+                }, 500);
             }
+        }
+
+        function updateVolume(value) {
+            const volumePercent = parseInt(value);
+            document.getElementById('volume-display').textContent = volumePercent + '%';
+            targetVolume = volumePercent / 100;
+            currentVolume = targetVolume;
+            if (backgroundMusic && !isMuted) {
+                backgroundMusic.volume = targetVolume;
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const muteBtn = document.getElementById('mute-button');
+
+            if (isMuted) {
+                backgroundMusic.volume = 0;
+                muteBtn.textContent = '🔇 Activer le son';
+                muteBtn.classList.add('muted');
+            } else {
+                backgroundMusic.volume = currentVolume;
+                muteBtn.textContent = '🔊 Muet';
+                muteBtn.classList.remove('muted');
+            }
+        }
+
+        // Footstep sounds (trigger when moving)
+        let footstepTimer = 0;
+        let isMoving = false;
+        function playFootsteps() {
+            // Placeholder - add footstep sound file if you have one
+            // if (footstepSound && fpsMode) {
+            //     footstepSound.currentTime = 0;
+            //     footstepSound.play().catch(err => {});
+            // }
         }
 
         // Welcome screen functions
@@ -5511,7 +5693,9 @@
 
             isPaused = true;
             document.getElementById('pause-screen').classList.add('active');
-            pauseAudio();
+
+            // Progressive fade down (not complete pause)
+            fadeVolume(0.1, 800); // Fade to 10% volume
 
             // Exit pointer lock
             if (document.exitPointerLock) {
@@ -5522,7 +5706,9 @@
         function resumeExperience() {
             isPaused = false;
             document.getElementById('pause-screen').classList.remove('active');
-            playAudio();
+
+            // Progressive fade up
+            fadeVolume(0.3, 800); // Fade back to 30% volume
         }
 
         window.onload = function() {
