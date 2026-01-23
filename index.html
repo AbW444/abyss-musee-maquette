@@ -930,7 +930,7 @@
 
         // Free camera (no orbit controls, no pivot)
         let freeCameraEnabled = true;
-        let fpsMode = true; // Mode FPS activé par défaut (spectateur) - Touche B pour basculer
+        let fpsMode = false; // Mode Normal/Admin par défaut - Touche B pour activer mode FPS
         let showHitbox = false; // Affichage de la hitbox activé avec touche H
         let hitboxHelper = null; // Helper pour visualiser la hitbox
         let cameraYaw = 0; // Rotation horizontale (Y axis)
@@ -2607,7 +2607,13 @@
             console.log('   F            - Afficher/Cacher FPS Settings (bas gauche)');
             console.log('   Ctrl+S       - Exporter paramètres FPS dans console');
             console.log('');
-            console.log('🎮 MODE FPS (par défaut - SPECTATEUR):');
+            console.log('📍 MODE NORMAL (par défaut - ADMIN):');
+            console.log('   Flèches/WASD - Déplacement horizontal');
+            console.log('   O/L          - Monter/Descendre librement');
+            console.log('   Clic gauche  - Rotation caméra');
+            console.log('   Molette      - Zoom');
+            console.log('');
+            console.log('🎮 MODE FPS (touche B - SPECTATEUR):');
             console.log('   WASD/Flèches - Se déplacer');
             console.log('   Shift        - Sprint (x2.5)');
             console.log('   Clic canvas  - PointerLock (ESC pour quitter)');
@@ -2615,17 +2621,11 @@
             console.log('   Collisions   - Activées avec murs');
             console.log('   H            - Afficher/Masquer hitbox (debug)');
             console.log('');
-            console.log('📍 MODE NORMAL (touche B - ADMIN):');
-            console.log('   Flèches/WASD - Déplacement horizontal');
-            console.log('   O/L          - Monter/Descendre librement');
-            console.log('   Clic gauche  - Rotation caméra');
-            console.log('   Molette      - Zoom');
-            console.log('');
             console.log('📍 Spawn: Centre forme 11, quelques unités au-dessus');
             console.log('🙈 Interfaces cachées - Appuyez sur N pour afficher');
             console.log('');
-            console.log('🎮 MODE FPS ACTIVÉ - Cliquez sur le canvas pour PointerLock');
-            console.log('   Appuyez sur B pour basculer vers le mode ADMIN');
+            console.log('🖱️ MODE NORMAL ACTIVÉ - Caméra libre');
+            console.log('   Appuyez sur B pour activer le mode FPS/Spectateur');
             console.log('═══════════════════════════════════════════════════════');
 
             console.log('');
