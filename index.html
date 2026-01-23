@@ -2933,14 +2933,28 @@
             // If no particles found, set minLuminance to 0
             if (minLuminance === Infinity) minLuminance = 0;
 
+            console.log('🔍 Analyse de création des particules:');
+            console.log(`   📏 step: ${step}, TARGET: ${TARGET_WIDTH}x${TARGET_HEIGHT}`);
+            console.log(`   🎨 hideBlack: ${hideBlack}, blackThreshold: ${blackThreshold}`);
+            console.log(`   🖼️ hideBackground: ${hideBackground}, bgThreshold: ${bgThreshold || 'N/A'}`);
+            console.log(`   💡 minLuminance trouvée: ${minLuminance.toFixed(3)}`);
+
+            let totalPixelsScanned = 0;
+            let pixelsWithAlpha = 0;
+            let pixelsFilteredByBlack = 0;
+            let pixelsFilteredByBackground = 0;
+            let pixelsAdded = 0;
+
             // SECOND PASS: Create particles with depth anchored to minimum luminance
             for (let y = 0; y < TARGET_HEIGHT; y += step) {
                 for (let x = 0; x < TARGET_WIDTH; x += step) {
+                    totalPixelsScanned++;
                     const i = (y * TARGET_WIDTH + x) * 4;
                     const alpha = data[i + 3];
 
                     // Only create particle if pixel is visible
                     if (alpha > 30) {
+                        pixelsWithAlpha++;
                         const r = data[i];
                         const g = data[i + 1];
                         const b = data[i + 2];
@@ -2948,6 +2962,7 @@
 
                         // Skip black particles if hideBlack is enabled
                         if (hideBlack && maxColor < blackThreshold) {
+                            pixelsFilteredByBlack++;
                             continue;
                         }
 
@@ -2955,6 +2970,7 @@
                         if (hideBackground) {
                             const colorDist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
                             if (colorDist < bgThreshold) {
+                                pixelsFilteredByBackground++;
                                 continue; // Skip this particle, it's part of the background
                             }
                         }
@@ -2970,6 +2986,7 @@
 
                         positions.push(px, py, pz);
                         initialZ.push(pz);
+                        pixelsAdded++;
 
                         // v1.3.1 — Apply contrast and saturation effects (Optimized)
                         let rNorm = r * 0.00392156862745098; // r / 255
@@ -3006,6 +3023,14 @@
                     }
                 }
             }
+
+            console.log('📊 Résultats de la génération:');
+            console.log(`   📏 Pixels scannés: ${totalPixelsScanned}`);
+            console.log(`   ✅ Pixels avec alpha > 30: ${pixelsWithAlpha}`);
+            console.log(`   ⚫ Filtrés par hideBlack: ${pixelsFilteredByBlack}`);
+            console.log(`   🖼️ Filtrés par hideBackground: ${pixelsFilteredByBackground}`);
+            console.log(`   ✨ Particules AJOUTÉES: ${pixelsAdded}`);
+            console.log(`   📦 positions.length: ${positions.length} (${positions.length / 3} particules)`);
 
             // v1.3.1 — Apply depth culling if enabled (make particles truly invisible)
             if (enableDepthCull && depthCullPower > 0) {
