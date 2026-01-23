@@ -874,6 +874,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <script>
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('🚀 SCRIPT DÉMARRÉ - Début du chargement');
+        console.log('═══════════════════════════════════════════════════════');
+
         let scene, camera, renderer, particles;
         let geometry, material;
         let screensGroup; // Group to contain all screens for common rotation
@@ -2285,38 +2289,56 @@
 
         // Init Three.js
         function init() {
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('🔧 INIT() - Début de l\'initialisation');
+            console.log('═══════════════════════════════════════════════════════');
+
+            console.log('📦 Vérification THREE.js...');
             if (typeof THREE === 'undefined') {
+                console.error('❌ THREE.js not loaded!');
                 alert('THREE.js failed to load.');
                 return;
             }
+            console.log('✅ THREE.js chargé:', THREE.REVISION);
 
+            console.log('🌍 Création de la scène...');
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000);
+            console.log('✅ Scène créée');
 
+            console.log('📦 Création du groupe d\'écrans...');
             // Create group to contain screens for common rotation
             screensGroup = new THREE.Group();
             scene.add(screensGroup);
+            console.log('✅ Groupe d\'écrans créé et ajouté à la scène');
 
             // Utiliser la taille complète de la fenêtre (pas de ratio forcé)
             const canvasWidth = window.innerWidth;
             const canvasHeight = window.innerHeight;
             const aspectRatio = canvasWidth / canvasHeight;
+            console.log(`📐 Dimensions: ${canvasWidth}x${canvasHeight} (ratio: ${aspectRatio.toFixed(2)})`);
 
+            console.log('📷 Création de la caméra...');
             camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 10000);
             // Position de spawn au centre de la forme 11, à quelques unités au-dessus du sol
             // Sol de la forme 11: y = -111.773, on spawn à fpsCameraHeight
             camera.position.set(-274.876, fpsSettings.fpsCameraHeight, 112.79);
+            console.log(`📍 Position caméra: (${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)})`);
 
             // Orienter la caméra vers l'écran 7 puis tourner d'un quart de tour supplémentaire
             const lookAtTarget = new THREE.Vector3(599.938, fpsSettings.fpsCameraHeight, 112.546);
             camera.lookAt(lookAtTarget);
+            console.log(`👀 Caméra regarde vers: (${lookAtTarget.x.toFixed(1)}, ${lookAtTarget.y.toFixed(1)}, ${lookAtTarget.z.toFixed(1)})`);
 
             // Calculer yaw et pitch initiaux basés sur l'orientation
             const direction = new THREE.Vector3();
             direction.subVectors(lookAtTarget, camera.position).normalize();
             cameraYaw = Math.atan2(direction.x, direction.z) + Math.PI; // +180° (quart de tour supplémentaire)
             cameraPitch = 0; // Vision horizontale
+            console.log(`🎯 Orientation: yaw=${cameraYaw.toFixed(2)}, pitch=${cameraPitch.toFixed(2)}`);
+            console.log('✅ Caméra configurée');
 
+            console.log('🖼️ Création du renderer...');
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
                 alpha: true,
@@ -2327,19 +2349,32 @@
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 1.2;
-            document.getElementById('canvas').appendChild(renderer.domElement);
+            console.log('✅ Renderer créé et configuré');
 
+            console.log('📎 Ajout du canvas au DOM...');
+            const canvasContainer = document.getElementById('canvas');
+            if (!canvasContainer) {
+                console.error('❌ Element #canvas introuvable dans le DOM!');
+                return;
+            }
+            canvasContainer.appendChild(renderer.domElement);
+            console.log('✅ Canvas ajouté au DOM');
+
+            console.log('💡 Ajout des lumières...');
             // Lumière ambiante
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
             scene.add(ambientLight);
+            console.log('✅ Lumière ambiante ajoutée');
 
             // FREE CAMERA: Pas d'OrbitControls, caméra complètement libre
             // Rotation avec clic droit + drag, mouvement avec flèches
 
+            console.log('🎮 Configuration des TransformControls...');
             // TransformControls for manipulating screens
             transformControls = new THREE.TransformControls(camera, renderer.domElement);
             transformControls.setSpace('world'); // Use world space to avoid X/Y inversion
             scene.add(transformControls);
+            console.log('✅ TransformControls configurés');
 
             // When transforming, disable free camera
             transformControls.addEventListener('dragging-changed', function(event) {
@@ -2593,7 +2628,12 @@
             console.log('   Appuyez sur B pour basculer vers le mode ADMIN');
             console.log('═══════════════════════════════════════════════════════');
 
+            console.log('');
+            console.log('🚀 Démarrage de la boucle d\'animation...');
             animate();
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('✅ INIT() TERMINÉ AVEC SUCCÈS');
+            console.log('═══════════════════════════════════════════════════════');
         }
 
         // Load video function
@@ -2717,13 +2757,20 @@
         });
 
         function generate(video) {
-            console.log('🎬 generate() appelé - allScreens avant:', Object.keys(allScreens || {}));
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('🎬 GENERATE() APPELÉ');
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('📦 allScreens avant:', Object.keys(allScreens || {}));
+            console.log('🎥 Vidéo:', video ? `${video.videoWidth}x${video.videoHeight}` : 'null');
 
             if (typeof THREE === 'undefined') {
+                console.error('❌ THREE.js not loaded in generate()!');
                 alert('THREE.js not loaded.');
                 return;
             }
+            console.log('✅ THREE.js disponible');
 
+            console.log('⚙️ Lecture des paramètres des sliders...');
             // Read parameters from sliders
             pointSize = parseFloat(document.getElementById('size').value);
             particleDensity = parseInt(document.getElementById('density').value);
@@ -3019,12 +3066,19 @@
                 transformControls.detach();
             }
 
+            console.log('🧹 Nettoyage du groupe d\'écrans...');
             // Clear group before adding new screens (only default screens 1-7 now)
             screensGroup.clear();
+            console.log('✅ Groupe nettoyé');
+
+            console.log(`🎨 Mode de rendu: ${is3DMode ? '3D (InstancedMesh)' : '2D (Points)'}`);
+            console.log(`📊 Nombre de particules: ${positions.length / 3}`);
 
             if (is3DMode) {
+                console.log('🔷 Création des particules en mode 3D...');
                 // 3D Mode: Use InstancedMesh with real 3D geometries
                 const count = positions.length / 3;
+                console.log(`   Count: ${count}`);
                 let baseGeometry;
                 const size = pointSize * 3;
 
@@ -3056,6 +3110,7 @@
 
                 particles = new THREE.InstancedMesh(baseGeometry, material, count);
                 particles.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+                console.log('✅ InstancedMesh créé:', particles);
 
                 const instanceColors = new Float32Array(count * 3);
                 for (let i = 0; i < count; i++) {
@@ -3097,6 +3152,7 @@
 
                 const shapeTexture = getShapeTexture(currentShape);
 
+                console.log('🔸 Création des particules en mode 2D...');
                 material = new THREE.PointsMaterial({
                     size: pointSize,
                     vertexColors: true,
@@ -3107,6 +3163,7 @@
                 });
 
                 particles = new THREE.Points(geometry, material);
+                console.log('✅ Points créés:', particles);
             }
 
             // Volumétrie unilatérale : les particules sombres restent à z=0 (point fixe)
@@ -3118,7 +3175,9 @@
             particles.rotation.set(0, 0, 0);
 
             // Add first screen to group
+            console.log('➕ Ajout des particules au screensGroup...');
             screensGroup.add(particles);
+            console.log('✅ Particules ajoutées au groupe');
 
             // Calculate screen dimensions from 16:9 grid (invariant to depth spread)
             const screenW = TARGET_WIDTH * scaleFactor;
@@ -4317,8 +4376,16 @@
         }
 
         // Animation with subtle breathing movement and video texture updates
+        let animateFrameCount = 0;
         function animate() {
             requestAnimationFrame(animate);
+
+            animateFrameCount++;
+            if (animateFrameCount === 1) {
+                console.log('🎬 ANIMATE() - Première frame');
+            } else if (animateFrameCount % 60 === 0) {
+                console.log(`🎬 ANIMATE() - Frame ${animateFrameCount} (${(animateFrameCount/60).toFixed(0)}s)`);
+            }
 
             time += 0.001 * breathSpeed;
 
@@ -4721,6 +4788,9 @@
                 screen4.visible = true;  // Réafficher l'écran
             }
 
+            if (animateFrameCount === 1) {
+                console.log('🖼️ RENDER() - Premier rendu de la scène');
+            }
             renderer.render(scene, camera);
         }
 
@@ -4952,8 +5022,16 @@
         });
 
         window.onload = function() {
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('📦 WINDOW.ONLOAD - Page chargée');
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('🔧 Appel de init()...');
             init();
+            console.log('✅ init() terminé');
+            console.log('🔧 Appel de setupFPSSettings()...');
             setupFPSSettings();
+            console.log('✅ setupFPSSettings() terminé');
+            console.log('═══════════════════════════════════════════════════════');
         };
     </script>
 </body>
