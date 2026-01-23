@@ -21,7 +21,7 @@
 
         #ui.loaded { top: auto; bottom: 20px; left: auto; right: 20px;
                      transform: none; max-width: 320px; width: auto; padding: 16px;
-                     max-height: calc(100vh - 40px); overflow-y: auto; }
+                     max-height: calc(100vh - 40px); overflow-y: auto; cursor: move; user-select: none; }
 
         #title-link { position: fixed; top: 20px; left: 20px; z-index: 100;
                       text-decoration: none; color: #fff; transition: opacity 0.2s; }
@@ -213,6 +213,8 @@
             width: 300px;
             max-height: calc(100vh - 40px);
             overflow-y: auto;
+            cursor: move;
+            user-select: none;
         }
         #screen-manager-panel.hidden { display: none; }
         #screen-manager-panel h2 {
@@ -398,11 +400,11 @@
             padding: 12px;
         }
 
-        /* FPS Settings Panel - HARMONIZED: Bottom Left */
+        /* FPS Settings Panel - Bottom Right (avoid overlap) */
         #fps-settings-panel {
             position: fixed;
             bottom: 20px;
-            left: 20px;
+            right: 360px;
             z-index: 100;
             background: rgba(0,0,0,0.85);
             backdrop-filter: blur(10px);
@@ -414,6 +416,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: white;
             font-size: 11px;
+            cursor: move;
         }
         #fps-settings-panel.hidden { display: none !important; }
         #fps-settings-panel h3 {
@@ -510,6 +513,121 @@
             opacity: 1;
         }
 
+        /* Welcome Screen - Professional & Modern */
+        #welcome-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        #welcome-screen.hidden {
+            opacity: 0;
+            transform: scale(1.05);
+            pointer-events: none;
+        }
+        .welcome-content {
+            text-align: center;
+            max-width: 600px;
+            padding: 40px;
+        }
+        .welcome-title {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .welcome-subtitle {
+            font-size: 16px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+        .play-button {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 600;
+            padding: 20px 60px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .play-button:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 48px rgba(0,0,0,0.4);
+        }
+
+        /* Pause Screen - Glassmorphism */
+        #pause-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            cursor: pointer;
+            transition: opacity 0.4s ease;
+        }
+        #pause-screen.active {
+            display: flex;
+        }
+        .pause-content {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 60px 80px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .pause-text {
+            font-size: 32px;
+            font-weight: 300;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 16px;
+            letter-spacing: 1px;
+        }
+        .pause-hint {
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .pause-credits {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: rgba(255,255,255,0.3);
+            font-style: italic;
+        }
+
         /* Loading Screen */
         #loading-screen {
             position: fixed;
@@ -535,7 +653,7 @@
             width: 80px;
             height: 80px;
             border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid #00ff88;
+            border-top: 3px solid #ffffff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -613,6 +731,27 @@
     </style>
 </head>
 <body>
+    <!-- Welcome Screen -->
+    <div id="welcome-screen">
+        <div class="welcome-content">
+            <h1 class="welcome-title">Volumetric Particles</h1>
+            <p class="welcome-subtitle">
+                Une expérience immersive de projection vidéo volumétrique.<br>
+                Explorez un espace tridimensionnel généré à partir de la luminance des pixels.
+            </p>
+            <button class="play-button" onclick="startExperience()">Play</button>
+        </div>
+    </div>
+
+    <!-- Pause Screen (ESC) -->
+    <div id="pause-screen" onclick="resumeExperience()">
+        <div class="pause-content" onclick="event.stopPropagation()">
+            <div class="pause-text">En pause</div>
+            <div class="pause-hint">Cliquer pour visionner</div>
+        </div>
+        <div class="pause-credits">Musique : Teimo.mp3</div>
+    </div>
+
     <!-- Loading Screen -->
     <div id="loading-screen">
         <div class="loading-spinner"></div>
@@ -1495,10 +1634,16 @@
                 }
             }
 
-            // Escape: Deselect screen
-            if (e.code === 'Escape' && selectedScreen) {
+            // Escape: Show pause screen in Spectator mode OR deselect in Admin mode
+            if (e.code === 'Escape') {
                 e.preventDefault();
-                deselectScreen();
+                if (fpsMode && !isPaused) {
+                    // Spectator mode: show pause screen
+                    showPauseScreen();
+                } else if (selectedScreen) {
+                    // Admin mode: deselect screen
+                    deselectScreen();
+                }
             }
 
             // Delete or Backspace: Delete selected screen
@@ -1539,9 +1684,15 @@
                     document.getElementById('shape-selector')?.classList.add('hidden');
                     document.getElementById('fps-settings-panel')?.classList.add('hidden');
                     document.getElementById('fps-counter')?.classList.add('hidden');
+
+                    // Play background music in Spectator mode
+                    playAudio();
                 } else {
                     // ENTERING ADMIN MODE: Show all interfaces
                     console.log('🖱️ MODE ADMIN ACTIVÉ');
+
+                    // Pause music in Admin mode
+                    pauseAudio();
                     console.log('   - N pour afficher/cacher les interfaces');
                     console.log('   - B pour passer en mode SPECTATEUR');
                     console.log('   - F pour FPS Settings');
@@ -2867,11 +3018,7 @@
                     document.getElementById('load-section').classList.add('hidden');
                     document.getElementById('controls').classList.remove('hidden');
                     document.getElementById('ui').classList.add('loaded');
-                    // Interfaces cachées par défaut, appuyer sur N pour afficher
-                    document.getElementById('screen-manager-panel').classList.add('hidden');
-                    document.getElementById('ui').classList.add('hidden');
-                    // document.getElementById('shape-selector').classList.add('hidden'); // Already hidden
-                    // updateScreenList(); // Removed: called at end of generate() instead
+                    // Interfaces visibility managed by mode system (Spectator/Admin)
                 }
 
                 // Auto-play
@@ -5260,20 +5407,131 @@
             }
         });
 
+        // Draggable panels system
+        function makeDraggable(element) {
+            if (!element) return;
+
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            let isDragging = false;
+
+            element.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                // Don't drag if clicking on buttons, inputs, or scrollbar
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' ||
+                    e.target.tagName === 'SELECT' || e.target.classList.contains('screen-list')) {
+                    return;
+                }
+
+                e.preventDefault();
+                isDragging = true;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+                element.style.cursor = 'grabbing';
+            }
+
+            function elementDrag(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+
+                const newTop = element.offsetTop - pos2;
+                const newLeft = element.offsetLeft - pos1;
+
+                // Keep within viewport bounds
+                const maxX = window.innerWidth - element.offsetWidth;
+                const maxY = window.innerHeight - element.offsetHeight;
+
+                element.style.top = Math.max(0, Math.min(newTop, maxY)) + "px";
+                element.style.left = Math.max(0, Math.min(newLeft, maxX)) + "px";
+                element.style.bottom = "auto";
+                element.style.right = "auto";
+            }
+
+            function closeDragElement() {
+                isDragging = false;
+                document.onmouseup = null;
+                document.onmousemove = null;
+                element.style.cursor = 'move';
+            }
+        }
+
+        // Audio system
+        let backgroundMusic = null;
+        let isPaused = false;
+
+        function initAudio() {
+            backgroundMusic = new Audio('son/Teimo.mp3');
+            backgroundMusic.loop = true;
+            backgroundMusic.volume = 0.3;
+        }
+
+        function playAudio() {
+            if (backgroundMusic && fpsMode) {
+                backgroundMusic.play().catch(err => {
+                    console.warn('⚠️ Autoplay audio bloqué:', err);
+                });
+            }
+        }
+
+        function pauseAudio() {
+            if (backgroundMusic) {
+                backgroundMusic.pause();
+            }
+        }
+
+        // Welcome screen functions
+        function startExperience() {
+            const welcomeScreen = document.getElementById('welcome-screen');
+            welcomeScreen.classList.add('hidden');
+
+            // Start the auto-load sequence after welcome screen
+            setTimeout(() => {
+                welcomeScreen.style.display = 'none';
+                init();
+                setupFPSSettings();
+
+                // Make panels draggable
+                makeDraggable(document.getElementById('screen-manager-panel'));
+                makeDraggable(document.getElementById('fps-settings-panel'));
+                makeDraggable(document.getElementById('ui'));
+
+                autoLoadSequence();
+            }, 600);
+        }
+
+        // Pause screen functions
+        function showPauseScreen() {
+            if (!fpsMode) return; // Only in Spectator mode
+
+            isPaused = true;
+            document.getElementById('pause-screen').classList.add('active');
+            pauseAudio();
+
+            // Exit pointer lock
+            if (document.exitPointerLock) {
+                document.exitPointerLock();
+            }
+        }
+
+        function resumeExperience() {
+            isPaused = false;
+            document.getElementById('pause-screen').classList.remove('active');
+            playAudio();
+        }
+
         window.onload = function() {
+            // Don't auto-start - wait for user interaction on welcome screen
+            initAudio();
             console.log('═══════════════════════════════════════════════════════');
             console.log('📦 WINDOW.ONLOAD - Page chargée');
+            console.log('💡 Cliquez sur PLAY pour démarrer');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔧 Appel de init()...');
-            init();
-            console.log('✅ init() terminé');
-            console.log('🔧 Appel de setupFPSSettings()...');
-            setupFPSSettings();
-            console.log('✅ setupFPSSettings() terminé');
-            console.log('═══════════════════════════════════════════════════════');
-
-            // Auto-load sequence
-            autoLoadSequence();
         };
 
         // Auto-load sequence: Load default video → Activate FPS → Show UI → Apply
@@ -5296,6 +5554,9 @@
                 document.getElementById('shape-selector')?.classList.add('hidden');
                 document.getElementById('fps-settings-panel')?.classList.add('hidden');
                 document.getElementById('fps-counter')?.classList.add('hidden');
+
+                // Play background music in Spectator mode
+                playAudio();
                 await sleep(300);
 
                 // Step 3: Apply settings
