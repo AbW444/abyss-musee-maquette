@@ -561,6 +561,11 @@
             height: 100%;
             object-fit: cover;
             z-index: 0;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        #welcome-video-bg.loaded {
+            opacity: 1;
         }
         .welcome-content {
             max-width: 580px;
@@ -752,6 +757,8 @@
             flex-direction: column;
             align-items: center;
             gap: 12px;
+            height: 150px;
+            justify-content: center;
         }
         .volume-label {
             font-size: 12px;
@@ -760,15 +767,15 @@
             letter-spacing: 1px;
         }
         .volume-slider {
-            width: 4px;
-            height: 120px;
+            width: 120px;
+            height: 4px;
             border-radius: 2px;
             background: rgba(255,255,255,0.2);
             outline: none;
-            -webkit-appearance: slider-vertical;
-            writing-mode: bt-lr;
             -webkit-appearance: none;
             appearance: none;
+            transform: rotate(-90deg);
+            transform-origin: center;
         }
         .volume-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -1083,7 +1090,7 @@
 
         <div class="pause-controls" onclick="event.stopPropagation()">
             <div class="volume-control">
-                <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70" oninput="updateVolume(this.value)" orient="vertical">
+                <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70" oninput="updateVolume(this.value)">
                 <span class="volume-label" id="volume-display">70%</span>
             </div>
             <button class="mute-button" id="mute-button" onclick="toggleMute()">
@@ -6279,6 +6286,9 @@
 
         // Resize
         window.onresize = function() {
+            // Only resize if camera and renderer are initialized
+            if (!camera || !renderer) return;
+
             // Utiliser la taille complète de la fenêtre (pas de ratio forcé)
             const canvasWidth = window.innerWidth;
             const canvasHeight = window.innerHeight;
@@ -6887,6 +6897,20 @@
             console.log('📦 WINDOW.ONLOAD - Page chargée');
             console.log('💡 Cliquez sur PLAY pour démarrer');
             console.log('═══════════════════════════════════════════════════════');
+
+            // Handle background video loading
+            const welcomeVideo = document.getElementById('welcome-video-bg');
+            if (welcomeVideo) {
+                welcomeVideo.addEventListener('canplaythrough', function() {
+                    welcomeVideo.classList.add('loaded');
+                    console.log('✅ Vidéo d\'arrière-plan chargée');
+                });
+
+                welcomeVideo.addEventListener('error', function() {
+                    console.log('⚠️ Vidéo d\'arrière-plan non disponible - fond noir utilisé');
+                    welcomeVideo.style.display = 'none';
+                });
+            }
         };
 
         // Auto-load sequence: Load default video → Activate FPS → Show UI → Apply
