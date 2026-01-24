@@ -1287,6 +1287,8 @@
         // Free camera (no orbit controls, no pivot)
         let freeCameraEnabled = true;
         let fpsMode = false; // Mode Normal/Admin par défaut - Touche B pour activer mode FPS
+        let bPressCount = 0; // Compteur d'appuis consécutifs sur B
+        let bPressTimeout = null; // Timeout pour réinitialiser le compteur
         let showHitbox = false; // Affichage de la hitbox activé avec touche H
         let hitboxHelper = null; // Helper pour visualiser la hitbox
         let cameraYaw = 0; // Rotation horizontale (Y axis)
@@ -1312,7 +1314,7 @@
         var fpsSettings = {
             fpsCameraHeight: -96,       // Hauteur de spawn de la caméra
             fpsGravity: -1.5,           // Gravité
-            fpsPlayerHeight: 30,        // Hauteur des yeux du joueur au-dessus du sol
+            fpsPlayerHeight: 25,        // Hauteur des yeux du joueur au-dessus du sol
             fpsMaxSpeed: 2.25,          // Vitesse maximale
             fpsAcceleration: 0.1,       // Vitesse d'accélération
             fpsDeceleration: 0.3,       // Vitesse de décélération
@@ -1748,9 +1750,33 @@
                 toggleAllInterfaces();
             }
 
-            // B: Toggle FPS mode
+            // B: Toggle FPS mode (requires 5 consecutive presses)
             if (e.code === 'KeyB') {
                 e.preventDefault();
+
+                // Clear existing timeout
+                if (bPressTimeout) {
+                    clearTimeout(bPressTimeout);
+                }
+
+                // Increment counter
+                bPressCount++;
+                console.log(`🅱️ B appuyé ${bPressCount}/5 fois`);
+
+                // Reset counter after 2 seconds of inactivity
+                bPressTimeout = setTimeout(() => {
+                    bPressCount = 0;
+                    console.log('⏱️ Compteur B réinitialisé (timeout)');
+                }, 2000);
+
+                // Only toggle mode after 5 presses
+                if (bPressCount < 5) {
+                    return; // Not enough presses yet
+                }
+
+                // Reset counter and toggle mode
+                bPressCount = 0;
+                clearTimeout(bPressTimeout);
                 fpsMode = !fpsMode;
                 if (fpsMode) {
                     // ENTERING SPECTATOR MODE: Hide all interfaces
@@ -1793,18 +1819,16 @@
                         document.exitPointerLock();
                     }
 
-                    // Show all interfaces in Admin mode
-                    document.getElementById('ui')?.classList.remove('hidden');
-                    document.getElementById('screen-manager-panel')?.classList.remove('hidden');
-                    document.getElementById('shape-selector')?.classList.remove('hidden');
-                    document.getElementById('fps-settings-panel')?.classList.remove('hidden');
+                    // CRITICAL: In Admin mode, show ONLY FPS counter + screen numbers by default
+                    // Other interfaces appear only when pressing N or their individual keys
                     document.getElementById('fps-counter')?.classList.remove('hidden');
 
-                    // CRITICAL: If video loaded, ensure controls are visible
-                    if (currentVideo) {
-                        // Keep both load-section and controls visible
-                        document.getElementById('controls')?.classList.remove('hidden');
-                    }
+                    // Hide all other interfaces by default
+                    document.getElementById('ui')?.classList.add('hidden');
+                    document.getElementById('screen-manager-panel')?.classList.add('hidden');
+                    document.getElementById('shape-selector')?.classList.add('hidden');
+                    document.getElementById('fps-settings-panel')?.classList.add('hidden');
+                    document.getElementById('controls')?.classList.add('hidden');
                 }
             }
 
@@ -1823,6 +1847,57 @@
                         if (hitboxHelper.material) hitboxHelper.material.dispose();
                         hitboxHelper = null;
                     }
+                }
+            }
+
+            // Individual interface toggles (Admin mode only)
+            if (!fpsMode) {
+                // & (Digit1): Toggle UI (video + controls)
+                if (e.key === '&' || e.code === 'Digit1') {
+                    e.preventDefault();
+                    const ui = document.getElementById('ui');
+                    ui?.classList.toggle('hidden');
+                    console.log(`🎥 Interface vidéo: ${ui?.classList.contains('hidden') ? 'cachée' : 'visible'}`);
+                }
+
+                // é (Digit2): Toggle screen manager
+                if (e.key === 'é' || e.code === 'Digit2') {
+                    e.preventDefault();
+                    const screenManager = document.getElementById('screen-manager-panel');
+                    screenManager?.classList.toggle('hidden');
+                    console.log(`📺 Gestionnaire écrans: ${screenManager?.classList.contains('hidden') ? 'caché' : 'visible'}`);
+                }
+
+                // " (Digit3): Toggle shape selector
+                if (e.key === '"' || e.code === 'Digit3') {
+                    e.preventDefault();
+                    const shapeSelector = document.getElementById('shape-selector');
+                    shapeSelector?.classList.toggle('hidden');
+                    console.log(`🔷 Sélecteur formes: ${shapeSelector?.classList.contains('hidden') ? 'caché' : 'visible'}`);
+                }
+
+                // ' (Digit4): Toggle FPS settings (replaces F key)
+                if (e.key === "'" || e.code === 'Digit4') {
+                    e.preventDefault();
+                    const fpsSettings = document.getElementById('fps-settings-panel');
+                    fpsSettings?.classList.toggle('hidden');
+                    console.log(`⚙️ Paramètres FPS: ${fpsSettings?.classList.contains('hidden') ? 'cachés' : 'visibles'}`);
+                }
+
+                // ( (Digit5): Toggle FPS counter
+                if (e.key === '(' || e.code === 'Digit5') {
+                    e.preventDefault();
+                    const fpsCounter = document.getElementById('fps-counter');
+                    fpsCounter?.classList.toggle('hidden');
+                    console.log(`📊 Compteur FPS: ${fpsCounter?.classList.contains('hidden') ? 'caché' : 'visible'}`);
+                }
+
+                // - (Digit6 or Minus): Toggle controls (protocol settings)
+                if (e.key === '-' || e.code === 'Digit6' || e.code === 'Minus') {
+                    e.preventDefault();
+                    const controls = document.getElementById('controls');
+                    controls?.classList.toggle('hidden');
+                    console.log(`🎛️ Réglages protocole: ${controls?.classList.contains('hidden') ? 'cachés' : 'visibles'}`);
                 }
             }
         });
