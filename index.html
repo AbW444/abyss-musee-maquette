@@ -876,8 +876,7 @@
     <!-- Loading Screen -->
     <div id="loading-screen">
         <video class="loading-video" autoplay loop muted playsinline preload="auto">
-            <source src="videos/poulpe_alpha.mov" type="video/mp4">
-            <source src="videos/poulpe_alpha.mov" type="video/quicktime">
+            <source src="videos/poulpe_alpha.webm" type="video/webm">
         </video>
     </div>
 
@@ -2339,9 +2338,48 @@
 
             screenList.innerHTML = '';
 
-            Object.keys(allScreens).sort((a, b) => parseInt(a) - parseInt(b)).forEach(num => {
+            // Separate screens into two categories
+            const videoScreens = [];
+            const colorScreens = [];
+
+            Object.keys(allScreens).forEach(num => {
                 const screen = allScreens[num];
                 const isColorSurface = screen.userData.isColorSurface || false;
+
+                if (isColorSurface) {
+                    colorScreens.push(num);
+                } else {
+                    videoScreens.push(num);
+                }
+            });
+
+            // Sort each category by number
+            videoScreens.sort((a, b) => parseInt(a) - parseInt(b));
+            colorScreens.sort((a, b) => parseInt(a) - parseInt(b));
+
+            // Helper function to add section header
+            const addSectionHeader = (title) => {
+                const headerDiv = document.createElement('div');
+                headerDiv.style.cssText = `
+                    padding: 8px 0 4px 0;
+                    font-size: 9px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    color: rgba(255,255,255,0.5);
+                    margin-top: 8px;
+                    border-top: 1px solid rgba(255,255,255,0.1);
+                `;
+                headerDiv.textContent = title;
+                screenList.appendChild(headerDiv);
+            };
+
+            // Display video screens first
+            if (videoScreens.length > 0) {
+                addSectionHeader('Écrans vidéo');
+                videoScreens.forEach(num => {
+                    const screen = allScreens[num];
+                    const isColorSurface = false;
                 const color = screen.userData.color || 0x808080;
 
                 const itemDiv = document.createElement('div');
@@ -2459,8 +2497,131 @@
                     itemDiv.appendChild(colorSection);
                 }
 
-                screenList.appendChild(itemDiv);
-            });
+                    screenList.appendChild(itemDiv);
+                });
+            }
+
+            // Display color screens
+            if (colorScreens.length > 0) {
+                addSectionHeader('Formes colorées');
+                colorScreens.forEach(num => {
+                    const screen = allScreens[num];
+                    const isColorSurface = true;
+                    const color = screen.userData.color || 0x808080;
+
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'screen-item';
+                    if (selectedScreen == num) {
+                        itemDiv.classList.add('selected');
+                    }
+
+                    // Click to select screen
+                    itemDiv.addEventListener('click', (e) => {
+                        if (!e.target.classList.contains('screen-delete')) {
+                            selectScreen(num);
+                            updateScreenList();
+                        }
+                    });
+
+                    // Header with number and delete button
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'screen-header';
+                    headerDiv.innerHTML = `
+                        <span class="screen-num">Forme ${num}</span>
+                        <button class="screen-delete" onclick="event.stopPropagation(); deleteScreen(${num}); updateScreenList();">×</button>
+                    `;
+                    itemDiv.appendChild(headerDiv);
+
+                    // Type selector
+                    const typeSelectorDiv = document.createElement('div');
+                    typeSelectorDiv.className = 'screen-type-selector';
+                    typeSelectorDiv.innerHTML = `
+                        <button class="screen-type-btn ${!isColorSurface ? 'active' : ''}" onclick="setScreenType(${num}, false)">Vidéo</button>
+                        <button class="screen-type-btn ${isColorSurface ? 'active' : ''}" onclick="setScreenType(${num}, true)">Couleur</button>
+                    `;
+                    itemDiv.appendChild(typeSelectorDiv);
+
+                    // Color picker
+                    const colorSection = document.createElement('div');
+                    colorSection.className = 'color-section';
+
+                    const colorTitle = document.createElement('h4');
+                    colorTitle.textContent = 'Couleur:';
+                    colorSection.appendChild(colorTitle);
+
+                    // Preset colors grid
+                    const colorGrid = document.createElement('div');
+                    colorGrid.className = 'color-grid';
+
+                    const colors = [
+                        { hex: '#000000', value: 0x000000, name: 'Noir' },
+                        { hex: '#1a1a1a', value: 0x1a1a1a, name: 'Noir+' },
+                        { hex: '#333333', value: 0x333333, name: 'Gris foncé' },
+                        { hex: '#4d4d4d', value: 0x4d4d4d, name: 'Gris moyen-foncé' },
+                        { hex: '#666666', value: 0x666666, name: 'Gris' },
+                        { hex: '#808080', value: 0x808080, name: 'Gris moyen' },
+                        { hex: '#999999', value: 0x999999, name: 'Gris clair' },
+                        { hex: '#b3b3b3', value: 0xb3b3b3, name: 'Gris très clair' },
+                        { hex: '#cccccc', value: 0xcccccc, name: 'Gris pâle' },
+                        { hex: '#e6e6e6', value: 0xe6e6e6, name: 'Blanc cassé' },
+                        { hex: '#f5f5f5', value: 0xf5f5f5, name: 'Blanc neige' },
+                        { hex: '#ffffff', value: 0xffffff, name: 'Blanc' }
+                    ];
+
+                    colors.forEach(c => {
+                        const colorBtn = document.createElement('div');
+                        colorBtn.className = 'color-option';
+                        if (color === c.value) {
+                            colorBtn.classList.add('active');
+                        }
+                        colorBtn.style.background = c.hex;
+                        colorBtn.title = c.name;
+                        colorBtn.onclick = () => setScreenColor(num, c.value);
+                        colorGrid.appendChild(colorBtn);
+                    });
+
+                    colorSection.appendChild(colorGrid);
+
+                    // Custom color picker
+                    const customDiv = document.createElement('div');
+                    customDiv.className = 'color-custom';
+                    customDiv.innerHTML = `
+                        <input type="color" id="color-picker-${num}" value="${'#' + color.toString(16).padStart(6, '0')}" />
+                        <input type="text" id="color-hex-${num}" value="${'#' + color.toString(16).padStart(6, '0').toUpperCase()}" placeholder="#RRGGBB" maxlength="7" />
+                    `;
+                    colorSection.appendChild(customDiv);
+
+                    // Add event listeners for custom color
+                    setTimeout(() => {
+                        const picker = document.getElementById(`color-picker-${num}`);
+                        const hexInput = document.getElementById(`color-hex-${num}`);
+
+                        if (picker) {
+                            picker.addEventListener('input', (e) => {
+                                const hex = e.target.value;
+                                hexInput.value = hex.toUpperCase();
+                                setScreenColor(num, parseInt(hex.substring(1), 16));
+                            });
+                        }
+
+                        if (hexInput) {
+                            hexInput.addEventListener('change', (e) => {
+                                let hex = e.target.value.trim();
+                                if (!hex.startsWith('#')) hex = '#' + hex;
+                                if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+                                    picker.value = hex;
+                                    setScreenColor(num, parseInt(hex.substring(1), 16));
+                                } else {
+                                    hexInput.value = '#' + color.toString(16).padStart(6, '0').toUpperCase();
+                                }
+                            });
+                        }
+                    }, 0);
+
+                    itemDiv.appendChild(colorSection);
+                    screenList.appendChild(itemDiv);
+                });
+            }
         }
 
         function setScreenType(num, isColorSurface) {
@@ -6191,6 +6352,7 @@
         const AudioManager = {
             // State
             music: null,
+            clickSound: null,
             audioContext: null,
             masterVolume: 0.7,
             currentMusicVolume: 0.7,
@@ -6205,7 +6367,11 @@
                 this.music.volume = this.masterVolume;
                 this.currentMusicVolume = this.masterVolume;
 
-                // Web Audio Context for UI sounds
+                // Click sound effect
+                this.clickSound = new Audio('son/immersivecontrol-button-click-sound-463065.mp3');
+                this.clickSound.volume = 0.5; // Base volume for click sound
+
+                // Web Audio Context for UI sounds (fallback)
                 try {
                     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 } catch(e) {
@@ -6292,31 +6458,17 @@
                 }
             },
 
-            // Play click sound (mechanical, professional)
+            // Play click sound (using audio file)
             playClick() {
-                if (!this.audioContext || this.isMuted) return;
+                if (this.isMuted || !this.clickSound) return;
 
                 try {
-                    const oscillator = this.audioContext.createOscillator();
-                    const gainNode = this.audioContext.createGain();
-
-                    oscillator.connect(gainNode);
-                    gainNode.connect(this.audioContext.destination);
-
-                    // Mechanical click: square wave, low frequency
-                    oscillator.type = 'square';
-                    oscillator.frequency.setValueAtTime(150, this.audioContext.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(80, this.audioContext.currentTime + 0.03);
-
-                    // Volume scales with master volume
-                    const baseGain = 0.06;
-                    const finalGain = baseGain * this.masterVolume;
-
-                    gainNode.gain.setValueAtTime(finalGain, this.audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
-
-                    oscillator.start(this.audioContext.currentTime);
-                    oscillator.stop(this.audioContext.currentTime + 0.05);
+                    // Clone and play the audio (allows multiple simultaneous clicks)
+                    const clickClone = this.clickSound.cloneNode();
+                    clickClone.volume = 0.5 * this.masterVolume; // Scale with master volume
+                    clickClone.play().catch(err => {
+                        console.warn('Click sound playback error:', err);
+                    });
                 } catch(e) {
                     console.warn('Click sound error:', e);
                 }
