@@ -3053,6 +3053,13 @@
                 } else {
                     isMouseLocked = false;
                     console.log('🔓 PointerLock désactivé');
+
+                    // CRITICAL FIX: When pointer lock is released in Spectator mode, show pause screen
+                    // This ensures ESC directly shows pause screen instead of requiring two presses
+                    if (fpsMode && !isPaused) {
+                        console.log('▶️ ESC détecté: Affichage du mode pause');
+                        showPauseScreen();
+                    }
                 }
             }
 
@@ -6142,10 +6149,7 @@
             // Progressive fade down (not complete pause)
             fadeVolume(0.1, 800); // Fade to 10% volume
 
-            // Exit pointer lock
-            if (document.exitPointerLock) {
-                document.exitPointerLock();
-            }
+            // Note: Pointer lock is automatically released by ESC key before this function is called
         }
 
         function resumeExperience() {
