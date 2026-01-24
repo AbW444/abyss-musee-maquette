@@ -3413,6 +3413,12 @@
             console.log('📦 allScreens avant:', Object.keys(allScreens || {}));
             console.log('🎥 Vidéo:', video ? `${video.videoWidth}x${video.videoHeight}` : 'null');
 
+            // Multi-video system: prefer screen-specific video if available
+            if (screenVideos[1]) {
+                console.log('🎬 Multi-video mode: Utilisation de video_01.mp4 pour génération');
+                video = screenVideos[1];
+            }
+
             if (typeof THREE === 'undefined') {
                 console.error('❌ THREE.js not loaded in generate()!');
                 alert('THREE.js not loaded.');
@@ -3859,12 +3865,75 @@
             const screenH = TARGET_HEIGHT * scaleFactor;
             const wallBottomY = -screenH / 2;
 
-            // Clone and position second screen to the right
-            const particlesRight = particles.clone();
+            // === ÉCRAN 2: Generate from video_02.mp4 if available (multi-video system) ===
+            let particlesRight;
+            if (screenVideos[2] && screenVideos[2] !== video) {
+                console.log('🎬 Génération écran 2 depuis video_02.mp4');
+                const screen2Data = createParticleDataFromVideo(screenVideos[2]);
 
-            // Ensure both screens share the same geometry and material
-            particlesRight.geometry = particles.geometry;
-            particlesRight.material = particles.material;
+                if (is3DMode) {
+                    const count2 = screen2Data.positions.length / 3;
+                    let baseGeometry2;
+                    const size = pointSize * 3;
+
+                    switch(currentShape) {
+                        case 'square':
+                            baseGeometry2 = new THREE.BoxGeometry(size, size, size);
+                            break;
+                        case 'circle':
+                            baseGeometry2 = new THREE.SphereGeometry(size * 0.5, 8, 6);
+                            break;
+                        case 'diamond':
+                            baseGeometry2 = new THREE.OctahedronGeometry(size * 0.5);
+                            break;
+                        case 'star':
+                            baseGeometry2 = new THREE.TetrahedronGeometry(size * 0.6);
+                            break;
+                        default:
+                            baseGeometry2 = new THREE.SphereGeometry(size * 0.5, 8, 6);
+                    }
+
+                    particlesRight = new THREE.InstancedMesh(baseGeometry2, material, count2);
+                    particlesRight.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+                    const instanceColors2 = new Float32Array(count2 * 3);
+                    for (let i = 0; i < count2; i++) {
+                        instanceColors2[i * 3] = screen2Data.colors[i * 3];
+                        instanceColors2[i * 3 + 1] = screen2Data.colors[i * 3 + 1];
+                        instanceColors2[i * 3 + 2] = screen2Data.colors[i * 3 + 2];
+                    }
+                    particlesRight.instanceColor = new THREE.InstancedBufferAttribute(instanceColors2, 3);
+
+                    for (let i = 0; i < count2; i++) {
+                        reusableMatrix.setPosition(
+                            screen2Data.positions[i * 3],
+                            screen2Data.positions[i * 3 + 1],
+                            screen2Data.positions[i * 3 + 2]
+                        );
+                        particlesRight.setMatrixAt(i, reusableMatrix);
+                        reusableColor.setRGB(screen2Data.colors[i * 3], screen2Data.colors[i * 3 + 1], screen2Data.colors[i * 3 + 2]);
+                        particlesRight.setColorAt(i, reusableColor);
+                    }
+
+                    particlesRight.instanceMatrix.needsUpdate = true;
+                    particlesRight.userData.initialZ = screen2Data.initialZ;
+                    particlesRight.userData.positions = screen2Data.positions;
+                    particlesRight.userData.is3D = true;
+                } else {
+                    const geometry2 = new THREE.BufferGeometry();
+                    geometry2.setAttribute('position', new THREE.Float32BufferAttribute(screen2Data.positions, 3));
+                    geometry2.setAttribute('color', new THREE.Float32BufferAttribute(screen2Data.colors, 3));
+                    geometry2.setAttribute('initialZ', new THREE.Float32BufferAttribute(screen2Data.initialZ, 1));
+
+                    particlesRight = new THREE.Points(geometry2, material);
+                }
+            } else {
+                // Fallback: Clone screen 1 if video_02.mp4 not available
+                console.log('🎬 Écran 2: Clonage de l\'écran 1 (video_02.mp4 non disponible)');
+                particlesRight = particles.clone();
+                particlesRight.geometry = particles.geometry;
+                particlesRight.material = particles.material;
+            }
 
             // Écran 2 - Position de base
             particlesRight.position.set(400, 0, 0);
@@ -3969,10 +4038,75 @@
 
             // --- Opposite wall (in front of right wall), hinged to the floor end ---
 
-            // Clone left wall screen for opposite wall A
-            const wallOppA = particles.clone();
-            wallOppA.geometry = particles.geometry;
-            wallOppA.material = particles.material;
+            // === ÉCRAN 5: Generate from video_05.mp4 if available ===
+            let wallOppA;
+            if (screenVideos[5]) {
+                console.log('🎬 Génération écran 5 depuis video_05.mp4');
+                const screen5Data = createParticleDataFromVideo(screenVideos[5]);
+
+                if (is3DMode) {
+                    const count5 = screen5Data.positions.length / 3;
+                    let baseGeometry5;
+                    const size = pointSize * 3;
+
+                    switch(currentShape) {
+                        case 'square':
+                            baseGeometry5 = new THREE.BoxGeometry(size, size, size);
+                            break;
+                        case 'circle':
+                            baseGeometry5 = new THREE.SphereGeometry(size * 0.5, 8, 6);
+                            break;
+                        case 'diamond':
+                            baseGeometry5 = new THREE.OctahedronGeometry(size * 0.5);
+                            break;
+                        case 'star':
+                            baseGeometry5 = new THREE.TetrahedronGeometry(size * 0.6);
+                            break;
+                        default:
+                            baseGeometry5 = new THREE.SphereGeometry(size * 0.5, 8, 6);
+                    }
+
+                    wallOppA = new THREE.InstancedMesh(baseGeometry5, material, count5);
+                    wallOppA.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+                    const instanceColors5 = new Float32Array(count5 * 3);
+                    for (let i = 0; i < count5; i++) {
+                        instanceColors5[i * 3] = screen5Data.colors[i * 3];
+                        instanceColors5[i * 3 + 1] = screen5Data.colors[i * 3 + 1];
+                        instanceColors5[i * 3 + 2] = screen5Data.colors[i * 3 + 2];
+                    }
+                    wallOppA.instanceColor = new THREE.InstancedBufferAttribute(instanceColors5, 3);
+
+                    for (let i = 0; i < count5; i++) {
+                        reusableMatrix.setPosition(
+                            screen5Data.positions[i * 3],
+                            screen5Data.positions[i * 3 + 1],
+                            screen5Data.positions[i * 3 + 2]
+                        );
+                        wallOppA.setMatrixAt(i, reusableMatrix);
+                        reusableColor.setRGB(screen5Data.colors[i * 3], screen5Data.colors[i * 3 + 1], screen5Data.colors[i * 3 + 2]);
+                        wallOppA.setColorAt(i, reusableColor);
+                    }
+
+                    wallOppA.instanceMatrix.needsUpdate = true;
+                    wallOppA.userData.initialZ = screen5Data.initialZ;
+                    wallOppA.userData.positions = screen5Data.positions;
+                    wallOppA.userData.is3D = true;
+                } else {
+                    const geometry5 = new THREE.BufferGeometry();
+                    geometry5.setAttribute('position', new THREE.Float32BufferAttribute(screen5Data.positions, 3));
+                    geometry5.setAttribute('color', new THREE.Float32BufferAttribute(screen5Data.colors, 3));
+                    geometry5.setAttribute('initialZ', new THREE.Float32BufferAttribute(screen5Data.initialZ, 1));
+
+                    wallOppA = new THREE.Points(geometry5, material);
+                }
+            } else {
+                // Fallback: Clone screen 1
+                console.log('🎬 Écran 5: Clonage de l\'écran 1 (video_05.mp4 non disponible)');
+                wallOppA = particles.clone();
+                wallOppA.geometry = particles.geometry;
+                wallOppA.material = particles.material;
+            }
 
             // Écran 5 - Position de base
             wallOppA.position.set(0, 0, 225);
@@ -3980,10 +4114,75 @@
 
             screensGroup.add(wallOppA);
 
-            // Clone right wall screen for opposite wall B
-            const wallOppB = particlesRight.clone();
-            wallOppB.geometry = particles.geometry;
-            wallOppB.material = particles.material;
+            // === ÉCRAN 6: Generate from video_06.mp4 if available ===
+            let wallOppB;
+            if (screenVideos[6]) {
+                console.log('🎬 Génération écran 6 depuis video_06.mp4');
+                const screen6Data = createParticleDataFromVideo(screenVideos[6]);
+
+                if (is3DMode) {
+                    const count6 = screen6Data.positions.length / 3;
+                    let baseGeometry6;
+                    const size = pointSize * 3;
+
+                    switch(currentShape) {
+                        case 'square':
+                            baseGeometry6 = new THREE.BoxGeometry(size, size, size);
+                            break;
+                        case 'circle':
+                            baseGeometry6 = new THREE.SphereGeometry(size * 0.5, 8, 6);
+                            break;
+                        case 'diamond':
+                            baseGeometry6 = new THREE.OctahedronGeometry(size * 0.5);
+                            break;
+                        case 'star':
+                            baseGeometry6 = new THREE.TetrahedronGeometry(size * 0.6);
+                            break;
+                        default:
+                            baseGeometry6 = new THREE.SphereGeometry(size * 0.5, 8, 6);
+                    }
+
+                    wallOppB = new THREE.InstancedMesh(baseGeometry6, material, count6);
+                    wallOppB.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+                    const instanceColors6 = new Float32Array(count6 * 3);
+                    for (let i = 0; i < count6; i++) {
+                        instanceColors6[i * 3] = screen6Data.colors[i * 3];
+                        instanceColors6[i * 3 + 1] = screen6Data.colors[i * 3 + 1];
+                        instanceColors6[i * 3 + 2] = screen6Data.colors[i * 3 + 2];
+                    }
+                    wallOppB.instanceColor = new THREE.InstancedBufferAttribute(instanceColors6, 3);
+
+                    for (let i = 0; i < count6; i++) {
+                        reusableMatrix.setPosition(
+                            screen6Data.positions[i * 3],
+                            screen6Data.positions[i * 3 + 1],
+                            screen6Data.positions[i * 3 + 2]
+                        );
+                        wallOppB.setMatrixAt(i, reusableMatrix);
+                        reusableColor.setRGB(screen6Data.colors[i * 3], screen6Data.colors[i * 3 + 1], screen6Data.colors[i * 3 + 2]);
+                        wallOppB.setColorAt(i, reusableColor);
+                    }
+
+                    wallOppB.instanceMatrix.needsUpdate = true;
+                    wallOppB.userData.initialZ = screen6Data.initialZ;
+                    wallOppB.userData.positions = screen6Data.positions;
+                    wallOppB.userData.is3D = true;
+                } else {
+                    const geometry6 = new THREE.BufferGeometry();
+                    geometry6.setAttribute('position', new THREE.Float32BufferAttribute(screen6Data.positions, 3));
+                    geometry6.setAttribute('color', new THREE.Float32BufferAttribute(screen6Data.colors, 3));
+                    geometry6.setAttribute('initialZ', new THREE.Float32BufferAttribute(screen6Data.initialZ, 1));
+
+                    wallOppB = new THREE.Points(geometry6, material);
+                }
+            } else {
+                // Fallback: Clone screen 2
+                console.log('🎬 Écran 6: Clonage de l\'écran 2 (video_06.mp4 non disponible)');
+                wallOppB = particlesRight.clone();
+                wallOppB.geometry = particles.geometry;
+                wallOppB.material = particles.material;
+            }
 
             // Écran 6 - Position de base
             wallOppB.position.set(400, 0, 225);
@@ -3991,25 +4190,38 @@
 
             screensGroup.add(wallOppB);
 
-            // === ÉCRAN 7: panneau latéral CARRÉ (largeur = hauteur) ===
-            // Créer une géométrie carrée : largeur = hauteur = screenH
-            // L'image garde sa taille normale et "dépasse" de l'écran (comme les autres)
-            const screen7Positions = [];
-            const screen7Colors = [];
-            const screen7InitialZ = [];
+            // === ÉCRAN 7: panneau latéral CARRÉ - Generate from video_07.mp4 if available ===
+            let screen7Positions, screen7Colors, screen7InitialZ;
+            let useVideo7 = false;
 
-            // Réutilise halfH déjà déclaré pour l'écran 3 (screenH / 2 = 112.5)
-            // Filtrer les particules pour faire un carré : X et Y entre -halfH et +halfH
-            for (let i = 0; i < positions.length / 3; i++) {
-                const x = positions[i * 3];
-                const y = positions[i * 3 + 1];
-                const z = positions[i * 3 + 2];
+            if (screenVideos[7]) {
+                // Use video_07.mp4
+                console.log('🎬 Génération écran 7 depuis video_07.mp4');
+                const screen7Data = createParticleDataFromVideo(screenVideos[7]);
+                screen7Positions = screen7Data.positions;
+                screen7Colors = screen7Data.colors;
+                screen7InitialZ = screen7Data.initialZ;
+                useVideo7 = true;
+            } else {
+                // Fallback: Filter from screen 1 video to create square
+                console.log('🎬 Écran 7: Filtrage depuis l\'écran 1 (video_07.mp4 non disponible)');
+                screen7Positions = [];
+                screen7Colors = [];
+                screen7InitialZ = [];
 
-                // Carré centré : -112.5 <= X <= 112.5 ET -112.5 <= Y <= 112.5
-                if (x >= -halfH && x <= halfH && y >= -halfH && y <= halfH) {
-                    screen7Positions.push(x, y, z);
-                    screen7Colors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
-                    screen7InitialZ.push(initialZ[i]);
+                // Réutilise halfH déjà déclaré pour l'écran 3 (screenH / 2 = 112.5)
+                // Filtrer les particules pour faire un carré : X et Y entre -halfH et +halfH
+                for (let i = 0; i < positions.length / 3; i++) {
+                    const x = positions[i * 3];
+                    const y = positions[i * 3 + 1];
+                    const z = positions[i * 3 + 2];
+
+                    // Carré centré : -112.5 <= X <= 112.5 ET -112.5 <= Y <= 112.5
+                    if (x >= -halfH && x <= halfH && y >= -halfH && y <= halfH) {
+                        screen7Positions.push(x, y, z);
+                        screen7Colors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
+                        screen7InitialZ.push(initialZ[i]);
+                    }
                 }
             }
 
