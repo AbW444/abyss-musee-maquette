@@ -698,82 +698,34 @@
             font-style: italic;
         }
 
-        /* Game Instructions (top-left) */
+        /* Game Instructions (top-left) - Simple text only */
         .game-instructions {
             position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
-            padding: 16px 20px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.15);
-            font-size: 12px;
-            color: rgba(255,255,255,0.7);
+            top: 30px;
+            left: 30px;
+            font-size: 18px;
+            color: rgba(255,255,255,0.85);
             z-index: 100;
             opacity: 1;
             transition: opacity 1s ease;
             pointer-events: none;
+            line-height: 1.8;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+            font-weight: 400;
         }
         .game-instructions.hidden {
             opacity: 0;
         }
-        .game-instructions .instruction-line {
-            display: flex;
-            align-items: center;
-            margin-bottom: 6px;
-            gap: 12px;
-        }
-        .game-instructions .instruction-line:last-child {
-            margin-bottom: 0;
-        }
-        .game-instructions .instruction-key {
-            display: inline-block;
-            background: rgba(255,255,255,0.1);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 11px;
-            min-width: 80px;
-            text-align: center;
-            color: rgba(255,255,255,0.9);
-        }
-        .game-instructions .instruction-desc {
-            color: rgba(255,255,255,0.6);
-            font-size: 11px;
-        }
 
-        /* Instructions in pause screen */
+        /* Instructions in pause screen - Larger text */
         .pause-instructions {
-            margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            font-size: 12px;
-            color: rgba(255,255,255,0.6);
-        }
-        .pause-instructions .instruction-line {
-            display: flex;
-            align-items: center;
-            margin-bottom: 6px;
-            gap: 12px;
-        }
-        .pause-instructions .instruction-line:last-child {
-            margin-bottom: 0;
-        }
-        .pause-instructions .instruction-key {
-            display: inline-block;
-            background: rgba(255,255,255,0.1);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 11px;
-            min-width: 80px;
+            margin-top: 40px;
+            margin-bottom: 40px;
+            font-size: 20px;
+            color: rgba(255,255,255,0.9);
+            line-height: 2;
             text-align: center;
-            color: rgba(255,255,255,0.8);
-        }
-        .pause-instructions .instruction-desc {
-            color: rgba(255,255,255,0.5);
-            font-size: 11px;
+            font-weight: 400;
         }
 
         /* Loading Screen */
@@ -784,24 +736,27 @@
             width: 100vw;
             height: 100vh;
             background: #000000;
-            display: flex;
+            display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 10000;
+            z-index: 10002;
+            opacity: 1;
             transition: opacity 0.5s ease;
+        }
+
+        #loading-screen.active {
+            display: flex;
+            opacity: 1;
         }
 
         #loading-screen.hidden {
             opacity: 0;
-            pointer-events: none;
         }
 
         .loading-video {
-            width: 300px;
+            width: 400px;
             height: auto;
-            opacity: 1;
-            filter: brightness(1.2);
         }
 
         /* Panel Close Button (X) */
@@ -874,30 +829,9 @@
 <body>
     <!-- Game Instructions (top-left, visible when on floor Y=11) -->
     <div class="game-instructions hidden" id="game-instructions">
-        <div class="instruction-line">
-            <span class="instruction-key">Souris</span>
-            <span class="instruction-desc">Regarder autour</span>
-        </div>
-        <div class="instruction-line">
-            <span class="instruction-key">ZQSD</span>
-            <span class="instruction-desc">Se déplacer</span>
-        </div>
-        <div class="instruction-line">
-            <span class="instruction-key">Shift</span>
-            <span class="instruction-desc">Courir</span>
-        </div>
-        <div class="instruction-line">
-            <span class="instruction-key">Espace</span>
-            <span class="instruction-desc">Monter</span>
-        </div>
-        <div class="instruction-line">
-            <span class="instruction-key">Ctrl</span>
-            <span class="instruction-desc">Descendre</span>
-        </div>
-        <div class="instruction-line">
-            <span class="instruction-key">ESC</span>
-            <span class="instruction-desc">Pause</span>
-        </div>
+        Souris : Regarder autour<br>
+        ZQSD ou flèches : Se déplacer<br>
+        ESC : Pause
     </div>
 
     <!-- Welcome Screen -->
@@ -915,7 +849,11 @@
     <!-- Pause Screen (ESC) -->
     <div id="pause-screen">
         <div class="pause-content" onclick="event.stopPropagation()">
-            <div class="pause-hint">Cliquer pour visionner</div>
+            <div class="pause-instructions">
+                Souris : Regarder autour<br>
+                ZQSD ou flèches : Se déplacer<br>
+                ESC : Pause
+            </div>
 
             <div class="pause-controls">
                 <div class="volume-control">
@@ -930,33 +868,6 @@
                         <line id="mute-slash" x1="2" y1="2" x2="22" y2="22" style="display:none;"></line>
                     </svg>
                 </button>
-            </div>
-
-            <div class="pause-instructions">
-                <div class="instruction-line">
-                    <span class="instruction-key">Souris</span>
-                    <span class="instruction-desc">Regarder autour</span>
-                </div>
-                <div class="instruction-line">
-                    <span class="instruction-key">ZQSD</span>
-                    <span class="instruction-desc">Se déplacer</span>
-                </div>
-                <div class="instruction-line">
-                    <span class="instruction-key">Shift</span>
-                    <span class="instruction-desc">Courir</span>
-                </div>
-                <div class="instruction-line">
-                    <span class="instruction-key">Espace</span>
-                    <span class="instruction-desc">Monter</span>
-                </div>
-                <div class="instruction-line">
-                    <span class="instruction-key">Ctrl</span>
-                    <span class="instruction-desc">Descendre</span>
-                </div>
-                <div class="instruction-line">
-                    <span class="instruction-key">ESC</span>
-                    <span class="instruction-desc">Pause</span>
-                </div>
             </div>
         </div>
         <div class="pause-credits">Musique : Teimo (schluss) par Thomas Köner</div>
@@ -5934,16 +5845,22 @@
             // Update game instructions visibility based on Y position
             // Floor 11 is at Y=-111.773, with eye height 25, camera should be at Y≈-86.773
             const instructionsElement = document.getElementById('game-instructions');
-            if (instructionsElement && fpsMode && !isPaused) {
-                const FLOOR_11_Y = -111.773;
-                const expectedCameraY = FLOOR_11_Y + fpsSettings.fpsPlayerHeight;
-                const tolerance = 8; // Tolerance for detecting floor 11
+            if (instructionsElement) {
+                // Show instructions ONLY in FPS mode when on floor 11
+                if (fpsMode && !isPaused) {
+                    const FLOOR_11_Y = -111.773;
+                    const expectedCameraY = FLOOR_11_Y + fpsSettings.fpsPlayerHeight;
+                    const tolerance = 8;
 
-                const isOnFloor11 = Math.abs(camera.position.y - expectedCameraY) < tolerance;
+                    const isOnFloor11 = Math.abs(camera.position.y - expectedCameraY) < tolerance;
 
-                if (isOnFloor11) {
-                    instructionsElement.classList.remove('hidden');
+                    if (isOnFloor11) {
+                        instructionsElement.classList.remove('hidden');
+                    } else {
+                        instructionsElement.classList.add('hidden');
+                    }
                 } else {
+                    // Hide instructions in admin mode or when paused
                     instructionsElement.classList.add('hidden');
                 }
             }
@@ -6261,136 +6178,187 @@
         let backgroundMusic = null;
         let footstepSound = null;
         let isPaused = false;
+        // ═══════════════════════════════════════════════════════════════
+        // AUDIO MANAGER - Professional audio system
+        // ═══════════════════════════════════════════════════════════════
+        const AudioManager = {
+            // State
+            music: null,
+            audioContext: null,
+            masterVolume: 0.7,
+            currentMusicVolume: 0.7,
+            isMuted: false,
+            fadeInterval: null,
+
+            // Initialize audio system
+            init() {
+                // Background music
+                this.music = new Audio('son/Teimo.mp3');
+                this.music.loop = true;
+                this.music.volume = this.masterVolume;
+                this.currentMusicVolume = this.masterVolume;
+
+                // Web Audio Context for UI sounds
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch(e) {
+                    console.warn('Web Audio API not supported');
+                }
+
+                console.log('🔊 AudioManager initialized');
+            },
+
+            // Play background music
+            playMusic() {
+                if (!this.music) return;
+
+                this.music.play().catch(err => {
+                    console.warn('⚠️ Autoplay blocked:', err);
+                });
+                this.fadeMusicTo(this.masterVolume, 500);
+            },
+
+            // Pause background music
+            pauseMusic() {
+                if (!this.music) return;
+
+                this.fadeMusicTo(0, 500);
+                setTimeout(() => {
+                    if (this.music) this.music.pause();
+                }, 500);
+            },
+
+            // Fade music volume
+            fadeMusicTo(targetVolume, duration = 800) {
+                if (this.fadeInterval) clearInterval(this.fadeInterval);
+
+                const steps = 30;
+                const stepDuration = duration / steps;
+                const volumeDelta = (targetVolume - this.currentMusicVolume) / steps;
+
+                let step = 0;
+                this.fadeInterval = setInterval(() => {
+                    step++;
+                    this.currentMusicVolume += volumeDelta;
+
+                    if (!this.isMuted && this.music) {
+                        this.music.volume = Math.max(0, Math.min(1, this.currentMusicVolume));
+                    }
+
+                    if (step >= steps) {
+                        clearInterval(this.fadeInterval);
+                        this.fadeInterval = null;
+                        this.currentMusicVolume = targetVolume;
+                    }
+                }, stepDuration);
+            },
+
+            // Set master volume
+            setVolume(volume) {
+                this.masterVolume = volume;
+                if (!this.isMuted && this.music) {
+                    this.music.volume = volume;
+                    this.currentMusicVolume = volume;
+                }
+            },
+
+            // Toggle mute
+            toggleMute() {
+                this.isMuted = !this.isMuted;
+
+                const soundWaves = document.getElementById('sound-waves');
+                const muteSlash = document.getElementById('mute-slash');
+
+                if (this.isMuted) {
+                    // Mute everything
+                    if (this.music) this.music.volume = 0;
+                    soundWaves.style.display = 'none';
+                    muteSlash.style.display = 'block';
+                } else {
+                    // Unmute
+                    if (this.music) this.music.volume = this.currentMusicVolume;
+                    soundWaves.style.display = 'block';
+                    muteSlash.style.display = 'none';
+
+                    // Play confirmation sound
+                    this.playClick();
+                }
+            },
+
+            // Play click sound (mechanical, professional)
+            playClick() {
+                if (!this.audioContext || this.isMuted) return;
+
+                try {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+
+                    // Mechanical click: square wave, low frequency
+                    oscillator.type = 'square';
+                    oscillator.frequency.setValueAtTime(150, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(80, this.audioContext.currentTime + 0.03);
+
+                    // Volume scales with master volume
+                    const baseGain = 0.06;
+                    const finalGain = baseGain * this.masterVolume;
+
+                    gainNode.gain.setValueAtTime(finalGain, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
+
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 0.05);
+                } catch(e) {
+                    console.warn('Click sound error:', e);
+                }
+            }
+        };
+
+        // Legacy function wrappers (for backward compatibility)
+        let backgroundMusic;
         let targetVolume = 0.7;
         let currentVolume = 0.7;
         let volumeFadeInterval = null;
         let isMuted = false;
 
-        // Audio Context for click sounds
-        let audioContext = null;
-
         function initAudio() {
-            backgroundMusic = new Audio('son/Teimo.mp3');
-            backgroundMusic.loop = true;
-            backgroundMusic.volume = 0.7;
-            currentVolume = 0.7;
-            targetVolume = 0.7;
-
-            // Init Audio Context for UI sounds
-            try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            } catch(e) {
-                console.warn('Web Audio API not supported');
-            }
+            AudioManager.init();
+            backgroundMusic = AudioManager.music;
         }
 
-        // Create mechanical click sound (lower, quieter, mechanical)
         function playClickSound() {
-            // Don't play if muted
-            if (!audioContext || isMuted) return;
-
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            // Mechanical click sound: lower frequency, square wave for mechanical feel
-            oscillator.type = 'square';
-            oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(80, audioContext.currentTime + 0.03);
-
-            // Volume follows master volume (much quieter base volume)
-            const baseGain = 0.05;  // Very quiet base
-            const volumeMultiplier = targetVolume; // Follow master volume
-            const finalGain = baseGain * volumeMultiplier;
-
-            gainNode.gain.setValueAtTime(finalGain, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.05);
-
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.05);
-        }
-
-        function fadeVolume(target, duration = 800) {
-            if (volumeFadeInterval) clearInterval(volumeFadeInterval);
-            targetVolume = target;
-
-            const steps = 30; // 30 steps
-            const stepDuration = duration / steps;
-            const volumeDelta = (targetVolume - currentVolume) / steps;
-
-            let step = 0;
-            volumeFadeInterval = setInterval(() => {
-                step++;
-                currentVolume += volumeDelta;
-
-                if (!isMuted && backgroundMusic) {
-                    backgroundMusic.volume = Math.max(0, Math.min(1, currentVolume));
-                }
-
-                if (step >= steps) {
-                    clearInterval(volumeFadeInterval);
-                    volumeFadeInterval = null;
-                    currentVolume = targetVolume;
-                }
-            }, stepDuration);
+            AudioManager.playClick();
         }
 
         function playAudio() {
-            if (backgroundMusic && fpsMode) {
-                backgroundMusic.play().catch(err => {
-                    console.warn('⚠️ Autoplay audio bloqué:', err);
-                });
-                fadeVolume(0.7, 500);
-            }
+            AudioManager.playMusic();
         }
 
         function pauseAudio() {
-            if (backgroundMusic) {
-                fadeVolume(0, 500);
-                setTimeout(() => {
-                    if (backgroundMusic) backgroundMusic.pause();
-                }, 500);
-            }
+            AudioManager.pauseMusic();
+        }
+
+        function fadeVolume(target, duration = 800) {
+            AudioManager.fadeMusicTo(target, duration);
         }
 
         function updateVolume(value) {
             const volumePercent = parseInt(value);
             document.getElementById('volume-display').textContent = volumePercent + '%';
 
-            // Convert to 0-1 range
             const newVolume = volumePercent / 100;
+            AudioManager.setVolume(newVolume);
 
-            // Update target volume
+            // Update legacy variables
             targetVolume = newVolume;
-
-            // Apply immediately to music if not muted (no fade for slider)
-            if (backgroundMusic && !isMuted) {
-                backgroundMusic.volume = newVolume;
-                currentVolume = newVolume;
-            }
+            currentVolume = newVolume;
         }
 
         function toggleMute() {
-            isMuted = !isMuted;
-            const soundWaves = document.getElementById('sound-waves');
-            const muteSlash = document.getElementById('mute-slash');
-
-            if (isMuted) {
-                // Mute: don't play sound
-                backgroundMusic.volume = 0;
-                soundWaves.style.display = 'none';
-                muteSlash.style.display = 'block';
-            } else {
-                // Unmute: restore volume then play sound
-                backgroundMusic.volume = currentVolume;
-                soundWaves.style.display = 'block';
-                muteSlash.style.display = 'none';
-
-                // Play click sound only when unmuting
-                playClickSound();
-            }
+            AudioManager.toggleMute();
+            isMuted = AudioManager.isMuted;
         }
 
         // Footstep sounds (trigger when moving)
@@ -6406,10 +6374,17 @@
 
         // Welcome screen functions
         function startExperience() {
-            playClickSound(); // Satisfying click feedback
+            playClickSound(); // Click feedback
 
             const welcomeScreen = document.getElementById('welcome-screen');
+            const loadingScreen = document.getElementById('loading-screen');
+
+            // Hide welcome screen
             welcomeScreen.classList.add('hidden');
+
+            // Show loading screen IMMEDIATELY
+            loadingScreen.classList.add('active');
+            loadingScreen.classList.remove('hidden');
 
             // Immediately hide cursor - user should enter FPS mode directly
             document.body.style.cursor = 'none';
