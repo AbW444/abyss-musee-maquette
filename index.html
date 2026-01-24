@@ -6115,6 +6115,9 @@
         let volumeFadeInterval = null;
         let isMuted = false;
 
+        // Audio Context for click sounds
+        let audioContext = null;
+
         function initAudio() {
             backgroundMusic = new Audio('son/Teimo.mp3');
             backgroundMusic.loop = true;
@@ -6122,9 +6125,33 @@
             currentVolume = 0.7;
             targetVolume = 0.7;
 
-            // Init footstep sound (vous devez ajouter ce fichier)
-            // footstepSound = new Audio('son/footstep.mp3');
-            // footstepSound.volume = 0.2;
+            // Init Audio Context for UI sounds
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch(e) {
+                console.warn('Web Audio API not supported');
+            }
+        }
+
+        // Create satisfying click sound
+        function playClickSound() {
+            if (!audioContext) return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            // Clean, professional click sound
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.05);
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
         }
 
         function fadeVolume(target, duration = 800) {
@@ -6181,6 +6208,8 @@
         }
 
         function toggleMute() {
+            playClickSound(); // Satisfying click feedback
+
             isMuted = !isMuted;
             const soundWaves = document.getElementById('sound-waves');
             const muteSlash = document.getElementById('mute-slash');
@@ -6209,6 +6238,8 @@
 
         // Welcome screen functions
         function startExperience() {
+            playClickSound(); // Satisfying click feedback
+
             const welcomeScreen = document.getElementById('welcome-screen');
             welcomeScreen.classList.add('hidden');
 
@@ -6252,6 +6283,8 @@
         }
 
         function resumeExperience() {
+            playClickSound(); // Satisfying click feedback
+
             isPaused = false;
             document.getElementById('pause-screen').classList.remove('active');
 
