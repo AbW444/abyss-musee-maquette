@@ -513,67 +513,71 @@
             opacity: 1;
         }
 
-        /* Welcome Screen - Professional & Modern */
+        /* Welcome Screen - Modern Design */
         #welcome-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            background: #000;
             z-index: 10001;
-            transition: opacity 0.6s ease, transform 0.6s ease;
+            transition: opacity 0.6s ease;
         }
         #welcome-screen.hidden {
             opacity: 0;
-            transform: scale(1.05);
             pointer-events: none;
         }
         .welcome-content {
-            text-align: center;
-            max-width: 600px;
-            padding: 40px;
+            position: absolute;
+            top: 60px;
+            left: 60px;
+            max-width: 500px;
         }
         .welcome-title {
-            font-size: 48px;
+            font-size: 64px;
             font-weight: 700;
-            letter-spacing: -1px;
-            margin-bottom: 16px;
-            background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            letter-spacing: -2px;
+            margin-bottom: 20px;
+            color: #ffffff;
+            line-height: 1;
         }
         .welcome-subtitle {
-            font-size: 16px;
+            font-size: 18px;
             color: rgba(255,255,255,0.6);
-            margin-bottom: 40px;
             line-height: 1.6;
         }
         .play-button {
+            position: absolute;
+            bottom: 60px;
+            right: 60px;
+            width: 120px;
+            height: 120px;
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: #ffffff;
-            font-size: 18px;
-            font-weight: 600;
-            padding: 20px 60px;
-            border-radius: 50px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            transition: all 0.4s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0;
+        }
+        .play-button::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 30px solid #ffffff;
+            border-top: 20px solid transparent;
+            border-bottom: 20px solid transparent;
+            margin-left: 8px;
         }
         .play-button:hover {
-            background: rgba(255,255,255,0.15);
-            border-color: rgba(255,255,255,0.3);
-            transform: translateY(-2px);
-            box-shadow: 0 12px 48px rgba(0,0,0,0.4);
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.5);
+            transform: scale(1.1);
+            box-shadow: 0 0 40px rgba(255,255,255,0.3);
         }
 
         /* Pause Screen - Glassmorphism */
@@ -715,18 +719,10 @@
             pointer-events: none;
         }
 
-        .loading-spinner {
-            width: 80px;
-            height: 80px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid #ffffff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .loading-video {
+            width: 200px;
+            height: auto;
+            opacity: 0.9;
         }
 
         /* Panel Close Button (X) */
@@ -813,7 +809,7 @@
     <div id="pause-screen">
         <div class="pause-content" onclick="event.stopPropagation()">
             <div class="pause-text">En pause</div>
-            <div class="pause-hint">Cliquer pour visionner / ESC pour fermer</div>
+            <div class="pause-hint">Cliquer pour visionner</div>
 
             <div class="pause-controls">
                 <div class="volume-control">
@@ -821,15 +817,23 @@
                     <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70" oninput="updateVolume(this.value)">
                     <span class="volume-label" id="volume-display">70%</span>
                 </div>
-                <button class="mute-button" id="mute-button" onclick="toggleMute()">🔊 Muet</button>
+                <button class="mute-button" id="mute-button" onclick="toggleMute()">
+                    <svg id="mute-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path id="sound-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                        <line id="mute-slash" x1="2" y1="2" x2="22" y2="22" style="display:none;"></line>
+                    </svg>
+                </button>
             </div>
         </div>
-        <div class="pause-credits">Musique : Teimo (schluss) par Thomas Thomas Köner</div>
+        <div class="pause-credits">Musique : Teimo (schluss) par Thomas Köner</div>
     </div>
 
     <!-- Loading Screen -->
     <div id="loading-screen">
-        <div class="loading-spinner"></div>
+        <video class="loading-video" autoplay loop muted playsinline>
+            <source src="videos/poulpe_alpha.mov" type="video/quicktime">
+        </video>
     </div>
 
     <a href="index.html" id="title-link">
@@ -838,15 +842,15 @@
     </a>
 
     <div id="shape-selector" class="hidden">
-        <button class="shape-btn" data-shape="circle" title="Circle">●</button>
-        <button class="shape-btn active" data-shape="square" title="Square">■</button>
-        <button class="shape-btn" data-shape="diamond" title="Diamond">◆</button>
-        <button class="shape-btn" data-shape="star" title="Star">★</button>
+        <button class="shape-btn" data-shape="circle" title="Circle">○</button>
+        <button class="shape-btn active" data-shape="square" title="Square">□</button>
+        <button class="shape-btn" data-shape="diamond" title="Diamond">◇</button>
+        <button class="shape-btn" data-shape="star" title="Star">☆</button>
         <button class="shape-btn" id="mode-3d-btn" title="Toggle 3D Mode">3D</button>
     </div>
 
     <!-- Video Paused Indicator -->
-    <div id="video-paused-indicator">⏸️ VIDEO PAUSED</div>
+    <div id="video-paused-indicator">VIDEO PAUSED</div>
 
     <!-- FPS Counter -->
     <div id="fps-counter">
@@ -859,7 +863,7 @@
     <!-- FPS Settings Panel (Bottom Left) -->
     <div id="fps-settings-panel" class="hidden">
         <button class="panel-close-btn" onclick="document.getElementById('fps-settings-panel').classList.add('hidden')" title="Fermer (F pour réafficher)">×</button>
-        <h3>⚙️ FPS & Verre Settings</h3>
+        <h3>FPS & Verre Settings</h3>
 
         <div class="fps-param">
             <label>Vitesse touches <span class="fps-param-value" id="val-fps-speed">2.25</span></label>
@@ -967,7 +971,7 @@
             <button onclick="document.getElementById('file-input').click()">Load Video</button>
             <input type="file" id="file-input" accept="video/*">
             <div class="video-controls hidden" id="video-controls">
-                <button class="video-control-btn" id="play-pause-btn" onclick="toggleVideo()">⏸ Pause</button>
+                <button class="video-control-btn" id="play-pause-btn" onclick="toggleVideo()">Pause</button>
                 <div class="video-timeline">
                     <div class="timeline-container" id="timeline">
                         <div class="timeline-progress" id="timeline-progress"></div>
@@ -1512,10 +1516,10 @@
 
             if (video.paused) {
                 video.play();
-                btn.textContent = '⏸ Pause';
+                btn.textContent = 'Pause';
             } else {
                 video.pause();
-                btn.textContent = '▶ Play';
+                btn.textContent = 'Play';
             }
         }
 
@@ -6178,16 +6182,17 @@
 
         function toggleMute() {
             isMuted = !isMuted;
-            const muteBtn = document.getElementById('mute-button');
+            const soundWaves = document.getElementById('sound-waves');
+            const muteSlash = document.getElementById('mute-slash');
 
             if (isMuted) {
                 backgroundMusic.volume = 0;
-                muteBtn.textContent = '🔇 Activer le son';
-                muteBtn.classList.add('muted');
+                soundWaves.style.display = 'none';
+                muteSlash.style.display = 'block';
             } else {
                 backgroundMusic.volume = currentVolume;
-                muteBtn.textContent = '🔊 Muet';
-                muteBtn.classList.remove('muted');
+                soundWaves.style.display = 'block';
+                muteSlash.style.display = 'none';
             }
         }
 
@@ -6206,6 +6211,9 @@
         function startExperience() {
             const welcomeScreen = document.getElementById('welcome-screen');
             welcomeScreen.classList.add('hidden');
+
+            // Immediately hide cursor - user should enter FPS mode directly
+            document.body.style.cursor = 'none';
 
             // Start the auto-load sequence after welcome screen
             setTimeout(() => {
@@ -6227,7 +6235,7 @@
                 });
 
                 autoLoadSequence();
-            }, 600);
+            }, 100);
         }
 
         // Pause screen functions
