@@ -818,8 +818,8 @@
             <div class="pause-controls">
                 <div class="volume-control">
                     <span class="volume-label">Volume</span>
-                    <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="30" oninput="updateVolume(this.value)">
-                    <span class="volume-label" id="volume-display">30%</span>
+                    <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70" oninput="updateVolume(this.value)">
+                    <span class="volume-label" id="volume-display">70%</span>
                 </div>
                 <button class="mute-button" id="mute-button" onclick="toggleMute()">🔊 Muet</button>
             </div>
@@ -1926,6 +1926,10 @@
                 shapeSelector.classList.remove('hidden');
                 fpsSettings.classList.remove('hidden');
                 fpsCounter.classList.remove('hidden');
+                // CRITICAL: Show controls if video is loaded
+                if (currentVideo) {
+                    document.getElementById('controls')?.classList.remove('hidden');
+                }
                 console.log('👁️ Interfaces affichées (N pour cacher)');
             }
         }
@@ -6023,17 +6027,17 @@
         let backgroundMusic = null;
         let footstepSound = null;
         let isPaused = false;
-        let targetVolume = 0.3;
-        let currentVolume = 0.3;
+        let targetVolume = 0.7;
+        let currentVolume = 0.7;
         let volumeFadeInterval = null;
         let isMuted = false;
 
         function initAudio() {
             backgroundMusic = new Audio('son/Teimo.mp3');
             backgroundMusic.loop = true;
-            backgroundMusic.volume = 0.3;
-            currentVolume = 0.3;
-            targetVolume = 0.3;
+            backgroundMusic.volume = 0.7;
+            currentVolume = 0.7;
+            targetVolume = 0.7;
 
             // Init footstep sound (vous devez ajouter ce fichier)
             // footstepSound = new Audio('son/footstep.mp3');
@@ -6070,7 +6074,7 @@
                 backgroundMusic.play().catch(err => {
                     console.warn('⚠️ Autoplay audio bloqué:', err);
                 });
-                fadeVolume(0.3, 500);
+                fadeVolume(0.7, 500);
             }
         }
 
@@ -6135,6 +6139,14 @@
                 makeDraggable(document.getElementById('fps-settings-panel'));
                 makeDraggable(document.getElementById('ui'));
 
+                // Setup pause screen click handler (click anywhere to resume)
+                document.getElementById('pause-screen').addEventListener('click', function(e) {
+                    // Only resume if clicking on the background (not on controls)
+                    if (e.target.id === 'pause-screen') {
+                        resumeExperience();
+                    }
+                });
+
                 autoLoadSequence();
             }, 600);
         }
@@ -6157,7 +6169,12 @@
             document.getElementById('pause-screen').classList.remove('active');
 
             // Progressive fade up
-            fadeVolume(0.3, 800); // Fade back to 30% volume
+            fadeVolume(0.7, 800); // Fade back to 70% volume
+
+            // CRITICAL: Request pointer lock immediately to avoid intermediate cursor state
+            if (fpsMode && renderer && renderer.domElement) {
+                renderer.domElement.requestPointerLock();
+            }
         }
 
         window.onload = function() {
@@ -6212,6 +6229,15 @@
                 setTimeout(() => {
                     loadingScreen.style.display = 'none';
                 }, 500);
+
+                // CRITICAL: Request pointer lock immediately to avoid intermediate cursor state
+                // Wait a bit for the loading screen to disappear, then request pointer lock
+                setTimeout(() => {
+                    if (fpsMode && renderer && renderer.domElement) {
+                        console.log('🔒 Demande de pointer lock automatique...');
+                        renderer.domElement.requestPointerLock();
+                    }
+                }, 800);
 
             } catch (error) {
                 console.error('❌ AUTO-LOAD: Erreur:', error);
