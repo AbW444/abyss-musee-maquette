@@ -6178,6 +6178,13 @@
         let backgroundMusic = null;
         let footstepSound = null;
         let isPaused = false;
+
+        // Legacy audio variables (for backward compatibility)
+        let targetVolume = 0.7;
+        let currentVolume = 0.7;
+        let volumeFadeInterval = null;
+        let isMuted = false;
+
         // ═══════════════════════════════════════════════════════════════
         // AUDIO MANAGER - Professional audio system
         // ═══════════════════════════════════════════════════════════════
@@ -6317,12 +6324,6 @@
         };
 
         // Legacy function wrappers (for backward compatibility)
-        let backgroundMusic;
-        let targetVolume = 0.7;
-        let currentVolume = 0.7;
-        let volumeFadeInterval = null;
-        let isMuted = false;
-
         function initAudio() {
             AudioManager.init();
             backgroundMusic = AudioManager.music;
