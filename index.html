@@ -37,7 +37,7 @@
                       text-decoration: none; color: #fff; transition: opacity 0.2s; }
         #title-link:hover { opacity: 1 !important; }
 
-        #title { font-size: 18px; font-weight: 600; opacity: 0.7;
+        #title { font-size: 22px; font-weight: 600; opacity: 0.7;
                  text-transform: uppercase; letter-spacing: 2px; }
 
         #subtitle { font-size: 11px; font-weight: 400; opacity: 0.5;
@@ -535,19 +535,51 @@
             transition: opacity 0.6s ease;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
+            overflow: hidden;
         }
         #welcome-screen.hidden {
             opacity: 0;
             pointer-events: none;
         }
+        #welcome-screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 60%, transparent 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+        #welcome-video-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
         .welcome-content {
-            max-width: 680px;
-            padding: 0 40px;
+            max-width: 580px;
+            padding: 0 60px;
+            margin-left: 60px;
+            position: relative;
+            z-index: 2;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease;
+        }
+        .welcome-content.shift-right {
+            transform: translateX(120px);
+        }
+        .welcome-content.fade-out {
+            opacity: 0;
+            transform: translateX(200px);
         }
         .welcome-title {
             font-family: 'Inter', sans-serif;
-            font-size: 17px;
+            font-size: 22px;
             font-weight: 500;
             letter-spacing: 1.5px;
             margin-bottom: 40px;
@@ -586,39 +618,58 @@
             border-top: 1px solid rgba(255,255,255,0.08);
             letter-spacing: 0.3px;
         }
-        .play-button {
+        .play-button-container {
             position: absolute;
-            bottom: 50px;
-            right: 50px;
-            width: 100px;
-            height: 100px;
-            background: rgba(255,255,255,0.06);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
+            bottom: 90px;
+            right: 90px;
+            width: auto;
+            height: auto;
             cursor: pointer;
+            z-index: 3;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0;
         }
-        .play-button::after {
-            content: '';
-            width: 0;
-            height: 0;
-            border-left: 24px solid rgba(255,255,255,0.9);
-            border-top: 16px solid transparent;
-            border-bottom: 16px solid transparent;
-            margin-left: 6px;
+        .play-button-container .play-rond {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .play-button:hover {
-            background: rgba(255,255,255,0.12);
-            border-color: rgba(255,255,255,0.4);
-            transform: scale(1.05);
+        .play-button-container .play-fleche {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .play-button:active {
-            transform: scale(0.98);
+        .play-button-container:hover .play-fleche {
+            transform: scale(1.15);
+        }
+        .welcome-logo {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 200px;
+            width: auto;
+            height: auto;
+            z-index: 2;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 1;
+        }
+        .welcome-logo.center-final {
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .welcome-logo.adjust-for-content {
+            left: calc(30% + 60px);
+        }
+        body.play-clicked .welcome-logo {
+            left: 50vw !important;
+            top: 50vh !important;
         }
 
         /* Pause Screen - Ultra Modern */
@@ -628,8 +679,8 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(20px);
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(30px);
             display: none;
             flex-direction: column;
             align-items: center;
@@ -642,10 +693,10 @@
             display: flex;
         }
         .pause-content {
-            max-width: 700px;
+            max-width: 850px;
             background: rgba(0,0,0,0.7);
             backdrop-filter: blur(40px);
-            border: 1px solid rgba(255,255,255,0.08);
+            border: none;
             border-radius: 0;
             padding: 60px 70px;
             text-align: left;
@@ -655,7 +706,7 @@
         }
         .pause-title {
             font-family: 'Inter', sans-serif;
-            font-size: 16px;
+            font-size: 20px;
             font-weight: 500;
             color: rgba(255,255,255,0.95);
             margin-bottom: 30px;
@@ -687,33 +738,37 @@
             letter-spacing: 0.3px;
         }
         .pause-controls {
-            margin-top: 24px;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
             align-items: center;
+            gap: 16px;
+            z-index: 10000;
         }
         .volume-control {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 16px;
-            width: 100%;
-            max-width: 300px;
+            gap: 12px;
         }
         .volume-label {
             font-size: 12px;
             color: rgba(255,255,255,0.7);
             text-transform: uppercase;
             letter-spacing: 1px;
-            min-width: 60px;
         }
         .volume-slider {
-            flex: 1;
-            height: 4px;
+            width: 4px;
+            height: 120px;
             border-radius: 2px;
             background: rgba(255,255,255,0.2);
             outline: none;
+            -webkit-appearance: slider-vertical;
+            writing-mode: bt-lr;
             -webkit-appearance: none;
+            appearance: none;
         }
         .volume-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -735,12 +790,14 @@
             background: rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.2);
             color: #ffffff;
-            padding: 10px 24px;
-            border-radius: 20px;
+            padding: 12px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
             cursor: pointer;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: all 0.3s ease;
         }
         .mute-button:hover {
@@ -785,40 +842,47 @@
         }
         .game-instructions .key {
             display: inline-block;
-            background: rgba(255,255,255,0.08);
-            padding: 2px 7px;
+            background: rgba(255,255,255,0.15);
+            padding: 3px 8px;
             border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.35);
             font-family: 'Courier New', monospace;
-            font-size: 11px;
+            font-size: 12px;
             margin: 0 2px;
-            color: rgba(255,255,255,0.95);
+            color: rgba(255,255,255,1);
+            font-weight: 600;
         }
 
-        /* Instructions in pause screen */
+        /* Instructions in pause screen - positioned like game-instructions */
         .pause-instructions {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 6px;
-            padding: 16px 20px;
-            margin: 24px 0;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(12px);
+            padding: 14px 18px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.12);
             font-size: 13px;
-            color: rgba(255,255,255,0.75);
-            line-height: 1.7;
-            text-align: left;
+            color: rgba(255,255,255,0.85);
+            z-index: 10001;
+            opacity: 1;
+            pointer-events: none;
+            line-height: 1.6;
             font-weight: 400;
             letter-spacing: 0.3px;
         }
         .pause-instructions .key {
             display: inline-block;
-            background: rgba(255,255,255,0.08);
-            padding: 2px 7px;
+            background: rgba(255,255,255,0.15);
+            padding: 3px 8px;
             border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.35);
             font-family: 'Courier New', monospace;
-            font-size: 11px;
+            font-size: 12px;
             margin: 0 2px;
-            color: rgba(255,255,255,0.95);
+            color: rgba(255,255,255,1);
+            font-weight: 600;
         }
 
         /* Loading Screen */
@@ -930,7 +994,14 @@
 
     <!-- Welcome Screen -->
     <div id="welcome-screen">
-        <div class="welcome-content">
+        <video id="welcome-video-bg" autoplay loop muted playsinline>
+            <source src="videos/background.mp4" type="video/mp4">
+            <source src="videos/background.webm" type="video/webm">
+        </video>
+
+        <img src="img/presences_rares_logo.png" alt="Logo" class="welcome-logo adjust-for-content" id="welcome-logo">
+
+        <div class="welcome-content" id="welcome-content">
             <h1 class="welcome-title">
                 Présences aquatiques rares<br>
                 <span class="welcome-subtitle-inline">Maquette de dispositif d'exposition</span>
@@ -962,11 +1033,21 @@
                 Traductions visuelles réalisées dans un cadre expérimental
             </div>
         </div>
-        <button class="play-button" onclick="startExperience()">Play</button>
+
+        <div class="play-button-container" id="play-button" onclick="handlePlayClick()">
+            <img src="img/icone_play_rond.png" alt="Play" class="play-rond">
+            <img src="img/icone_play_fleche.png" alt="Play" class="play-fleche">
+        </div>
     </div>
 
     <!-- Pause Screen (ESC) -->
     <div id="pause-screen">
+        <div class="pause-instructions">
+            <span class="key">Souris</span> Regarder autour<br>
+            <span class="key">ZQSD</span> ou <span class="key">↑←↓→</span> Se déplacer<br>
+            <span class="key">ESC</span> Pause
+        </div>
+
         <div class="pause-content" onclick="event.stopPropagation()">
             <h2 class="pause-title">À propos de cette maquette</h2>
 
@@ -994,32 +1075,26 @@
                 Cette interface ne remplace pas une exposition physique. Elle en constitue une prévisualisation critique, destinée à nourrir la réflexion sur de futurs dispositifs de médiation.
             </p>
 
-            <div class="pause-instructions">
-                <span class="key">Souris</span> Regarder autour<br>
-                <span class="key">ZQSD</span> ou <span class="key">↑←↓→</span> Se déplacer<br>
-                <span class="key">ESC</span> Pause
-            </div>
-
-            <div class="pause-controls">
-                <div class="volume-control">
-                    <span class="volume-label">Volume</span>
-                    <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70" oninput="updateVolume(this.value)">
-                    <span class="volume-label" id="volume-display">70%</span>
-                </div>
-                <button class="mute-button" id="mute-button" onclick="toggleMute()">
-                    <svg id="mute-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                        <path id="sound-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                        <line id="mute-slash" x1="2" y1="2" x2="22" y2="22" style="display:none;"></line>
-                    </svg>
-                </button>
-            </div>
-
             <div class="pause-meta">
                 Navigation libre — déplacement lent recommandé<br>
                 Les contenus projetés peuvent évoluer au cours du projet
             </div>
         </div>
+
+        <div class="pause-controls" onclick="event.stopPropagation()">
+            <div class="volume-control">
+                <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70" oninput="updateVolume(this.value)" orient="vertical">
+                <span class="volume-label" id="volume-display">70%</span>
+            </div>
+            <button class="mute-button" id="mute-button" onclick="toggleMute()">
+                <svg id="mute-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path id="sound-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                    <line id="mute-slash" x1="2" y1="2" x2="22" y2="22" style="display:none;"></line>
+                </svg>
+            </button>
+        </div>
+
         <div class="pause-credits">Musique : Teimo (schluss) par Thomas Köner</div>
     </div>
 
@@ -1768,6 +1843,25 @@
                 if (!allowedKeys.includes(e.code)) {
                     // Block all other keys in Spectator mode
                     return;
+                }
+
+                // Track movement keys for instructions hiding
+                const movementKeys = [
+                    'KeyW', 'KeyA', 'KeyS', 'KeyD',
+                    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'
+                ];
+                if (movementKeys.includes(e.code) && !instructionsHidden) {
+                    keyPressCount++;
+                    uniqueKeysPressed.add(e.code);
+
+                    // Hide instructions if sufficient interaction detected
+                    if (keyPressCount >= REQUIRED_KEY_PRESSES || uniqueKeysPressed.size >= REQUIRED_UNIQUE_KEYS) {
+                        const instructionsElement = document.getElementById('game-instructions');
+                        if (instructionsElement) {
+                            instructionsElement.classList.add('hidden');
+                            instructionsHidden = true;
+                        }
+                    }
                 }
             }
 
@@ -6165,31 +6259,15 @@
 
                     const isOnFloor11 = Math.abs(camera.position.y - expectedCameraY) < tolerance;
 
-                    if (isOnFloor11) {
-                        // Start timer if just shown
-                        if (instructionsElement.classList.contains('hidden')) {
-                            instructionsShownTime = performance.now();
-                            instructionsTimerActive = true;
-                        }
-
-                        // Check if 5 seconds have passed
-                        if (instructionsTimerActive) {
-                            const elapsed = (performance.now() - instructionsShownTime) / 1000;
-                            if (elapsed >= 5) {
-                                instructionsElement.classList.add('hidden');
-                                instructionsTimerActive = false;
-                            } else {
-                                instructionsElement.classList.remove('hidden');
-                            }
-                        }
+                    if (isOnFloor11 && !instructionsHidden) {
+                        // Show instructions until user interacts enough
+                        instructionsElement.classList.remove('hidden');
                     } else {
                         instructionsElement.classList.add('hidden');
-                        instructionsTimerActive = false;
                     }
                 } else {
                     // Hide instructions in admin mode or when paused
                     instructionsElement.classList.add('hidden');
-                    instructionsTimerActive = false;
                 }
             }
 
@@ -6508,8 +6586,12 @@
         let isPaused = false;
 
         // Instructions timer (hide after 5 seconds)
-        let instructionsShownTime = null;
-        let instructionsTimerActive = false;
+        // Track keyboard interactions instead of time
+        let keyPressCount = 0;
+        let uniqueKeysPressed = new Set();
+        let instructionsHidden = false;
+        const REQUIRED_KEY_PRESSES = 10; // Number of key presses needed
+        const REQUIRED_UNIQUE_KEYS = 3;  // Or number of different keys pressed
 
         // Legacy audio variables (for backward compatibility)
         let targetVolume = 0.7;
@@ -6697,9 +6779,43 @@
         }
 
         // Welcome screen functions
-        function startExperience() {
+        function handlePlayClick() {
             playClickSound(); // Click feedback
 
+            const welcomeContent = document.getElementById('welcome-content');
+            const welcomeLogo = document.getElementById('welcome-logo');
+
+            // Add fade-out animation to content
+            welcomeContent.classList.add('fade-out');
+
+            // Add body class for logo centering
+            document.body.classList.add('play-clicked');
+
+            // Center the logo
+            welcomeLogo.classList.remove('adjust-for-content');
+            welcomeLogo.classList.add('center-final');
+
+            // Wait for animations to complete before starting experience
+            setTimeout(() => {
+                startExperience();
+            }, 600);
+        }
+
+        // Handle hover on play button
+        const playButton = document.getElementById('play-button');
+        if (playButton) {
+            playButton.addEventListener('mouseenter', () => {
+                const welcomeContent = document.getElementById('welcome-content');
+                welcomeContent.classList.add('shift-right');
+            });
+
+            playButton.addEventListener('mouseleave', () => {
+                const welcomeContent = document.getElementById('welcome-content');
+                welcomeContent.classList.remove('shift-right');
+            });
+        }
+
+        function startExperience() {
             const welcomeScreen = document.getElementById('welcome-screen');
             const loadingScreen = document.getElementById('loading-screen');
 
