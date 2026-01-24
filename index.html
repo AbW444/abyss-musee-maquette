@@ -1221,6 +1221,10 @@
         let regenerateTimeout;
         let videoTexture = null;
 
+        // Multi-video system: each volumetric screen has its own video
+        let screenVideos = {}; // {1: video_element, 2: video_element, 5: video_element, ...}
+        let videoTextures = {}; // {1: texture, 2: texture, 5: texture, ...}
+
         // New v1.3.1 parameters
         let enableDepthCull = false;
         let depthCullPower = 0.4;
@@ -1765,11 +1769,17 @@
                     document.getElementById('fps-settings-panel')?.classList.add('hidden');
                     document.getElementById('fps-counter')?.classList.add('hidden');
 
+                    // Hide screen labels in Spectator mode
+                    hideScreenLabels();
+
                     // Play background music in Spectator mode
                     playAudio();
                 } else {
                     // ENTERING ADMIN MODE: Show all interfaces
                     console.log('🖱️ MODE ADMIN ACTIVÉ');
+
+                    // Show screen labels in Admin mode
+                    updateScreenLabels();
 
                     // Pause music in Admin mode
                     pauseAudio();
@@ -1961,6 +1971,75 @@
 
             // Update UI
             updateScreenList();
+        }
+
+        // Screen numbering system for volumetric screens
+        function createScreenLabel(screenNumber) {
+            // Create canvas for text
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // Draw number in neon green
+            ctx.fillStyle = '#00ff00';
+            ctx.font = 'bold 120px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(screenNumber.toString().padStart(2, '0'), 128, 128);
+
+            // Add glow effect
+            ctx.shadowColor = '#00ff00';
+            ctx.shadowBlur = 20;
+            ctx.fillText(screenNumber.toString().padStart(2, '0'), 128, 128);
+
+            // Create sprite
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({
+                map: texture,
+                transparent: true,
+                depthTest: false,
+                depthWrite: false
+            });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(50, 50, 1);
+
+            return sprite;
+        }
+
+        function updateScreenLabels() {
+            // Remove existing labels
+            Object.values(screenLabels).forEach(label => {
+                if (label.parent) label.parent.remove(label);
+            });
+            screenLabels = {};
+
+            // Only show in Admin mode
+            if (fpsMode) return;
+
+            // Create labels for volumetric screens
+            VOLUMETRIC_SCREENS.forEach(screenNum => {
+                if (allScreens[screenNum]) {
+                    const label = createScreenLabel(screenNum);
+                    // Position at center of screen
+                    const screen = allScreens[screenNum];
+                    label.position.copy(screen.position);
+                    scene.add(label);
+                    screenLabels[screenNum] = label;
+                }
+            });
+        }
+
+        function hideScreenLabels() {
+            Object.values(screenLabels).forEach(label => {
+                label.visible = false;
+            });
+        }
+
+        function showScreenLabels() {
+            Object.values(screenLabels).forEach(label => {
+                label.visible = true;
+            });
         }
 
         function addNewScreen() {
@@ -4175,6 +4254,10 @@
             // CRITICAL: Update screen list UI immediately after allScreens is populated
             updateScreenList();
             console.log('🎨 Interface de gestion des écrans mise à jour');
+
+            // Update screen number labels for volumetric screens (Admin mode only)
+            updateScreenLabels();
+            console.log('🔢 Numéros des écrans volumétriques mis à jour');
 
             // CRITICAL: Reattach transform controls to the same screen after regeneration
             if (transformControls && wasScreenSelected && allScreens[wasScreenSelected]) {
