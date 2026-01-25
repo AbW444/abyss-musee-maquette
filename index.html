@@ -1691,7 +1691,7 @@
         let depthMultiplier = 0.2;
         let depthSmoothing = 0.1; // Seuil pour atténuer micro-mouvements (0 = aucun, 0.1 = élevé)
         let pointSize = 0.39;
-        let particleDensity = 20;
+        let particleDensity = 13;
         let brightness = 1.1;
         let hideBlack = false;
         let blackThreshold = 30;
@@ -2582,23 +2582,27 @@
             updateScreenList();
         }
 
-        // Screen numbering system for volumetric screens
-        function createScreenLabel(screenNumber) {
+        // Screen numbering system for volumetric screens and shapes
+        // color parameter: 'green' for volumetric screens, 'red' for forms/shapes
+        function createScreenLabel(screenNumber, color = 'red') {
             // Create canvas for text
             const canvas = document.createElement('canvas');
             canvas.width = 256;
             canvas.height = 256;
             const ctx = canvas.getContext('2d');
 
-            // Draw number in neon red (fluo)
-            ctx.fillStyle = '#ff004c';
+            // Choose color based on type
+            const labelColor = color === 'green' ? '#00ff4c' : '#ff004c';
+
+            // Draw number
+            ctx.fillStyle = labelColor;
             ctx.font = 'bold 120px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(screenNumber.toString(), 128, 128);
 
             // Add glow effect
-            ctx.shadowColor = '#ff004c';
+            ctx.shadowColor = labelColor;
             ctx.shadowBlur = 20;
             ctx.fillText(screenNumber.toString(), 128, 128);
 
@@ -2661,17 +2665,23 @@
                 const screen = allScreens[screenNum];
                 if (!screen) return;
 
-                // Create and add label (neon red number)
-                const label = createScreenLabel(screenNum);
+                const num = parseInt(screenNum);
+                const isVolumetric = VOLUMETRIC_SCREENS.includes(num);
+
+                // Create label: green for volumetric screens, red for forms/shapes
+                const labelColor = isVolumetric ? 'green' : 'red';
+                const label = createScreenLabel(screenNum, labelColor);
                 label.position.copy(screen.position);
                 scene.add(label);
                 screenLabels[screenNum] = label;
 
-                // Create and add outline (neon red edges)
-                const outline = createScreenOutline(screen);
-                if (outline) {
-                    scene.add(outline);
-                    screenOutlines[screenNum] = outline;
+                // Create outline ONLY for forms/shapes (not volumetric screens)
+                if (!isVolumetric) {
+                    const outline = createScreenOutline(screen);
+                    if (outline) {
+                        scene.add(outline);
+                        screenOutlines[screenNum] = outline;
+                    }
                 }
             });
         }
@@ -7026,7 +7036,7 @@
                 this.currentMusicVolume = this.masterVolume;
 
                 // Click sound effect
-                this.clickSound = new Audio('son/button-click-sound.ogg');
+                this.clickSound = new Audio('son/button-click-sound_cut.mp3');
                 this.clickSound.volume = 0.5; // Base volume for click sound
 
                 // Web Audio Context for UI sounds (fallback)
