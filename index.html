@@ -1473,8 +1473,8 @@
                     </div>
                 </div>
                 <div class="slider-wrapper">
-                    <input type="range" class="slider" id="density" min="1" max="15" step="1" value="13">
-                    <div class="center-mark" style="left: 42.9%;"></div>
+                    <input type="range" class="slider" id="density" min="1" max="30" step="1" value="13">
+                    <div class="center-mark" style="left: 20.7%;"></div>
                 </div>
             </div>
 
@@ -1705,6 +1705,9 @@
         let videoSamplingCtx = null;
         let videoSamplingData = null;
 
+        // Particle density system - Safety cap to prevent performance issues
+        const MAX_PARTICLES = 500000; // Cap maximum de particules par écran
+
         // FPS Counter variables
         let fpsFrameCount = 0;
         let fpsLastTime = performance.now();
@@ -1831,7 +1834,7 @@
         // Parameter control system
         const paramConfigs = {
             size: { min: 0.1, max: 2.0, step: 0.01, decimals: 2, suffix: '' },
-            density: { min: 1, max: 15, step: 1, decimals: 0, suffix: 'X' },
+            density: { min: 1, max: 30, step: 1, decimals: 0, suffix: 'X' },
             depth: { min: 0.0, max: 0.2, step: 0.01, decimals: 2, suffix: 'X' }, // Plage 0-0.2 pour précision sur petites valeurs
             smoothing: { min: 0.0, max: 0.1, step: 0.005, decimals: 3, suffix: '' }, // Seuil atténuation micro-mouvements
             breath: { min: 0, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
@@ -4020,11 +4023,33 @@
             }
         });
 
+        /**
+         * Calcule les paramètres de densité adaptatifs (step + résolution dynamique)
+         * Density 1-15 : Comportement classique (step variable, résolution fixe 800x450)
+         * Density 16-30 : Résolution progressive + step=1 pour plus de détails
+         */
+        function calculateDensityParams(density) {
+            let step, TARGET_WIDTH, TARGET_HEIGHT;
+
+            if (density <= 15) {
+                // Mode classique (backward compatible)
+                step = Math.max(1, Math.floor(10 / density));
+                TARGET_WIDTH = 800;
+                TARGET_HEIGHT = 450;
+            } else {
+                // Mode haute densité : augmentation progressive de la résolution
+                step = 1; // Step fixé à 1
+                const resolutionMultiplier = 1 + ((density - 15) / 30); // 1.0 à 1.5x
+                TARGET_WIDTH = Math.floor(800 * resolutionMultiplier);
+                TARGET_HEIGHT = Math.floor(450 * resolutionMultiplier);
+            }
+
+            return { step, TARGET_WIDTH, TARGET_HEIGHT };
+        }
+
         // Helper function: Extract particle data from video for multi-video system
         function createParticleDataFromVideo(video) {
-            const TARGET_WIDTH = 800;
-            const TARGET_HEIGHT = 450;
-            const step = Math.max(1, Math.floor(10 / particleDensity));
+            const { step, TARGET_WIDTH, TARGET_HEIGHT } = calculateDensityParams(particleDensity);
 
             // Create or reuse sampling canvas
             const canvas = document.createElement('canvas');
@@ -4088,8 +4113,9 @@
             }
             if (minLuminance === Infinity) minLuminance = 0;
 
-            // SECOND PASS: Create particles
-            for (let y = 0; y < TARGET_HEIGHT; y += step) {
+            // SECOND PASS: Create particles with safety cap
+            let particleCount = 0;
+            outerLoopMulti: for (let y = 0; y < TARGET_HEIGHT; y += step) {
                 for (let x = 0; x < TARGET_WIDTH; x += step) {
                     const i = (y * TARGET_WIDTH + x) * 4;
                     const alpha = data[i + 3];
@@ -4104,6 +4130,12 @@
                             if (colorDist < bgThreshold) continue;
                         }
 
+                        // Safety cap: prevent performance issues
+                        if (particleCount >= MAX_PARTICLES) {
+                            console.warn(`⚠️ Multi-video: Cap MAX_PARTICLES atteint (${MAX_PARTICLES.toLocaleString()})`);
+                            break outerLoopMulti;
+                        }
+
                         const px = (x - halfWidth) * scaleFactor;
                         const py = -(y - halfHeight) * scaleFactor;
                         const luminance = (r + g + b) * rgbToLumFactor;
@@ -4111,6 +4143,7 @@
 
                         positions.push(px, py, pz);
                         initialZ.push(pz);
+                        particleCount++;
 
                         let rNorm = r * 0.00392156862745098;
                         let gNorm = g * 0.00392156862745098;
@@ -4205,10 +4238,8 @@
             saturation = parseFloat(document.getElementById('saturation').value);
 
             // Normalize video to fixed size for consistent volume (16:9 aspect ratio)
-            // Optimized: reduced resolution for better performance without visual quality loss
-            const TARGET_WIDTH = 800;
-            const TARGET_HEIGHT = 450;
-            const step = Math.max(1, Math.floor(10 / particleDensity));
+            // Adaptive density system: resolution increases with density > 15
+            const { step, TARGET_WIDTH, TARGET_HEIGHT } = calculateDensityParams(particleDensity);
 
             // Create or reuse sampling canvas for continuous video updates
             if (!videoSamplingCanvas) {
@@ -4217,6 +4248,12 @@
                 videoSamplingCanvas.height = TARGET_HEIGHT;
                 // Optimization: willReadFrequently flag for better getImageData() performance
                 videoSamplingCtx = videoSamplingCanvas.getContext('2d', { willReadFrequently: true });
+            } else {
+                // Update canvas size if density changed (for density > 15)
+                if (videoSamplingCanvas.width !== TARGET_WIDTH || videoSamplingCanvas.height !== TARGET_HEIGHT) {
+                    videoSamplingCanvas.width = TARGET_WIDTH;
+                    videoSamplingCanvas.height = TARGET_HEIGHT;
+                }
             }
 
             const canvas = videoSamplingCanvas;
@@ -4352,7 +4389,10 @@
             if (minLuminance === Infinity) minLuminance = 0;
 
             console.log('🔍 Analyse de création des particules:');
+            console.log(`   🎚️ DENSITÉ demandée: ${particleDensity}X`);
             console.log(`   📏 step: ${step}, TARGET: ${TARGET_WIDTH}x${TARGET_HEIGHT}`);
+            console.log(`   🔢 Pixels à scanner: ~${Math.floor((TARGET_WIDTH / step) * (TARGET_HEIGHT / step))}`);
+            console.log(`   🛡️ Cap MAX_PARTICLES: ${MAX_PARTICLES.toLocaleString()}`);
             console.log(`   🎨 hideBlack: ${hideBlack}, blackThreshold: ${blackThreshold}`);
             console.log(`   🖼️ hideBackground: ${hideBackground}, bgThreshold: ${bgThreshold || 'N/A'}`);
             console.log(`   💡 minLuminance trouvée: ${minLuminance.toFixed(3)}`);
@@ -4362,9 +4402,10 @@
             let pixelsFilteredByBlack = 0;
             let pixelsFilteredByBackground = 0;
             let pixelsAdded = 0;
+            let capReached = false;
 
             // SECOND PASS: Create particles with depth anchored to minimum luminance
-            for (let y = 0; y < TARGET_HEIGHT; y += step) {
+            outerLoop: for (let y = 0; y < TARGET_HEIGHT; y += step) {
                 for (let x = 0; x < TARGET_WIDTH; x += step) {
                     totalPixelsScanned++;
                     const i = (y * TARGET_WIDTH + x) * 4;
@@ -4391,6 +4432,12 @@
                                 pixelsFilteredByBackground++;
                                 continue; // Skip this particle, it's part of the background
                             }
+                        }
+
+                        // Safety cap: prevent performance issues
+                        if (pixelsAdded >= MAX_PARTICLES) {
+                            capReached = true;
+                            break outerLoop;
                         }
 
                         // Position (centered in 16:9 aspect ratio)
@@ -4447,8 +4494,11 @@
             console.log(`   ✅ Pixels avec alpha > 30: ${pixelsWithAlpha}`);
             console.log(`   ⚫ Filtrés par hideBlack: ${pixelsFilteredByBlack}`);
             console.log(`   🖼️ Filtrés par hideBackground: ${pixelsFilteredByBackground}`);
-            console.log(`   ✨ Particules AJOUTÉES: ${pixelsAdded}`);
-            console.log(`   📦 positions.length: ${positions.length} (${positions.length / 3} particules)`);
+            console.log(`   ✨ Particules AJOUTÉES: ${pixelsAdded.toLocaleString()}`);
+            console.log(`   📦 positions.length: ${positions.length} (${(positions.length / 3).toLocaleString()} particules)`);
+            if (capReached) {
+                console.warn(`   ⚠️ CAP ATTEINT! Limite MAX_PARTICLES (${MAX_PARTICLES.toLocaleString()}) appliquée pour éviter lag.`);
+            }
 
             // v1.3.1 — Apply depth culling if enabled (make particles truly invisible)
             if (enableDepthCull && depthCullPower > 0) {
