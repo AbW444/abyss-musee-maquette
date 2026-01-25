@@ -876,31 +876,77 @@
             position: fixed;
             top: 20px;
             left: 20px;
-            padding: 14px 18px;
+            padding: 18px 22px;
             font-size: 16px;
             color: rgba(255,255,255,0.95);
             z-index: 100;
             opacity: 1;
             transition: opacity 0.6s ease;
             pointer-events: none;
-            line-height: 2.4;
             font-weight: 400;
             letter-spacing: 0.4px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
         }
         .game-instructions.hidden {
             opacity: 0;
         }
+        .instruction-row {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            align-items: center;
+            gap: 16px;
+            line-height: 1.35;
+        }
+        .keys-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
         .game-instructions .key {
             display: inline-block;
             background: rgba(255,255,255,0.15);
-            padding: 3px 8px;
+            padding: 10px 14px;
             border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.35);
+            border: 1px solid rgba(255,255,255,0.6);
             font-family: 'Courier New', monospace;
             font-size: 14px;
-            margin: 0 4px;
             color: rgba(255,255,255,1);
             font-weight: 600;
+            white-space: nowrap;
+        }
+        .arrows-grid {
+            display: inline-grid;
+            grid-template-columns: repeat(3, auto);
+            grid-template-rows: repeat(2, auto);
+            gap: 2px;
+        }
+        .arrows-grid .key {
+            padding: 6px 10px;
+            font-size: 12px;
+            line-height: 1;
+        }
+        .arrows-grid .key:nth-child(1) {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        .arrows-grid .key:nth-child(2) {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        .arrows-grid .key:nth-child(3) {
+            grid-column: 2;
+            grid-row: 2;
+        }
+        .arrows-grid .key:nth-child(4) {
+            grid-column: 3;
+            grid-row: 2;
+        }
+        .or-text {
+            font-size: 13px;
+            opacity: 0.7;
+            font-style: italic;
         }
 
         /* Instructions in pause screen - positioned like game-instructions */
@@ -908,27 +954,73 @@
             position: fixed;
             top: 20px;
             left: 20px;
-            padding: 14px 18px;
+            padding: 18px 22px;
             font-size: 16px;
             color: rgba(255,255,255,0.95);
             z-index: 10001;
             opacity: 1;
             pointer-events: none;
-            line-height: 2.4;
             font-weight: 400;
             letter-spacing: 0.4px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .pause-instructions .instruction-row {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            align-items: center;
+            gap: 16px;
+            line-height: 1.35;
+        }
+        .pause-instructions .keys-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .pause-instructions .key {
             display: inline-block;
             background: rgba(255,255,255,0.15);
-            padding: 3px 8px;
+            padding: 10px 14px;
             border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.35);
+            border: 1px solid rgba(255,255,255,0.6);
             font-family: 'Courier New', monospace;
             font-size: 14px;
-            margin: 0 4px;
             color: rgba(255,255,255,1);
             font-weight: 600;
+            white-space: nowrap;
+        }
+        .pause-instructions .arrows-grid {
+            display: inline-grid;
+            grid-template-columns: repeat(3, auto);
+            grid-template-rows: repeat(2, auto);
+            gap: 2px;
+        }
+        .pause-instructions .arrows-grid .key {
+            padding: 6px 10px;
+            font-size: 12px;
+            line-height: 1;
+        }
+        .pause-instructions .arrows-grid .key:nth-child(1) {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        .pause-instructions .arrows-grid .key:nth-child(2) {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        .pause-instructions .arrows-grid .key:nth-child(3) {
+            grid-column: 2;
+            grid-row: 2;
+        }
+        .pause-instructions .arrows-grid .key:nth-child(4) {
+            grid-column: 3;
+            grid-row: 2;
+        }
+        .pause-instructions .or-text {
+            font-size: 13px;
+            opacity: 0.7;
+            font-style: italic;
         }
 
         /* Loading Screen */
@@ -958,9 +1050,10 @@
         }
 
         .loading-video {
-            width: 200px;
-            height: auto;
+            width: 104px;
+            height: 104px;
             opacity: 0.9;
+            object-fit: contain;
         }
 
         /* Panel Close Button (X) */
@@ -1033,9 +1126,27 @@
 <body>
     <!-- Game Instructions (top-left, visible when on floor Y=11) -->
     <div class="game-instructions hidden" id="game-instructions">
-        <span class="key">Souris</span> Regarder autour<br>
-        <span class="key">ZQSD</span> ou <span class="key">▲◄▼►</span> Se déplacer<br>
-        <span class="key">ESC</span> Pause
+        <div class="instruction-row">
+            <span class="key">Souris</span>
+            <span>Regarder autour</span>
+        </div>
+        <div class="instruction-row">
+            <div class="keys-group">
+                <span class="key">ZQSD</span>
+                <span class="or-text">ou</span>
+                <div class="arrows-grid">
+                    <span class="key">↑</span>
+                    <span class="key">←</span>
+                    <span class="key">↓</span>
+                    <span class="key">→</span>
+                </div>
+            </div>
+            <span>Se déplacer</span>
+        </div>
+        <div class="instruction-row">
+            <span class="key">ESC</span>
+            <span>Pause</span>
+        </div>
     </div>
 
     <!-- Welcome Screen -->
@@ -1095,9 +1206,27 @@
     <!-- Pause Screen (ESC) -->
     <div id="pause-screen">
         <div class="pause-instructions">
-            <span class="key">Souris</span> Regarder autour<br>
-            <span class="key">ZQSD</span> ou <span class="key">▲◄▼►</span> Se déplacer<br>
-            <span class="key">ESC</span> Pause
+            <div class="instruction-row">
+                <span class="key">Souris</span>
+                <span>Regarder autour</span>
+            </div>
+            <div class="instruction-row">
+                <div class="keys-group">
+                    <span class="key">ZQSD</span>
+                    <span class="or-text">ou</span>
+                    <div class="arrows-grid">
+                        <span class="key">↑</span>
+                        <span class="key">←</span>
+                        <span class="key">↓</span>
+                        <span class="key">→</span>
+                    </div>
+                </div>
+                <span>Se déplacer</span>
+            </div>
+            <div class="instruction-row">
+                <span class="key">ESC</span>
+                <span>Pause</span>
+            </div>
         </div>
 
         <div class="pause-content" onclick="event.stopPropagation()">
