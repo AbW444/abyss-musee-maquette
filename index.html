@@ -16,6 +16,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
     <!-- Version 1.3.1 - Video projection with luminance-based depth -->
     <style>
+        :root {
+            --textLeft: 240px;
+            --textColW: 580px;
+            --textTop: 150px;
+
+            --logoSize: 104px;
+
+            --playRight: 128px;
+            --playBottom: 112px;
+
+            --hoverTextShift: 90px;
+
+            --clickTextExitX: 320px;
+            --clickFadeMs: 320ms;
+            --logoMoveMs: 420ms;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                background: #000; color: #fff; overflow: hidden; }
@@ -523,7 +540,7 @@
             opacity: 1;
         }
 
-        /* Welcome Screen - Ultra Modern Design */
+        /* Welcome Screen - Page d'accueil */
         #welcome-screen {
             position: fixed;
             top: 0;
@@ -533,9 +550,6 @@
             background: #000;
             z-index: 10001;
             transition: opacity 0.6s ease;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
             overflow: hidden;
         }
         #welcome-screen.hidden {
@@ -549,7 +563,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 60%, transparent 100%);
+            background: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 60%, transparent 100%);
             z-index: 1;
             pointer-events: none;
         }
@@ -568,19 +582,19 @@
             opacity: 1;
         }
         .welcome-content {
-            max-width: 580px;
-            padding: 0 60px;
-            margin-left: 60px;
-            position: relative;
+            position: absolute;
+            left: var(--textLeft);
+            top: var(--textTop);
+            width: var(--textColW);
             z-index: 2;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--clickFadeMs) ease;
         }
-        .welcome-content.shift-right {
-            transform: translateX(120px);
+        body.hoverPlay .welcome-content {
+            transform: translateX(var(--hoverTextShift));
         }
-        .welcome-content.fade-out {
+        body.clickedPlay .welcome-content {
             opacity: 0;
-            transform: translateX(200px);
+            transform: translateX(var(--clickTextExitX));
         }
         .welcome-title {
             font-family: 'Inter', sans-serif;
@@ -625,56 +639,66 @@
         }
         .play-button-container {
             position: absolute;
-            bottom: 90px;
-            right: 90px;
-            width: 120px;
-            height: 120px;
+            bottom: var(--playBottom);
+            right: var(--playRight);
             cursor: pointer;
             z-index: 3;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .play-button-container .play-rond {
+        .play-button-container .play-rond,
+        .play-button-container .play-fleche {
+            display: block;
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .play-button-container .play-fleche {
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body.hoverPlay .play-button-container .play-fleche {
+            transform: scale(1.08);
+        }
+
+        /* Logo container - PNG et WEBM */
+        .welcome-logo-container {
+            position: absolute;
+            left: calc(var(--textLeft) / 2);
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: var(--logoSize);
+            height: var(--logoSize);
+            z-index: 2;
+            transition: all var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Recentrage du logo lors du hover */
+        body.hoverPlay .welcome-logo-container {
+            left: calc((var(--textLeft) + var(--hoverTextShift)) / 2);
+        }
+
+        /* Centrage final lors du click */
+        body.clickedPlay .welcome-logo-container {
+            left: 50vw;
+            top: 50vh;
+        }
+
+        .welcome-logo,
+        .welcome-logo-video {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            object-fit: contain;
         }
-        .play-button-container:hover .play-fleche {
-            transform: scale(1.15);
+
+        .welcome-logo-video {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
         }
-        .welcome-logo {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            max-width: 200px;
-            width: auto;
-            height: auto;
-            z-index: 2;
-            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+
+        .welcome-logo-video.active {
             opacity: 1;
-        }
-        .welcome-logo.center-final {
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-        }
-        .welcome-logo.adjust-for-content {
-            left: calc(30% + 60px);
-        }
-        body.play-clicked .welcome-logo {
-            left: 50vw !important;
-            top: 50vh !important;
         }
 
         /* Pause Screen - Ultra Modern */
@@ -824,25 +848,21 @@
             font-style: italic;
         }
 
-        /* Game Instructions (top-left) - With background */
+        /* Game Instructions (top-left) */
         .game-instructions {
             position: fixed;
             top: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(12px);
             padding: 14px 18px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.12);
-            font-size: 13px;
-            color: rgba(255,255,255,0.85);
+            font-size: 16px;
+            color: rgba(255,255,255,0.95);
             z-index: 100;
             opacity: 1;
             transition: opacity 0.6s ease;
             pointer-events: none;
-            line-height: 1.6;
+            line-height: 1.8;
             font-weight: 400;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.4px;
         }
         .game-instructions.hidden {
             opacity: 0;
@@ -850,11 +870,11 @@
         .game-instructions .key {
             display: inline-block;
             background: rgba(255,255,255,0.15);
-            padding: 3px 8px;
+            padding: 4px 10px;
             border-radius: 4px;
             border: 1px solid rgba(255,255,255,0.35);
             font-family: 'Courier New', monospace;
-            font-size: 12px;
+            font-size: 14px;
             margin: 0 2px;
             color: rgba(255,255,255,1);
             font-weight: 600;
@@ -865,28 +885,24 @@
             position: fixed;
             top: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(12px);
             padding: 14px 18px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.12);
-            font-size: 13px;
-            color: rgba(255,255,255,0.85);
+            font-size: 16px;
+            color: rgba(255,255,255,0.95);
             z-index: 10001;
             opacity: 1;
             pointer-events: none;
-            line-height: 1.6;
+            line-height: 1.8;
             font-weight: 400;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.4px;
         }
         .pause-instructions .key {
             display: inline-block;
             background: rgba(255,255,255,0.15);
-            padding: 3px 8px;
+            padding: 4px 10px;
             border-radius: 4px;
             border: 1px solid rgba(255,255,255,0.35);
             font-family: 'Courier New', monospace;
-            font-size: 12px;
+            font-size: 14px;
             margin: 0 2px;
             color: rgba(255,255,255,1);
             font-weight: 600;
@@ -1006,7 +1022,12 @@
             <source src="videos/background.webm" type="video/webm">
         </video>
 
-        <img src="img/presences_rares_logo.png" alt="Logo" class="welcome-logo adjust-for-content" id="welcome-logo">
+        <div class="welcome-logo-container" id="welcome-logo-container">
+            <img src="img/presences_rares_logo.png" alt="Logo" class="welcome-logo" id="welcome-logo">
+            <video class="welcome-logo-video" id="welcome-logo-video" loop muted playsinline preload="auto">
+                <source src="videos/poulpe_icone_chargement.webm" type="video/webm">
+            </video>
+        </div>
 
         <div class="welcome-content" id="welcome-content">
             <h1 class="welcome-title">
@@ -1091,7 +1112,6 @@
         <div class="pause-controls" onclick="event.stopPropagation()">
             <div class="volume-control">
                 <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70" oninput="updateVolume(this.value)">
-                <span class="volume-label" id="volume-display">70%</span>
             </div>
             <button class="mute-button" id="mute-button" onclick="toggleMute()">
                 <svg id="mute-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1858,11 +1878,23 @@
                     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'
                 ];
                 if (movementKeys.includes(e.code) && !instructionsHidden) {
-                    keyPressCount++;
                     uniqueKeysPressed.add(e.code);
 
-                    // Hide instructions if sufficient interaction detected
-                    if (keyPressCount >= REQUIRED_KEY_PRESSES || uniqueKeysPressed.size >= REQUIRED_UNIQUE_KEYS) {
+                    // Démarrer le timer de maintien si c'est la première fois
+                    if (!keyHoldStartTime) {
+                        keyHoldStartTime = Date.now();
+                        keyHoldTimer = setTimeout(() => {
+                            // Touche maintenue pendant 1 seconde
+                            const instructionsElement = document.getElementById('game-instructions');
+                            if (instructionsElement && !instructionsHidden) {
+                                instructionsElement.classList.add('hidden');
+                                instructionsHidden = true;
+                            }
+                        }, KEY_HOLD_DURATION);
+                    }
+
+                    // Cacher les instructions si au moins 2 touches distinctes
+                    if (uniqueKeysPressed.size >= REQUIRED_UNIQUE_KEYS) {
                         const instructionsElement = document.getElementById('game-instructions');
                         if (instructionsElement) {
                             instructionsElement.classList.add('hidden');
@@ -2223,6 +2255,19 @@
             }
             if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
                 cameraKeys.sprint = false;
+            }
+
+            // Réinitialiser le timer de maintien si touche relâchée
+            const movementKeys = [
+                'KeyW', 'KeyA', 'KeyS', 'KeyD',
+                'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'
+            ];
+            if (movementKeys.includes(e.code)) {
+                if (keyHoldTimer) {
+                    clearTimeout(keyHoldTimer);
+                    keyHoldTimer = null;
+                }
+                keyHoldStartTime = null;
             }
         });
 
@@ -6597,11 +6642,12 @@
 
         // Instructions timer (hide after 5 seconds)
         // Track keyboard interactions instead of time
-        let keyPressCount = 0;
         let uniqueKeysPressed = new Set();
         let instructionsHidden = false;
-        const REQUIRED_KEY_PRESSES = 10; // Number of key presses needed
-        const REQUIRED_UNIQUE_KEYS = 3;  // Or number of different keys pressed
+        const REQUIRED_UNIQUE_KEYS = 2;  // Au moins 2 touches distinctes
+        const KEY_HOLD_DURATION = 1000;  // Ou 1 touche maintenue ≥ 1 seconde
+        let keyHoldTimer = null;
+        let keyHoldStartTime = null;
 
         // Legacy audio variables (for backward compatibility)
         let targetVolume = 0.7;
@@ -6762,7 +6808,6 @@
 
         function updateVolume(value) {
             const volumePercent = parseInt(value);
-            document.getElementById('volume-display').textContent = volumePercent + '%';
 
             const newVolume = volumePercent / 100;
             AudioManager.setVolume(newVolume);
@@ -6792,36 +6837,34 @@
         function handlePlayClick() {
             playClickSound(); // Click feedback
 
-            const welcomeContent = document.getElementById('welcome-content');
-            const welcomeLogo = document.getElementById('welcome-logo');
+            // Passer en état clickedPlay
+            document.body.classList.remove('hoverPlay');
+            document.body.classList.add('clickedPlay');
 
-            // Add fade-out animation to content
-            welcomeContent.classList.add('fade-out');
+            // Activer le logo animé
+            const logoVideo = document.getElementById('welcome-logo-video');
+            if (logoVideo) {
+                logoVideo.classList.add('active');
+                logoVideo.play();
+            }
 
-            // Add body class for logo centering
-            document.body.classList.add('play-clicked');
-
-            // Center the logo
-            welcomeLogo.classList.remove('adjust-for-content');
-            welcomeLogo.classList.add('center-final');
-
-            // Wait for animations to complete before starting experience
+            // Attendre la fin des animations avant de démarrer l'expérience
             setTimeout(() => {
                 startExperience();
             }, 600);
         }
 
-        // Handle hover on play button
+        // Gérer le hover sur le bouton play
         const playButton = document.getElementById('play-button');
         if (playButton) {
             playButton.addEventListener('mouseenter', () => {
-                const welcomeContent = document.getElementById('welcome-content');
-                welcomeContent.classList.add('shift-right');
+                document.body.classList.add('hoverPlay');
             });
 
             playButton.addEventListener('mouseleave', () => {
-                const welcomeContent = document.getElementById('welcome-content');
-                welcomeContent.classList.remove('shift-right');
+                if (!document.body.classList.contains('clickedPlay')) {
+                    document.body.classList.remove('hoverPlay');
+                }
             });
         }
 
