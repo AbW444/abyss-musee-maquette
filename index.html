@@ -584,24 +584,25 @@
         .welcome-content {
             position: absolute;
             left: var(--textLeft);
-            top: var(--textTop);
+            top: 50%;
+            transform: translateY(-50%);
             width: var(--textColW);
             z-index: 2;
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--clickFadeMs) ease;
         }
         body.hoverPlay .welcome-content {
-            transform: translateX(var(--hoverTextShift));
+            transform: translateY(-50%) translateX(var(--hoverTextShift));
         }
         body.clickedPlay .welcome-content {
             opacity: 0;
-            transform: translateX(var(--clickTextExitX));
+            transform: translateY(-50%) translateX(var(--clickTextExitX));
         }
         .welcome-project-name {
             font-family: 'Inter', sans-serif;
             font-size: 64px;
             font-weight: 700;
             letter-spacing: 8px;
-            margin-bottom: 25px;
+            margin-bottom: 12px;
             color: rgba(255,255,255,0.98);
             line-height: 1.1;
             text-transform: uppercase;
@@ -657,6 +658,10 @@
             z-index: 3;
             width: 208px;
             height: 209px;
+            transition: opacity var(--clickFadeMs) ease;
+        }
+        body.clickedPlay .play-button-container {
+            opacity: 0;
         }
         .play-button-container .play-rond,
         .play-button-container .play-fleche {
@@ -1144,7 +1149,7 @@
             <span>Se déplacer</span>
         </div>
         <div class="instruction-row">
-            <span class="key">Défilement</span>
+            <span class="key">Molette</span>
             <span>Avancer / Reculer</span>
         </div>
         <div class="instruction-row">
@@ -1228,7 +1233,7 @@
                 <span>Se déplacer</span>
             </div>
             <div class="instruction-row">
-                <span class="key">Défilement</span>
+                <span class="key">Molette</span>
                 <span>Avancer / Reculer</span>
             </div>
             <div class="instruction-row">
