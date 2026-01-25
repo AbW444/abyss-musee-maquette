@@ -5056,6 +5056,57 @@
             screensGroup.add(screen7);
 
             // ======================
+            // ============================================================
+            // HELPER: Matériau avec shader subtil pour MURS-FORMES uniquement
+            // (gradient + dithering - amélioration qualité visuelle)
+            // ============================================================
+            function createWallFormMaterial(baseColorHex, gradientStrength = 0.03) {
+                return new THREE.ShaderMaterial({
+                    uniforms: {
+                        baseColor: { value: new THREE.Color(baseColorHex) },
+                        gradientStrength: { value: gradientStrength }
+                    },
+                    vertexShader: `
+                        varying vec2 vUv;
+                        void main() {
+                            vUv = uv;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        uniform vec3 baseColor;
+                        uniform float gradientStrength;
+                        varying vec2 vUv;
+
+                        // Dithering Bayer 4x4 ultra subtil
+                        float bayerDither4x4(vec2 screenPos) {
+                            int x = int(mod(screenPos.x, 4.0));
+                            int y = int(mod(screenPos.y, 4.0));
+                            int index = x + y * 4;
+                            float bayer[16];
+                            bayer[0] = 0.0/16.0; bayer[1] = 8.0/16.0; bayer[2] = 2.0/16.0; bayer[3] = 10.0/16.0;
+                            bayer[4] = 12.0/16.0; bayer[5] = 4.0/16.0; bayer[6] = 14.0/16.0; bayer[7] = 6.0/16.0;
+                            bayer[8] = 3.0/16.0; bayer[9] = 11.0/16.0; bayer[10] = 1.0/16.0; bayer[11] = 9.0/16.0;
+                            bayer[12] = 15.0/16.0; bayer[13] = 7.0/16.0; bayer[14] = 13.0/16.0; bayer[15] = 5.0/16.0;
+                            return bayer[index];
+                        }
+
+                        void main() {
+                            // Gradient vertical subtil (du haut vers le bas)
+                            float gradient = vUv.y * gradientStrength;
+
+                            // Dithering ultra fin (opacité 0.006)
+                            float dither = (bayerDither4x4(gl_FragCoord.xy) - 0.5) * 0.006;
+
+                            // Couleur finale
+                            vec3 finalColor = baseColor + vec3(gradient + dither);
+                            gl_FragColor = vec4(finalColor, 1.0);
+                        }
+                    `,
+                    side: THREE.DoubleSide
+                });
+            }
+
             // SCREEN 4: Custom shape (color surface) - white panel
             // ======================
             const width4 = 964.573;
@@ -5103,10 +5154,7 @@
             const width8 = 983.983;
             const height8 = 231.29;
             const geometry8 = new THREE.PlaneGeometry(width8, height8);
-            const material8 = new THREE.MeshBasicMaterial({
-                color: 0x000000, // Black
-                side: THREE.DoubleSide
-            });
+            const material8 = createWallFormMaterial(0x000000); // Shader subtil pour mur-forme
             const screen8 = new THREE.Mesh(geometry8, material8);
 
             // Position et orientation (from user JSON)
@@ -5127,10 +5175,7 @@
             const width9 = 983.983;
             const height9 = 231.29;
             const geometry9 = new THREE.PlaneGeometry(width9, height9);
-            const material9 = new THREE.MeshBasicMaterial({
-                color: 0x000000, // Black
-                side: THREE.DoubleSide
-            });
+            const material9 = createWallFormMaterial(0x000000); // Shader subtil pour mur-forme
             const screen9 = new THREE.Mesh(geometry9, material9);
             screen9.position.set(137.097, -6.589, 226.306);
             screen9.rotation.set(0, 0, 0);
@@ -5169,13 +5214,61 @@
             screensGroup.add(screen10);
 
             // ======================
-            // SCREEN 11: Custom shape (color surface) - dark green small panel
+            // SCREEN 11: Custom shape (color surface) - dark green small panel (sol avec ombre fake)
             // ======================
             const width11 = 155.945;
             const height11 = 228.534;
             const geometry11 = new THREE.PlaneGeometry(width11, height11);
-            const material11 = new THREE.MeshBasicMaterial({
-                color: 0x0A0A0A, // Dark green
+
+            // Shader spécial pour sol avec ombre fake mur-sol (dégradé radial subtil)
+            const material11 = new THREE.ShaderMaterial({
+                uniforms: {
+                    baseColor: { value: new THREE.Color(0x0A0A0A) },
+                    gradientStrength: { value: 0.03 },
+                    shadowStrength: { value: 0.025 } // 2.5% assombrissement aux bords
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 baseColor;
+                    uniform float gradientStrength;
+                    uniform float shadowStrength;
+                    varying vec2 vUv;
+
+                    float bayerDither4x4(vec2 screenPos) {
+                        int x = int(mod(screenPos.x, 4.0));
+                        int y = int(mod(screenPos.y, 4.0));
+                        int index = x + y * 4;
+                        float bayer[16];
+                        bayer[0] = 0.0/16.0; bayer[1] = 8.0/16.0; bayer[2] = 2.0/16.0; bayer[3] = 10.0/16.0;
+                        bayer[4] = 12.0/16.0; bayer[5] = 4.0/16.0; bayer[6] = 14.0/16.0; bayer[7] = 6.0/16.0;
+                        bayer[8] = 3.0/16.0; bayer[9] = 11.0/16.0; bayer[10] = 1.0/16.0; bayer[11] = 9.0/16.0;
+                        bayer[12] = 15.0/16.0; bayer[13] = 7.0/16.0; bayer[14] = 13.0/16.0; bayer[15] = 5.0/16.0;
+                        return bayer[index];
+                    }
+
+                    void main() {
+                        // Gradient vertical
+                        float gradient = vUv.y * gradientStrength;
+
+                        // Ombre fake mur-sol : dégradé radial depuis les bords
+                        vec2 center = vec2(0.5, 0.5);
+                        float distFromCenter = distance(vUv, center);
+                        float shadow = smoothstep(0.3, 0.7, distFromCenter) * shadowStrength;
+
+                        // Dithering
+                        float dither = (bayerDither4x4(gl_FragCoord.xy) - 0.5) * 0.006;
+
+                        // Couleur finale (assombrie aux bords)
+                        vec3 finalColor = baseColor + vec3(gradient + dither) - vec3(shadow);
+                        gl_FragColor = vec4(finalColor, 1.0);
+                    }
+                `,
                 side: THREE.DoubleSide
             });
             const screen11 = new THREE.Mesh(geometry11, material11);
@@ -5193,10 +5286,7 @@
             const width12 = 235.076;
             const height12 = 231.29;
             const geometry12 = new THREE.PlaneGeometry(width12, height12);
-            const material12 = new THREE.MeshBasicMaterial({
-                color: 0x060606, // Assombri légèrement
-                side: THREE.DoubleSide
-            });
+            const material12 = createWallFormMaterial(0x060606); // Shader subtil pour mur-forme
             const screen12 = new THREE.Mesh(geometry12, material12);
             screen12.position.set(-348.048, -6.589, 115.234);
             screen12.rotation.set(0, 1.570796, 0);
@@ -5212,10 +5302,7 @@
             const width14 = 96.102;
             const height14 = 231.29;
             const geometry14 = new THREE.PlaneGeometry(width14, height14);
-            const material14 = new THREE.MeshBasicMaterial({
-                color: 0x0A0A0A, // Dark green
-                side: THREE.DoubleSide
-            });
+            const material14 = createWallFormMaterial(0x0A0A0A); // Shader subtil pour mur-forme
             const screen14 = new THREE.Mesh(geometry14, material14);
             screen14.position.set(-197.183, 3.851, 178.672);
             screen14.rotation.set(0, 1.570796, 0);
@@ -5231,10 +5318,7 @@
             const width15 = 96.102;
             const height15 = 231.29;
             const geometry15 = new THREE.PlaneGeometry(width15, height15);
-            const material15 = new THREE.MeshBasicMaterial({
-                color: 0x0A0A0A, // Dark green
-                side: THREE.DoubleSide
-            });
+            const material15 = createWallFormMaterial(0x0A0A0A); // Shader subtil pour mur-forme
             const screen15 = new THREE.Mesh(geometry15, material15);
             screen15.position.set(-197.107, 3.769, 47.768);
             screen15.rotation.set(0, 1.570796, 0);
@@ -5250,10 +5334,7 @@
             const width16 = 163.506;
             const height16 = 239.079;
             const geometry16 = new THREE.PlaneGeometry(width16, height16);
-            const material16 = new THREE.MeshBasicMaterial({
-                color: 0x0A0A0A, // Dark green
-                side: THREE.DoubleSide
-            });
+            const material16 = createWallFormMaterial(0x0A0A0A); // Shader subtil pour mur-forme
             const screen16 = new THREE.Mesh(geometry16, material16);
             screen16.position.set(-197.04, 27.158, 110.291);
             screen16.rotation.set(1.570796, 1.570796, 0);
@@ -5269,10 +5350,7 @@
             const width17 = 96.102;
             const height17 = 231.29;
             const geometry17 = new THREE.PlaneGeometry(width17, height17);
-            const material17 = new THREE.MeshBasicMaterial({
-                color: 0x000000, // Black
-                side: THREE.DoubleSide
-            });
+            const material17 = createWallFormMaterial(0x000000); // Shader subtil pour mur-forme
             const screen17 = new THREE.Mesh(geometry17, material17);
             screen17.position.set(-200.877, -6.116, 47.768);
             screen17.rotation.set(0, 1.570796, 0);
@@ -5288,10 +5366,7 @@
             const width18 = 96.102;
             const height18 = 231.29;
             const geometry18 = new THREE.PlaneGeometry(width18, height18);
-            const material18 = new THREE.MeshBasicMaterial({
-                color: 0x000000, // Black
-                side: THREE.DoubleSide
-            });
+            const material18 = createWallFormMaterial(0x000000); // Shader subtil pour mur-forme
             const screen18 = new THREE.Mesh(geometry18, material18);
             screen18.position.set(-200.734, -0.471, 178.493);
             screen18.rotation.set(0, 1.570796, 0);
@@ -5307,10 +5382,7 @@
             const width19 = 96.102;
             const height19 = 231.29;
             const geometry19 = new THREE.PlaneGeometry(width19, height19);
-            const material19 = new THREE.MeshBasicMaterial({
-                color: 0x000000, // Black
-                side: THREE.DoubleSide
-            });
+            const material19 = createWallFormMaterial(0x000000); // Shader subtil pour mur-forme
             const screen19 = new THREE.Mesh(geometry19, material19);
             screen19.position.set(-200.877, -6.116, 47.768);
             screen19.rotation.set(0, 1.570796, 0);
@@ -5326,10 +5398,7 @@
             const width21 = 163.506;
             const height21 = 239.079;
             const geometry21 = new THREE.PlaneGeometry(width21, height21);
-            const material21 = new THREE.MeshBasicMaterial({
-                color: 0x000000, // Black
-                side: THREE.DoubleSide
-            });
+            const material21 = createWallFormMaterial(0x000000); // Shader subtil pour mur-forme
             const screen21 = new THREE.Mesh(geometry21, material21);
             screen21.position.set(-200.871, 27.391, 110.392);
             screen21.rotation.set(1.570796, 1.570796, 0);
