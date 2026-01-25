@@ -673,6 +673,22 @@
         .play-button-container .play-rond {
             width: 208px;
             height: 209px;
+            animation: playRondRotate 6s linear infinite;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body.hoverPlay .play-button-container .play-rond {
+            transform: scale(1.05);
+        }
+        @keyframes playRondRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        body.hoverPlay .play-button-container .play-rond {
+            animation: playRondRotateHover 6s linear infinite;
+        }
+        @keyframes playRondRotateHover {
+            from { transform: rotate(0deg) scale(1.05); }
+            to { transform: rotate(360deg) scale(1.05); }
         }
         .play-button-container .play-fleche {
             width: 80px;
@@ -1468,12 +1484,12 @@
                     <label>PARTICLE DENSITY</label>
                     <div class="param-controls">
                         <button class="arrow-btn" data-param="density" data-dir="down">▼</button>
-                        <span class="value" id="val-density" data-param="density">13X</span>
+                        <span class="value" id="val-density" data-param="density">20X</span>
                         <button class="arrow-btn" data-param="density" data-dir="up">▲</button>
                     </div>
                 </div>
                 <div class="slider-wrapper">
-                    <input type="range" class="slider" id="density" min="1" max="30" step="1" value="13">
+                    <input type="range" class="slider" id="density" min="1" max="30" step="1" value="20">
                     <div class="center-mark" style="left: 20.7%;"></div>
                 </div>
             </div>
@@ -1675,7 +1691,7 @@
         let depthMultiplier = 0.2;
         let depthSmoothing = 0.1; // Seuil pour atténuer micro-mouvements (0 = aucun, 0.1 = élevé)
         let pointSize = 0.39;
-        let particleDensity = 13;
+        let particleDensity = 20;
         let brightness = 1.1;
         let hideBlack = false;
         let blackThreshold = 30;
@@ -1751,7 +1767,8 @@
         let allScreens = {}; // Store all screens by number
         let clipboardScreen = null; // Store copied screen data for copy/paste
         let screenLabels = {}; // Store screen number labels (sprites) for volumetric screens
-        const VOLUMETRIC_SCREENS = [1, 2, 5, 6, 7]; // Écrans volumétriques (vs formes/murs/sols)
+        let screenOutlines = {}; // Store neon outlines for admin mode debug
+        const VOLUMETRIC_SCREENS = [1, 2, 3, 4, 5, 6]; // Écrans volumétriques (renumérotés sans trous)
 
         // Free camera (no orbit controls, no pivot)
         let freeCameraEnabled = true;
@@ -2163,8 +2180,8 @@
                 toggleVideo();
             }
 
-            // Number keys 1-7: Select screen (keyboard + numpad)
-            if ((e.code >= 'Digit1' && e.code <= 'Digit7') || (e.code >= 'Numpad1' && e.code <= 'Numpad7')) {
+            // Number keys 1-9: Select screen/shape (keyboard + numpad)
+            if ((e.code >= 'Digit1' && e.code <= 'Digit9') || (e.code >= 'Numpad1' && e.code <= 'Numpad9')) {
                 e.preventDefault();
                 const screenNum = parseInt(e.code.replace('Digit', '').replace('Numpad', ''));
                 selectScreen(screenNum);
@@ -2573,17 +2590,17 @@
             canvas.height = 256;
             const ctx = canvas.getContext('2d');
 
-            // Draw number in neon green
-            ctx.fillStyle = '#00ff00';
+            // Draw number in neon red (fluo)
+            ctx.fillStyle = '#ff004c';
             ctx.font = 'bold 120px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(screenNumber.toString().padStart(2, '0'), 128, 128);
+            ctx.fillText(screenNumber.toString(), 128, 128);
 
             // Add glow effect
-            ctx.shadowColor = '#00ff00';
+            ctx.shadowColor = '#ff004c';
             ctx.shadowBlur = 20;
-            ctx.fillText(screenNumber.toString().padStart(2, '0'), 128, 128);
+            ctx.fillText(screenNumber.toString(), 128, 128);
 
             // Create sprite
             const texture = new THREE.CanvasTexture(canvas);
@@ -2599,6 +2616,30 @@
             return sprite;
         }
 
+        // Create neon outline for screen/shape (admin debug mode)
+        function createScreenOutline(screen) {
+            // Get geometry - handle both regular meshes and instanced meshes
+            let geometry = screen.geometry;
+            if (!geometry) return null;
+
+            // Create edge geometry for outline
+            const edges = new THREE.EdgesGeometry(geometry);
+            const lineMaterial = new THREE.LineBasicMaterial({
+                color: 0xff004c, // Neon red
+                linewidth: 1,
+                transparent: true,
+                opacity: 0.8
+            });
+            const outline = new THREE.LineSegments(edges, lineMaterial);
+
+            // Copy transform from original screen
+            outline.position.copy(screen.position);
+            outline.rotation.copy(screen.rotation);
+            outline.scale.copy(screen.scale);
+
+            return outline;
+        }
+
         function updateScreenLabels() {
             // Remove existing labels
             Object.values(screenLabels).forEach(label => {
@@ -2606,18 +2647,31 @@
             });
             screenLabels = {};
 
+            // Remove existing outlines
+            Object.values(screenOutlines).forEach(outline => {
+                if (outline && outline.parent) outline.parent.remove(outline);
+            });
+            screenOutlines = {};
+
             // Only show in Admin mode
             if (fpsMode) return;
 
-            // Create labels for volumetric screens
-            VOLUMETRIC_SCREENS.forEach(screenNum => {
-                if (allScreens[screenNum]) {
-                    const label = createScreenLabel(screenNum);
-                    // Position at center of screen
-                    const screen = allScreens[screenNum];
-                    label.position.copy(screen.position);
-                    scene.add(label);
-                    screenLabels[screenNum] = label;
+            // Create labels and outlines for ALL screens and shapes
+            Object.keys(allScreens).forEach(screenNum => {
+                const screen = allScreens[screenNum];
+                if (!screen) return;
+
+                // Create and add label (neon red number)
+                const label = createScreenLabel(screenNum);
+                label.position.copy(screen.position);
+                scene.add(label);
+                screenLabels[screenNum] = label;
+
+                // Create and add outline (neon red edges)
+                const outline = createScreenOutline(screen);
+                if (outline) {
+                    scene.add(outline);
+                    screenOutlines[screenNum] = outline;
                 }
             });
         }
@@ -2625,6 +2679,9 @@
         function hideScreenLabels() {
             Object.values(screenLabels).forEach(label => {
                 label.visible = false;
+            });
+            Object.values(screenOutlines).forEach(outline => {
+                if (outline) outline.visible = false;
             });
         }
 
@@ -4904,6 +4961,7 @@
                     wallOppA.userData.initialZ = screen5Data.initialZ;
                     wallOppA.userData.positions = screen5Data.positions;
                     wallOppA.userData.is3D = true;
+                    wallOppA.userData.screenNumber = 4; // Renuméroté: 5 → 4
                 } else {
                     const geometry5 = new THREE.BufferGeometry();
                     geometry5.setAttribute('position', new THREE.Float32BufferAttribute(screen5Data.positions, 3));
@@ -4923,6 +4981,7 @@
             // Écran 5 - Position de base
             wallOppA.position.set(0, 0, 225);
             wallOppA.rotation.set(-Math.PI, 0, -Math.PI); // Rotation 180° pour faire face vers -Z
+            if (!wallOppA.userData.screenNumber) wallOppA.userData.screenNumber = 4; // Renuméroté: 5 → 4
 
             screensGroup.add(wallOppA);
 
@@ -4980,6 +5039,7 @@
                     wallOppB.userData.initialZ = screen6Data.initialZ;
                     wallOppB.userData.positions = screen6Data.positions;
                     wallOppB.userData.is3D = true;
+                    wallOppB.userData.screenNumber = 5; // Renuméroté: 6 → 5
                 } else {
                     const geometry6 = new THREE.BufferGeometry();
                     geometry6.setAttribute('position', new THREE.Float32BufferAttribute(screen6Data.positions, 3));
@@ -4999,6 +5059,7 @@
             // Écran 6 - Position de base
             wallOppB.position.set(400, 0, 225);
             wallOppB.rotation.set(-Math.PI, 0, -Math.PI); // Rotation 180° pour faire face vers -Z
+            if (!wallOppB.userData.screenNumber) wallOppB.userData.screenNumber = 5; // Renuméroté: 6 → 5
 
             screensGroup.add(wallOppB);
 
@@ -5087,6 +5148,7 @@
                 screen7.userData.initialZ = screen7InitialZ;
                 screen7.userData.positions = screen7Positions;
                 screen7.userData.is3D = true;
+                screen7.userData.screenNumber = 6; // Renuméroté: 7 → 6
 
             } else {
                 // Mode 2D : créer Points avec les particules du carré
@@ -5102,6 +5164,7 @@
             screen7.position.set(599.938, -0.064, 112.546);
             screen7.rotation.set(0, -1.570796, 0); // -90° en Y
             screen7.scale.set(1, 1, 1); // IMPORTANT: pas de scale, l'image garde sa taille normale
+            if (!screen7.userData.screenNumber) screen7.userData.screenNumber = 6; // Renuméroté: 7 → 6
 
             screensGroup.add(screen7);
 
@@ -5191,7 +5254,7 @@
             scene.add(cubeCamera4);
 
             // Mark as color surface
-            screen4.userData.screenNumber = 4;
+            screen4.userData.screenNumber = 7; // Renuméroté: 4 → 7
             screen4.userData.isColorSurface = true;
             screen4.userData.color = 0x000000;
             screen4.userData.cubeCamera = cubeCamera4;  // Référence pour la mise à jour
@@ -5357,7 +5420,7 @@
             screen14.position.set(-197.183, 3.851, 178.672);
             screen14.rotation.set(0, 1.570796, 0);
             screen14.scale.set(1, 1, 1);
-            screen14.userData.screenNumber = 14;
+            screen14.userData.screenNumber = 13; // Renuméroté: 14 → 13
             screen14.userData.isColorSurface = true;
             screen14.userData.color = 0x0A0A0A;
             screensGroup.add(screen14);
@@ -5373,7 +5436,7 @@
             screen15.position.set(-197.107, 3.769, 47.768);
             screen15.rotation.set(0, 1.570796, 0);
             screen15.scale.set(1, 1, 1);
-            screen15.userData.screenNumber = 15;
+            screen15.userData.screenNumber = 14; // Renuméroté: 15 → 14
             screen15.userData.isColorSurface = true;
             screen15.userData.color = 0x0A0A0A;
             screensGroup.add(screen15);
@@ -5389,7 +5452,7 @@
             screen16.position.set(-197.04, 27.158, 110.291);
             screen16.rotation.set(1.570796, 1.570796, 0);
             screen16.scale.set(1, 1, 1);
-            screen16.userData.screenNumber = 16;
+            screen16.userData.screenNumber = 15; // Renuméroté: 16 → 15
             screen16.userData.isColorSurface = true;
             screen16.userData.color = 0x0A0A0A;
             screensGroup.add(screen16);
@@ -5405,7 +5468,7 @@
             screen17.position.set(-200.877, -6.116, 47.768);
             screen17.rotation.set(0, 1.570796, 0);
             screen17.scale.set(1, 1, 1);
-            screen17.userData.screenNumber = 17;
+            screen17.userData.screenNumber = 16; // Renuméroté: 17 → 16
             screen17.userData.isColorSurface = true;
             screen17.userData.color = 0x000000;
             screensGroup.add(screen17);
@@ -5421,7 +5484,7 @@
             screen18.position.set(-200.734, -0.471, 178.493);
             screen18.rotation.set(0, 1.570796, 0);
             screen18.scale.set(1, 1, 1);
-            screen18.userData.screenNumber = 18;
+            screen18.userData.screenNumber = 17; // Renuméroté: 18 → 17
             screen18.userData.isColorSurface = true;
             screen18.userData.color = 0x000000;
             screensGroup.add(screen18);
@@ -5437,7 +5500,7 @@
             screen19.position.set(-200.877, -6.116, 47.768);
             screen19.rotation.set(0, 1.570796, 0);
             screen19.scale.set(1, 1, 1);
-            screen19.userData.screenNumber = 19;
+            screen19.userData.screenNumber = 18; // Renuméroté: 19 → 18
             screen19.userData.isColorSurface = true;
             screen19.userData.color = 0x000000;
             screensGroup.add(screen19);
@@ -5453,7 +5516,7 @@
             screen21.position.set(-200.871, 27.391, 110.392);
             screen21.rotation.set(1.570796, 1.570796, 0);
             screen21.scale.set(1, 1, 1);
-            screen21.userData.screenNumber = 21;
+            screen21.userData.screenNumber = 19; // Renuméroté: 21 → 19
             screen21.userData.isColorSurface = true;
             screen21.userData.color = 0x000000;
             screensGroup.add(screen21);
@@ -5467,30 +5530,31 @@
                 console.log(`  ✓ Forme #${key} réajoutée à la scène et à allScreens`);
             });
 
-            // Update volumetric screens 1-21 (1,2,3,5,6,7 volumetric + 4,8-21 custom color surfaces)
+            // Update volumetric screens & shapes - RENUMÉROTÉS SANS TROUS (1-19)
+            // ÉCRANS volumétriques: 1-6 | FORMES: 7-19
             allScreens = {
-                1: particles,           // Wall back left (volumetric)
-                2: particlesRight,      // Wall back right (volumetric)
-                3: screen3,             // Floor rectangle (volumetric - double width)
-                4: screen4,             // Ceiling gray panel (custom color surface)
-                5: wallOppA,            // Wall front left (volumetric)
-                6: wallOppB,            // Wall front right (volumetric)
-                7: screen7,             // Side panel (volumetric)
-                8: screen8,             // Center gray panel (custom color surface)
-                9: screen9,             // Back gray panel (custom color surface)
-                10: screen10,           // Floor lighter green panel (custom color surface)
-                11: screen11,           // Small dark green panel (custom color surface)
-                12: screen12,           // Dark green vertical panel (custom color surface)
-                14: screen14,           // Dark green thin panel 1 (custom color surface)
-                15: screen15,           // Dark green thin panel 2 (custom color surface)
-                16: screen16,           // Dark green horizontal panel (custom color surface)
-                17: screen17,           // Gray thin panel 1 (custom color surface)
-                18: screen18,           // Gray thin panel 2 (custom color surface)
-                19: screen19,           // Gray thin panel 3 (custom color surface)
-                21: screen21,           // Gray horizontal panel (custom color surface)
-                ...customShapesToPreserve // Restore custom shapes (>21)
+                1: particles,           // ÉCRAN: Wall back left (volumetric)
+                2: particlesRight,      // ÉCRAN: Wall back right (volumetric)
+                3: screen3,             // ÉCRAN: Floor rectangle (volumetric)
+                4: wallOppA,            // ÉCRAN: Wall front left (volumetric) - était 5
+                5: wallOppB,            // ÉCRAN: Wall front right (volumetric) - était 6
+                6: screen7,             // ÉCRAN: Side panel (volumetric) - était 7
+                7: screen4,             // FORME: Ceiling gray panel - était 4
+                8: screen8,             // FORME: Center gray panel
+                9: screen9,             // FORME: Back gray panel
+                10: screen10,           // FORME: Floor lighter green panel
+                11: screen11,           // FORME: Small dark green panel
+                12: screen12,           // FORME: Dark green vertical panel
+                13: screen14,           // FORME: Dark green thin panel 1 - était 14
+                14: screen15,           // FORME: Dark green thin panel 2 - était 15
+                15: screen16,           // FORME: Dark green horizontal panel - était 16
+                16: screen17,           // FORME: Gray thin panel 1 - était 17
+                17: screen18,           // FORME: Gray thin panel 2 - était 18
+                18: screen19,           // FORME: Gray thin panel 3 - était 19
+                19: screen21,           // FORME: Gray horizontal panel - était 21
+                ...customShapesToPreserve // Restore custom shapes (>19)
             };
-            console.log('✅ Tous les écrans restaurés (1-21 + custom):', Object.keys(allScreens));
+            console.log('✅ Tous les écrans renumérotés (1-19 + custom):', Object.keys(allScreens));
 
             // CRITICAL: Update screen list UI immediately after allScreens is populated
             updateScreenList();
@@ -5508,7 +5572,7 @@
 
             console.log('');
             console.log('=== CONTRÔLES 3D DISPONIBLES ===');
-            console.log('Touches 1-7 : Sélectionner un écran');
+            console.log('Touches 1-9 : Sélectionner un écran/forme');
             console.log('G : Mode Translation');
             console.log('R : Mode Rotation');
             console.log('E : Mode Scale');
@@ -5879,8 +5943,8 @@
                 }
 
                 // CRITICAL: Also update screen 7 if it exists (3D mode)
-                if (allScreens[7] && allScreens[7].instanceColor) {
-                    const screen7 = allScreens[7];
+                if (allScreens[6] && allScreens[6].instanceColor) {
+                    const screen7 = allScreens[6];
                     const colors7 = screen7.instanceColor.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
 
@@ -5996,8 +6060,8 @@
                 }
 
                 // CRITICAL: Also update screen 7 if it exists (2D mode)
-                if (allScreens[7] && allScreens[7].geometry && allScreens[7].geometry.attributes.color) {
-                    const screen7 = allScreens[7];
+                if (allScreens[6] && allScreens[6].geometry && allScreens[6].geometry.attributes.color) {
+                    const screen7 = allScreens[6];
                     const geom7 = screen7.geometry;
                     const colors7 = geom7.attributes.color.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
@@ -6226,8 +6290,8 @@
                     }
 
                     // CRITICAL: Also update screen 7 if it has its own geometry (3D mode)
-                    if (allScreens[7] && allScreens[7].userData && allScreens[7].userData.is3D) {
-                        const screen7 = allScreens[7];
+                    if (allScreens[6] && allScreens[6].userData && allScreens[6].userData.is3D) {
+                        const screen7 = allScreens[6];
                         const initialZs7 = screen7.userData.initialZ;
                         const positions7 = screen7.userData.positions;
 
@@ -6324,8 +6388,8 @@
                     geometry.attributes.position.needsUpdate = true;
 
                     // CRITICAL: Also update screen 7 if it has its own geometry (2D mode)
-                    if (allScreens[7] && allScreens[7].geometry && allScreens[7].geometry.attributes.position) {
-                        const screen7 = allScreens[7];
+                    if (allScreens[6] && allScreens[6].geometry && allScreens[6].geometry.attributes.position) {
+                        const screen7 = allScreens[6];
                         const geom7 = screen7.geometry;
                         const positions7 = geom7.attributes.position.array;
                         const initialZs7 = geom7.attributes.initialZ.array;
@@ -6962,7 +7026,7 @@
                 this.currentMusicVolume = this.masterVolume;
 
                 // Click sound effect
-                this.clickSound = new Audio('son/button-click-sound_cut.ogg');
+                this.clickSound = new Audio('son/button-click-sound.ogg');
                 this.clickSound.volume = 0.5; // Base volume for click sound
 
                 // Web Audio Context for UI sounds (fallback)
