@@ -3891,12 +3891,17 @@
                 }
             }
 
-            // Mouse wheel movement
+            // Mouse wheel movement - UTILISE LA MÊME LOGIQUE DE COLLISION QUE LE CLAVIER
+            // Anti-tunneling: divise le mouvement en sous-étapes pour éviter de traverser les objets
+            const SCROLL_MAX_STEP = 2; // Taille max d'une sous-étape (identique à currentSpeed clavier)
+            const DEBUG_SCROLL = false; // Mettre à true pour logs debug
+
             renderer.domElement.addEventListener('wheel', function(e) {
                 e.preventDefault();
 
                 const scrollSpeed = fpsSettings.fpsScrollSpeed; // Vitesse configurable
                 const delta = e.deltaY > 0 ? 1 : -1;
+                const totalDistance = scrollSpeed; // Distance totale à parcourir
 
                 // OPTIMIZED: Reuse global Vector3
                 camera.getWorldDirection(reusableForward);
@@ -3909,20 +3914,40 @@
                     reusableForward.y = 0;
                     reusableForward.normalize();
 
-                    reusablePrevPosition.copy(camera.position);
+                    // ANTI-TUNNELING: Diviser le mouvement en sous-étapes
+                    const numSteps = Math.max(1, Math.ceil(totalDistance / SCROLL_MAX_STEP));
+                    const stepDistance = totalDistance / numSteps;
 
-                    // Appliquer mouvement horizontal
-                    camera.position.addScaledVector(reusableForward, -delta * scrollSpeed);
+                    if (DEBUG_SCROLL) {
+                        console.log(`🖱️ SCROLL: distance=${totalDistance.toFixed(2)}, steps=${numSteps}, stepSize=${stepDistance.toFixed(2)}`);
+                    }
 
-                    // CRITIQUE: Restaurer Y pour BLOQUER axe vertical
-                    camera.position.y = savedY;
+                    let collisionDetected = false;
 
-                    // Vérifier collisions
-                    if (checkCollision(camera.position, reusablePrevPosition)) {
-                        camera.position.copy(reusablePrevPosition);
+                    // Appliquer le mouvement en sous-étapes (identique au clavier)
+                    for (let i = 0; i < numSteps && !collisionDetected; i++) {
+                        reusablePrevPosition.copy(camera.position);
+
+                        // Appliquer une sous-étape de mouvement
+                        camera.position.addScaledVector(reusableForward, -delta * stepDistance);
+                        camera.position.y = savedY; // Maintenir Y fixe
+
+                        // Vérifier collision (même fonction que clavier)
+                        if (checkCollision(camera.position, reusablePrevPosition)) {
+                            camera.position.copy(reusablePrevPosition);
+                            collisionDetected = true;
+
+                            if (DEBUG_SCROLL) {
+                                console.log(`   ⛔ Collision à step ${i+1}/${numSteps}`);
+                            }
+                        }
+                    }
+
+                    if (DEBUG_SCROLL && !collisionDetected) {
+                        console.log(`   ✅ Mouvement complet sans collision`);
                     }
                 } else {
-                    // Mode normal: zoom libre (tous axes)
+                    // Mode normal (admin): zoom libre (tous axes), pas de collision
                     camera.position.addScaledVector(reusableForward, -delta * scrollSpeed);
                 }
             });
@@ -5477,19 +5502,20 @@
             screensGroup.add(screen16);
 
             // ======================
-            // SCREEN 17: Custom shape (color surface) - gray thin panel
+            // SCREEN 17: Custom shape (color surface) - gray thin panel (FORME 16)
+            // Config mise à jour selon spécifications
             // ======================
             const width17 = 96.102;
             const height17 = 231.29;
             const geometry17 = new THREE.PlaneGeometry(width17, height17);
-            const material17 = createWallFormMaterial(0x000000); // Shader subtil pour mur-forme
+            const material17 = createWallFormMaterial(0x808080); // Gris (8421504 = 0x808080)
             const screen17 = new THREE.Mesh(geometry17, material17);
-            screen17.position.set(-200.877, -6.116, 47.768);
+            screen17.position.set(-200.774, -6.116, 47.768); // Position mise à jour
             screen17.rotation.set(0, 1.570796, 0);
             screen17.scale.set(1, 1, 1);
             screen17.userData.screenNumber = 16; // Renuméroté: 17 → 16
             screen17.userData.isColorSurface = true;
-            screen17.userData.color = 0x000000;
+            screen17.userData.color = 0x808080; // Gris (8421504)
             screensGroup.add(screen17);
 
             // ======================
@@ -5509,22 +5535,6 @@
             screensGroup.add(screen18);
 
             // ======================
-            // SCREEN 19: Custom shape (color surface) - gray thin panel
-            // ======================
-            const width19 = 96.102;
-            const height19 = 231.29;
-            const geometry19 = new THREE.PlaneGeometry(width19, height19);
-            const material19 = createWallFormMaterial(0x000000); // Shader subtil pour mur-forme
-            const screen19 = new THREE.Mesh(geometry19, material19);
-            screen19.position.set(-200.877, -6.116, 47.768);
-            screen19.rotation.set(0, 1.570796, 0);
-            screen19.scale.set(1, 1, 1);
-            screen19.userData.screenNumber = 18; // Renuméroté: 19 → 18
-            screen19.userData.isColorSurface = true;
-            screen19.userData.color = 0x000000;
-            screensGroup.add(screen19);
-
-            // ======================
             // SCREEN 21: Custom shape (color surface) - gray horizontal panel
             // ======================
             const width21 = 163.506;
@@ -5535,7 +5545,7 @@
             screen21.position.set(-200.871, 27.391, 110.392);
             screen21.rotation.set(1.570796, 1.570796, 0);
             screen21.scale.set(1, 1, 1);
-            screen21.userData.screenNumber = 19; // Renuméroté: 21 → 19
+            screen21.userData.screenNumber = 18; // Renuméroté: 21 → 18 (après suppression forme 18)
             screen21.userData.isColorSurface = true;
             screen21.userData.color = 0x000000;
             screensGroup.add(screen21);
@@ -5549,8 +5559,9 @@
                 console.log(`  ✓ Forme #${key} réajoutée à la scène et à allScreens`);
             });
 
-            // Update volumetric screens & shapes - RENUMÉROTÉS SANS TROUS (1-19)
-            // ÉCRANS volumétriques: 1-6 | FORMES: 7-19
+            // Update volumetric screens & shapes - RENUMÉROTÉS SANS TROUS (1-18)
+            // ÉCRANS volumétriques: 1-6 | FORMES: 7-18
+            // NOTE: Forme 18 (screen19) supprimée, screen21 devient 18
             allScreens = {
                 1: particles,           // ÉCRAN: Wall back left (volumetric)
                 2: particlesRight,      // ÉCRAN: Wall back right (volumetric)
@@ -5569,11 +5580,10 @@
                 15: screen16,           // FORME: Dark green horizontal panel - était 16
                 16: screen17,           // FORME: Gray thin panel 1 - était 17
                 17: screen18,           // FORME: Gray thin panel 2 - était 18
-                18: screen19,           // FORME: Gray thin panel 3 - était 19
-                19: screen21,           // FORME: Gray horizontal panel - était 21
-                ...customShapesToPreserve // Restore custom shapes (>19)
+                18: screen21,           // FORME: Gray horizontal panel - était 21
+                ...customShapesToPreserve // Restore custom shapes (>18)
             };
-            console.log('✅ Tous les écrans renumérotés (1-19 + custom):', Object.keys(allScreens));
+            console.log('✅ Tous les écrans renumérotés (1-18 + custom):', Object.keys(allScreens));
 
             // CRITICAL: Update screen list UI immediately after allScreens is populated
             updateScreenList();
