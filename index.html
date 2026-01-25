@@ -596,6 +596,17 @@
             opacity: 0;
             transform: translateX(var(--clickTextExitX));
         }
+        .welcome-project-name {
+            font-family: 'Inter', sans-serif;
+            font-size: 64px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            margin-bottom: 25px;
+            color: rgba(255,255,255,0.98);
+            line-height: 1.1;
+            text-transform: uppercase;
+            display: block;
+        }
         .welcome-title {
             font-family: 'Inter', sans-serif;
             font-size: 22px;
@@ -747,20 +758,20 @@
         }
         .pause-title {
             font-family: 'Inter', sans-serif;
-            font-size: 20px;
+            font-size: 26px;
             font-weight: 500;
             color: rgba(255,255,255,0.95);
-            margin-bottom: 30px;
+            margin-bottom: 35px;
             letter-spacing: 1.2px;
             text-transform: uppercase;
         }
         .pause-text {
             font-family: 'Inter', sans-serif;
-            font-size: 14px;
+            font-size: 17px;
             font-weight: 300;
             color: rgba(255,255,255,0.70);
             line-height: 1.9;
-            margin-bottom: 18px;
+            margin-bottom: 22px;
             letter-spacing: 0.3px;
         }
         .pause-text strong {
@@ -882,12 +893,12 @@
         .game-instructions .key {
             display: inline-block;
             background: rgba(255,255,255,0.15);
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 4px;
             border: 1px solid rgba(255,255,255,0.35);
             font-family: 'Courier New', monospace;
             font-size: 14px;
-            margin: 0 2px;
+            margin: 0 4px;
             color: rgba(255,255,255,1);
             font-weight: 600;
         }
@@ -910,12 +921,12 @@
         .pause-instructions .key {
             display: inline-block;
             background: rgba(255,255,255,0.15);
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 4px;
             border: 1px solid rgba(255,255,255,0.35);
             font-family: 'Courier New', monospace;
             font-size: 14px;
-            margin: 0 2px;
+            margin: 0 4px;
             color: rgba(255,255,255,1);
             font-weight: 600;
         }
@@ -1023,7 +1034,7 @@
     <!-- Game Instructions (top-left, visible when on floor Y=11) -->
     <div class="game-instructions hidden" id="game-instructions">
         <span class="key">Souris</span> Regarder autour<br>
-        <span class="key">ZQSD</span> ou <span class="key">↑←↓→</span> Se déplacer<br>
+        <span class="key">ZQSD</span> ou <span class="key">▲◄▼►</span> Se déplacer<br>
         <span class="key">ESC</span> Pause
     </div>
 
@@ -1042,6 +1053,7 @@
         </div>
 
         <div class="welcome-content" id="welcome-content">
+            <span class="welcome-project-name">DUMBO</span>
             <h1 class="welcome-title">
                 Présences aquatiques rares<br>
                 <span class="welcome-subtitle-inline">Maquette de dispositif d'exposition</span>
@@ -1084,7 +1096,7 @@
     <div id="pause-screen">
         <div class="pause-instructions">
             <span class="key">Souris</span> Regarder autour<br>
-            <span class="key">ZQSD</span> ou <span class="key">↑←↓→</span> Se déplacer<br>
+            <span class="key">ZQSD</span> ou <span class="key">▲◄▼►</span> Se déplacer<br>
             <span class="key">ESC</span> Pause
         </div>
 
