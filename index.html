@@ -23,8 +23,8 @@
 
             --logoSize: 104px;
 
-            --playRight: 128px;
-            --playBottom: 112px;
+            --playRight: 240px;
+            --playBottom: 150px;
 
             --hoverTextShift: 90px;
 
@@ -621,6 +621,7 @@
             line-height: 1.9;
             margin-bottom: 20px;
             letter-spacing: 0.3px;
+            text-align: justify;
         }
         .welcome-text strong {
             font-weight: 400;
@@ -643,6 +644,8 @@
             right: var(--playRight);
             cursor: pointer;
             z-index: 3;
+            width: 208px;
+            height: 209px;
         }
         .play-button-container .play-rond,
         .play-button-container .play-fleche {
@@ -651,11 +654,20 @@
             top: 0;
             left: 0;
         }
+        .play-button-container .play-rond {
+            width: 208px;
+            height: 209px;
+        }
         .play-button-container .play-fleche {
+            width: 80px;
+            height: 105px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) translateX(4px);
             transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
         body.hoverPlay .play-button-container .play-fleche {
-            transform: scale(1.08);
+            transform: translate(-50%, -50%) translateX(4px) scale(1.08);
         }
 
         /* Logo container - PNG et WEBM */
@@ -860,7 +872,7 @@
             opacity: 1;
             transition: opacity 0.6s ease;
             pointer-events: none;
-            line-height: 1.8;
+            line-height: 2.4;
             font-weight: 400;
             letter-spacing: 0.4px;
         }
@@ -891,7 +903,7 @@
             z-index: 10001;
             opacity: 1;
             pointer-events: none;
-            line-height: 1.8;
+            line-height: 2.4;
             font-weight: 400;
             letter-spacing: 0.4px;
         }
@@ -6677,7 +6689,7 @@
                 this.currentMusicVolume = this.masterVolume;
 
                 // Click sound effect
-                this.clickSound = new Audio('son/immersivecontrol-button-click-sound-463065.mp3');
+                this.clickSound = new Audio('son/button-click-sound_cut.ogg');
                 this.clickSound.volume = 0.5; // Base volume for click sound
 
                 // Web Audio Context for UI sounds (fallback)
