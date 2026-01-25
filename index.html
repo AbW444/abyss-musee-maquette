@@ -1691,7 +1691,7 @@
         let depthMultiplier = 0.2;
         let depthSmoothing = 0.1; // Seuil pour atténuer micro-mouvements (0 = aucun, 0.1 = élevé)
         let pointSize = 0.39;
-        let particleDensity = 13;
+        let particleDensity = 15;
         let brightness = 1.1;
         let hideBlack = false;
         let blackThreshold = 30;
@@ -2315,6 +2315,9 @@
                     // Hide screen labels in Spectator mode
                     hideScreenLabels();
 
+                    // Hide cursor in Spectator/FPS mode
+                    document.body.style.cursor = 'none';
+
                     // Play background music in Spectator mode
                     playAudio();
                 } else {
@@ -2335,6 +2338,10 @@
                     if (document.exitPointerLock) {
                         document.exitPointerLock();
                     }
+
+                    // CRITICAL: Show cursor in Admin mode
+                    document.body.style.cursor = 'default';
+                    isMouseLocked = false;
 
                     // CRITICAL: In Admin mode, show ONLY FPS counter + screen numbers by default
                     // Other interfaces appear only when pressing N or their individual keys
@@ -3823,8 +3830,8 @@
             });
 
             renderer.domElement.addEventListener('mousemove', function(e) {
-                // PointerLock mode (FPS-style)
-                if (isMouseLocked && freeCameraEnabled) {
+                // PointerLock mode (FPS-style) - ONLY in Spectator mode
+                if (isMouseLocked && freeCameraEnabled && fpsMode) {
                     const deltaX = e.movementX || 0;
                     const deltaY = e.movementY || 0;
 
@@ -3834,8 +3841,8 @@
                     // Clamp pitch to avoid flipping
                     cameraPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraPitch));
                 }
-                // Legacy click+drag mode
-                else if (isLeftMouseDown && freeCameraEnabled) {
+                // Click+drag mode (Admin mode or fallback)
+                else if (isLeftMouseDown && freeCameraEnabled && !selectedScreen) {
                     const deltaX = e.clientX - lastMouseX;
                     const deltaY = e.clientY - lastMouseY;
 
@@ -4897,6 +4904,7 @@
                 screen3.userData.initialZ = screen3InitialZ;
                 screen3.userData.positions = screen3Positions;
                 screen3.userData.is3D = true;
+                screen3.userData.screenNumber = 5; // Renuméroté: était 3 → 5
 
             } else {
                 // Mode 2D : créer Points avec les particules du rectangle
@@ -4906,6 +4914,7 @@
                 geometry3.setAttribute('initialZ', new THREE.Float32BufferAttribute(screen3InitialZ, 1));
 
                 screen3 = new THREE.Points(geometry3, material);
+                screen3.userData.screenNumber = 5; // Renuméroté: était 3 → 5
             }
 
             // Position et orientation de base
@@ -4971,7 +4980,7 @@
                     wallOppA.userData.initialZ = screen5Data.initialZ;
                     wallOppA.userData.positions = screen5Data.positions;
                     wallOppA.userData.is3D = true;
-                    wallOppA.userData.screenNumber = 4; // Renuméroté: 5 → 4
+                    wallOppA.userData.screenNumber = 6; // Renuméroté: anciennement 4 → 6
                 } else {
                     const geometry5 = new THREE.BufferGeometry();
                     geometry5.setAttribute('position', new THREE.Float32BufferAttribute(screen5Data.positions, 3));
@@ -4991,7 +5000,7 @@
             // Écran 5 - Position de base
             wallOppA.position.set(0, 0, 225);
             wallOppA.rotation.set(-Math.PI, 0, -Math.PI); // Rotation 180° pour faire face vers -Z
-            if (!wallOppA.userData.screenNumber) wallOppA.userData.screenNumber = 4; // Renuméroté: 5 → 4
+            if (!wallOppA.userData.screenNumber) wallOppA.userData.screenNumber = 6; // Renuméroté: anciennement 4 → 6
 
             screensGroup.add(wallOppA);
 
@@ -5049,7 +5058,7 @@
                     wallOppB.userData.initialZ = screen6Data.initialZ;
                     wallOppB.userData.positions = screen6Data.positions;
                     wallOppB.userData.is3D = true;
-                    wallOppB.userData.screenNumber = 5; // Renuméroté: 6 → 5
+                    wallOppB.userData.screenNumber = 4; // Renuméroté: anciennement 5 → 4
                 } else {
                     const geometry6 = new THREE.BufferGeometry();
                     geometry6.setAttribute('position', new THREE.Float32BufferAttribute(screen6Data.positions, 3));
@@ -5069,7 +5078,7 @@
             // Écran 6 - Position de base
             wallOppB.position.set(400, 0, 225);
             wallOppB.rotation.set(-Math.PI, 0, -Math.PI); // Rotation 180° pour faire face vers -Z
-            if (!wallOppB.userData.screenNumber) wallOppB.userData.screenNumber = 5; // Renuméroté: 6 → 5
+            if (!wallOppB.userData.screenNumber) wallOppB.userData.screenNumber = 4; // Renuméroté: anciennement 5 → 4
 
             screensGroup.add(wallOppB);
 
@@ -5158,7 +5167,7 @@
                 screen7.userData.initialZ = screen7InitialZ;
                 screen7.userData.positions = screen7Positions;
                 screen7.userData.is3D = true;
-                screen7.userData.screenNumber = 6; // Renuméroté: 7 → 6
+                screen7.userData.screenNumber = 3; // Renuméroté: anciennement 6 → 3
 
             } else {
                 // Mode 2D : créer Points avec les particules du carré
@@ -5174,7 +5183,7 @@
             screen7.position.set(599.938, -0.064, 112.546);
             screen7.rotation.set(0, -1.570796, 0); // -90° en Y
             screen7.scale.set(1, 1, 1); // IMPORTANT: pas de scale, l'image garde sa taille normale
-            if (!screen7.userData.screenNumber) screen7.userData.screenNumber = 6; // Renuméroté: 7 → 6
+            if (!screen7.userData.screenNumber) screen7.userData.screenNumber = 3; // Renuméroté: anciennement 6 → 3
 
             screensGroup.add(screen7);
 
@@ -5545,10 +5554,10 @@
             allScreens = {
                 1: particles,           // ÉCRAN: Wall back left (volumetric)
                 2: particlesRight,      // ÉCRAN: Wall back right (volumetric)
-                3: screen3,             // ÉCRAN: Floor rectangle (volumetric)
-                4: wallOppA,            // ÉCRAN: Wall front left (volumetric) - était 5
-                5: wallOppB,            // ÉCRAN: Wall front right (volumetric) - était 6
-                6: screen7,             // ÉCRAN: Side panel (volumetric) - était 7
+                3: screen7,             // ÉCRAN: Side panel (volumetric) - était 6
+                4: wallOppB,            // ÉCRAN: Wall front right (volumetric) - était 5
+                5: screen3,             // ÉCRAN: Floor rectangle (volumetric) - était 3
+                6: wallOppA,            // ÉCRAN: Wall front left (volumetric) - était 4
                 7: screen4,             // FORME: Ceiling gray panel - était 4
                 8: screen8,             // FORME: Center gray panel
                 9: screen9,             // FORME: Back gray panel
@@ -5952,9 +5961,9 @@
                     }
                 }
 
-                // CRITICAL: Also update screen 7 if it exists (3D mode)
-                if (allScreens[6] && allScreens[6].instanceColor) {
-                    const screen7 = allScreens[6];
+                // CRITICAL: Also update screen 7 if it exists (3D mode) - now at position 3
+                if (allScreens[3] && allScreens[3].instanceColor) {
+                    const screen7 = allScreens[3];
                     const colors7 = screen7.instanceColor.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
 
@@ -5998,9 +6007,9 @@
                     screen7.instanceColor.needsUpdate = true;
                 }
 
-                // CRITICAL: Also update screen 3 if it exists (3D mode)
-                if (allScreens[3] && allScreens[3].instanceColor) {
-                    const screen3 = allScreens[3];
+                // CRITICAL: Also update screen 3 if it exists (3D mode) - now at position 5
+                if (allScreens[5] && allScreens[5].instanceColor) {
+                    const screen3 = allScreens[5];
                     const colors3 = screen3.instanceColor.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
                     const halfH_screen3 = halfH / 2; // Hauteur réduite pour écran 3
@@ -6069,9 +6078,9 @@
                     geometry.attributes.initialZ.needsUpdate = true;
                 }
 
-                // CRITICAL: Also update screen 7 if it exists (2D mode)
-                if (allScreens[6] && allScreens[6].geometry && allScreens[6].geometry.attributes.color) {
-                    const screen7 = allScreens[6];
+                // CRITICAL: Also update screen 7 if it exists (2D mode) - now at position 3
+                if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.color) {
+                    const screen7 = allScreens[3];
                     const geom7 = screen7.geometry;
                     const colors7 = geom7.attributes.color.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
@@ -6119,9 +6128,9 @@
                     }
                 }
 
-                // CRITICAL: Also update screen 3 if it exists (2D mode)
-                if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.color) {
-                    const screen3 = allScreens[3];
+                // CRITICAL: Also update screen 3 if it exists (2D mode) - now at position 5
+                if (allScreens[5] && allScreens[5].geometry && allScreens[5].geometry.attributes.color) {
+                    const screen3 = allScreens[5];
                     const geom3 = screen3.geometry;
                     const colors3 = geom3.attributes.color.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
@@ -6299,9 +6308,9 @@
                         particles.instanceMatrix.needsUpdate = true;
                     }
 
-                    // CRITICAL: Also update screen 7 if it has its own geometry (3D mode)
-                    if (allScreens[6] && allScreens[6].userData && allScreens[6].userData.is3D) {
-                        const screen7 = allScreens[6];
+                    // CRITICAL: Also update screen 7 if it has its own geometry (3D mode) - now at position 3
+                    if (allScreens[3] && allScreens[3].userData && allScreens[3].userData.is3D) {
+                        const screen7 = allScreens[3];
                         const initialZs7 = screen7.userData.initialZ;
                         const positions7 = screen7.userData.positions;
 
@@ -6331,9 +6340,9 @@
                         }
                     }
 
-                    // CRITICAL: Also update screen 3 if it has its own geometry (3D mode)
-                    if (allScreens[3] && allScreens[3].userData && allScreens[3].userData.is3D) {
-                        const screen3 = allScreens[3];
+                    // CRITICAL: Also update screen 3 if it has its own geometry (3D mode) - now at position 5
+                    if (allScreens[5] && allScreens[5].userData && allScreens[5].userData.is3D) {
+                        const screen3 = allScreens[5];
                         const initialZs3 = screen3.userData.initialZ;
                         const positions3 = screen3.userData.positions;
 
@@ -6397,9 +6406,9 @@
 
                     geometry.attributes.position.needsUpdate = true;
 
-                    // CRITICAL: Also update screen 7 if it has its own geometry (2D mode)
-                    if (allScreens[6] && allScreens[6].geometry && allScreens[6].geometry.attributes.position) {
-                        const screen7 = allScreens[6];
+                    // CRITICAL: Also update screen 7 if it has its own geometry (2D mode) - now at position 3
+                    if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.position) {
+                        const screen7 = allScreens[3];
                         const geom7 = screen7.geometry;
                         const positions7 = geom7.attributes.position.array;
                         const initialZs7 = geom7.attributes.initialZ.array;
@@ -6434,9 +6443,9 @@
                         geom7.attributes.position.needsUpdate = true;
                     }
 
-                    // CRITICAL: Also update screen 3 if it has its own geometry (2D mode)
-                    if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.position) {
-                        const screen3 = allScreens[3];
+                    // CRITICAL: Also update screen 3 if it has its own geometry (2D mode) - now at position 5
+                    if (allScreens[5] && allScreens[5].geometry && allScreens[5].geometry.attributes.position) {
+                        const screen3 = allScreens[5];
                         const geom3 = screen3.geometry;
                         const positions3 = geom3.attributes.position.array;
                         const initialZs3 = geom3.attributes.initialZ.array;
@@ -6554,7 +6563,7 @@
                     reusableRaycaster.set(camera.position, downVector);
 
                     const floorScreens = [];
-                    if (allScreens[3]) floorScreens.push(allScreens[3]);
+                    if (allScreens[5]) floorScreens.push(allScreens[5]); // screen3 (floor) is now at position 5
                     if (allScreens[10]) floorScreens.push(allScreens[10]);
                     if (allScreens[11]) floorScreens.push(allScreens[11]);
 
@@ -7036,7 +7045,7 @@
                 this.currentMusicVolume = this.masterVolume;
 
                 // Click sound effect
-                this.clickSound = new Audio('son/button-click-sound_cut.mp3');
+                this.clickSound = new Audio('son/immersivecontrol-button-click-sound-463065.mp3');
                 this.clickSound.volume = 0.5; // Base volume for click sound
 
                 // Web Audio Context for UI sounds (fallback)
