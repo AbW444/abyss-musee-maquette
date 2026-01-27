@@ -562,8 +562,8 @@
         </div>
 
         <div class="fps-param">
-            <label>Opacité verre <span class="fps-param-value" id="val-glass-opacity">0.25</span></label>
-            <input type="range" id="glass-opacity" min="0" max="1" step="0.05" value="0.25">
+            <label>Opacité verre <span class="fps-param-value" id="val-glass-opacity">0.05</span></label>
+            <input type="range" id="glass-opacity" min="0" max="1" step="0.05" value="0.05">
         </div>
 
         <div class="fps-param">
@@ -929,13 +929,13 @@
             fpsCameraHeight: -96,       // Hauteur de spawn de la caméra
             fpsGravity: -1.5,           // Gravité
             fpsPlayerHeight: 30,        // Hauteur des yeux du joueur au-dessus du sol
-            fpsMaxSpeed: 1.5,           // Vitesse maximale
+            fpsMaxSpeed: 2.25,          // Vitesse maximale
             fpsAcceleration: 0.1,       // Vitesse d'accélération
             fpsDeceleration: 0.3,       // Vitesse de décélération
             fpsCollisionRadius: 0.5,    // Rayon de collision (réduit par 10)
             fpsHitboxWidth: 1,          // Largeur de la hitbox (réduit par 10)
             fpsHitboxHeight: 10,        // Hauteur de la hitbox (réduit par 10)
-            fpsScrollSpeed: 3,          // Vitesse de déplacement à la molette
+            fpsScrollSpeed: 4.5,        // Vitesse de déplacement à la molette
             fpsMouseSensitivity: 0.001, // Sensibilité souris
             // Glassmorphisme écran 10
             glassOpacity: 0.05,         // Opacité du verre
@@ -1259,12 +1259,6 @@
             if (e.code === 'Space' && currentVideo) {
                 e.preventDefault();
                 toggleVideo();
-            }
-
-            // I: toggle info mode
-            if (e.code === 'KeyI') {
-                e.preventDefault();
-                toggleInfoMode();
             }
 
             // Number keys 1-7: Select screen (keyboard + numpad)
