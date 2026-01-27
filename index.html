@@ -2066,26 +2066,21 @@
                 if (movementKeys.includes(e.code) && !instructionsHidden) {
                     uniqueKeysPressed.add(e.code);
 
-                    // Démarrer le timer de maintien si c'est la première fois
-                    if (!keyHoldStartTime) {
-                        keyHoldStartTime = Date.now();
-                        keyHoldTimer = setTimeout(() => {
-                            // Touche maintenue pendant 1 seconde
-                            const instructionsElement = document.getElementById('game-instructions');
-                            if (instructionsElement && !instructionsHidden) {
-                                instructionsElement.classList.add('hidden');
-                                instructionsHidden = true;
-                            }
-                        }, KEY_HOLD_DURATION);
-                    }
+                    // Vérifier si les conditions sont remplies (touches + scrolls)
+                    checkHideInstructions();
+                }
+            }
 
-                    // Cacher les instructions si au moins 2 touches distinctes
-                    if (uniqueKeysPressed.size >= REQUIRED_UNIQUE_KEYS) {
-                        const instructionsElement = document.getElementById('game-instructions');
-                        if (instructionsElement) {
-                            instructionsElement.classList.add('hidden');
-                            instructionsHidden = true;
-                        }
+            // Fonction pour vérifier et cacher les instructions
+            function checkHideInstructions() {
+                if (instructionsHidden) return;
+
+                // Conditions: au moins 2 touches distinctes ET au moins 3 scrolls
+                if (uniqueKeysPressed.size >= REQUIRED_UNIQUE_KEYS && scrollCount >= REQUIRED_SCROLLS) {
+                    const instructionsElement = document.getElementById('game-instructions');
+                    if (instructionsElement) {
+                        instructionsElement.classList.add('hidden');
+                        instructionsHidden = true;
                     }
                 }
             }
@@ -3898,6 +3893,12 @@
 
             renderer.domElement.addEventListener('wheel', function(e) {
                 e.preventDefault();
+
+                // Compteur de scroll pour cacher les instructions
+                if (fpsMode && !instructionsHidden) {
+                    scrollCount++;
+                    checkHideInstructions();
+                }
 
                 const scrollSpeed = fpsSettings.fpsScrollSpeed; // Vitesse configurable
                 const delta = e.deltaY > 0 ? 1 : -1;
@@ -7049,8 +7050,10 @@
         // Instructions timer (hide after 5 seconds)
         // Track keyboard interactions instead of time
         let uniqueKeysPressed = new Set();
+        let scrollCount = 0; // Compteur de scrolls pour cacher les instructions
         let instructionsHidden = false;
         const REQUIRED_UNIQUE_KEYS = 2;  // Au moins 2 touches distinctes
+        const REQUIRED_SCROLLS = 3;      // Au moins 3 scrolls après les touches
         const KEY_HOLD_DURATION = 1000;  // Ou 1 touche maintenue ≥ 1 seconde
         let keyHoldTimer = null;
         let keyHoldStartTime = null;
