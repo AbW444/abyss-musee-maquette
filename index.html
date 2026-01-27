@@ -6192,6 +6192,9 @@
         }
 
         // Collision detection function (for FPS mode) - VERSION FINALE
+        // FIX: Épaisseur minimale pour les PlaneGeometry qui n'ont pas d'épaisseur intrinsèque
+        const WALL_THICKNESS = 10; // Épaisseur minimale des murs pour la collision (en unités)
+
         function checkCollision(newPosition, prevPosition) {
             if (!fpsMode) return false;
 
@@ -6229,6 +6232,29 @@
             for (let i = 0; i < walls.length; i++) {
                 const wall = walls[i];
                 reusableWallBox.setFromObject(wall);
+
+                // FIX: Épaissir les bounding boxes qui sont trop fines (PlaneGeometry)
+                // Calculer les dimensions de la box
+                const sizeX = reusableWallBox.max.x - reusableWallBox.min.x;
+                const sizeY = reusableWallBox.max.y - reusableWallBox.min.y;
+                const sizeZ = reusableWallBox.max.z - reusableWallBox.min.z;
+
+                // Si une dimension est trop fine (< WALL_THICKNESS), l'épaissir
+                if (sizeX < WALL_THICKNESS) {
+                    const centerX = (reusableWallBox.max.x + reusableWallBox.min.x) / 2;
+                    reusableWallBox.min.x = centerX - WALL_THICKNESS / 2;
+                    reusableWallBox.max.x = centerX + WALL_THICKNESS / 2;
+                }
+                if (sizeY < WALL_THICKNESS) {
+                    const centerY = (reusableWallBox.max.y + reusableWallBox.min.y) / 2;
+                    reusableWallBox.min.y = centerY - WALL_THICKNESS / 2;
+                    reusableWallBox.max.y = centerY + WALL_THICKNESS / 2;
+                }
+                if (sizeZ < WALL_THICKNESS) {
+                    const centerZ = (reusableWallBox.max.z + reusableWallBox.min.z) / 2;
+                    reusableWallBox.min.z = centerZ - WALL_THICKNESS / 2;
+                    reusableWallBox.max.z = centerZ + WALL_THICKNESS / 2;
+                }
 
                 if (reusablePlayerBox.intersectsBox(reusableWallBox)) {
                     return true; // Collision détectée !
