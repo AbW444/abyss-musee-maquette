@@ -7043,6 +7043,8 @@
         let backgroundMusic = null;
         let footstepSound = null;
         let isPaused = false;
+        let lastPauseToggleTime = 0; // Debounce pour éviter double ESC
+        const PAUSE_DEBOUNCE_MS = 300; // Délai minimum entre toggles pause
 
         // Instructions timer (hide after 5 seconds)
         // Track keyboard interactions instead of time
@@ -7313,6 +7315,14 @@
         function showPauseScreen() {
             if (!fpsMode) return; // Only in Spectator mode
 
+            // Debounce: évite la double action ESC
+            const now = performance.now();
+            if (now - lastPauseToggleTime < PAUSE_DEBOUNCE_MS) {
+                console.log('⏳ showPauseScreen ignoré (debounce)');
+                return;
+            }
+            lastPauseToggleTime = now;
+
             isPaused = true;
             document.getElementById('pause-screen').classList.add('active');
 
@@ -7324,6 +7334,9 @@
 
         function resumeExperience() {
             playClickSound(); // Satisfying click feedback
+
+            // Debounce: évite la double action ESC
+            lastPauseToggleTime = performance.now();
 
             isPaused = false;
             document.getElementById('pause-screen').classList.remove('active');
