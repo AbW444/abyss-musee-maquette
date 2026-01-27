@@ -2041,6 +2041,20 @@
             video.currentTime = pos * video.duration;
         }
 
+        // Fonction pour vérifier et cacher les instructions (niveau global)
+        function checkHideInstructions() {
+            if (instructionsHidden) return;
+
+            // Conditions: au moins 2 touches distinctes ET au moins 3 scrolls
+            if (uniqueKeysPressed.size >= REQUIRED_UNIQUE_KEYS && scrollCount >= REQUIRED_SCROLLS) {
+                const instructionsElement = document.getElementById('game-instructions');
+                if (instructionsElement) {
+                    instructionsElement.classList.add('hidden');
+                    instructionsHidden = true;
+                }
+            }
+        }
+
         // Keyboard controls
         document.addEventListener('keydown', function(e) {
             // SPECTATOR MODE: Only allow movement keys and mode toggle
@@ -2068,20 +2082,6 @@
 
                     // Vérifier si les conditions sont remplies (touches + scrolls)
                     checkHideInstructions();
-                }
-            }
-
-            // Fonction pour vérifier et cacher les instructions
-            function checkHideInstructions() {
-                if (instructionsHidden) return;
-
-                // Conditions: au moins 2 touches distinctes ET au moins 3 scrolls
-                if (uniqueKeysPressed.size >= REQUIRED_UNIQUE_KEYS && scrollCount >= REQUIRED_SCROLLS) {
-                    const instructionsElement = document.getElementById('game-instructions');
-                    if (instructionsElement) {
-                        instructionsElement.classList.add('hidden');
-                        instructionsHidden = true;
-                    }
                 }
             }
 
@@ -5509,14 +5509,14 @@
             const width17 = 96.102;
             const height17 = 231.29;
             const geometry17 = new THREE.PlaneGeometry(width17, height17);
-            const material17 = createWallFormMaterial(0x606060); // Gris
+            const material17 = createWallFormMaterial(0x0A0A0A); // Gris
             const screen17 = new THREE.Mesh(geometry17, material17);
             screen17.position.set(-200.734, -6.116, 47.768); // Position mise à jour
             screen17.rotation.set(0, 1.570796, 0);
             screen17.scale.set(1, 1, 1);
             screen17.userData.screenNumber = 16; // Renuméroté: 17 → 16
             screen17.userData.isColorSurface = true;
-            screen17.userData.color = 0x606060; // Gris
+            screen17.userData.color = 0x0A0A0A; // Gris
             screensGroup.add(screen17);
 
             // ======================
@@ -5525,14 +5525,14 @@
             const width18 = 96.102;
             const height18 = 231.29;
             const geometry18 = new THREE.PlaneGeometry(width18, height18);
-            const material18 = createWallFormMaterial(0x606060); // Gris
+            const material18 = createWallFormMaterial(0x0A0A0A); // Gris
             const screen18 = new THREE.Mesh(geometry18, material18);
             screen18.position.set(-200.734, -0.471, 178.493);
             screen18.rotation.set(0, 1.570796, 0);
             screen18.scale.set(1, 1, 1);
             screen18.userData.screenNumber = 17; // Renuméroté: 18 → 17
             screen18.userData.isColorSurface = true;
-            screen18.userData.color = 0x606060; // Gris
+            screen18.userData.color = 0x0A0A0A; // Gris
             screensGroup.add(screen18);
 
             // ======================
@@ -5541,14 +5541,14 @@
             const width21 = 163.506;
             const height21 = 239.079;
             const geometry21 = new THREE.PlaneGeometry(width21, height21);
-            const material21 = createWallFormMaterial(0x606060); // Gris
+            const material21 = createWallFormMaterial(0x0A0A0A); // Gris
             const screen21 = new THREE.Mesh(geometry21, material21);
             screen21.position.set(-200.871, 27.391, 110.392);
             screen21.rotation.set(1.570796, 1.570796, 0);
             screen21.scale.set(1, 1, 1);
             screen21.userData.screenNumber = 18; // Renuméroté: 21 → 18 (après suppression forme 18)
             screen21.userData.isColorSurface = true;
-            screen21.userData.color = 0x606060; // Gris
+            screen21.userData.color = 0x0A0A0A; // Gris
             screensGroup.add(screen21);
 
             // ======================
@@ -5557,14 +5557,14 @@
             const width19 = 163.506;
             const height19 = 239.079;
             const geometry19 = new THREE.PlaneGeometry(width19, height19);
-            const material19 = createWallFormMaterial(0x606060); // Gris
+            const material19 = createWallFormMaterial(0x0A0A0A); // Gris
             const screen19 = new THREE.Mesh(geometry19, material19);
             screen19.position.set(-278.502, -54.612, 110.34);
             screen19.rotation.set(1.570796, 0, 0);
             screen19.scale.set(1, 1, 1);
             screen19.userData.screenNumber = 19;
             screen19.userData.isColorSurface = true;
-            screen19.userData.color = 0x606060;
+            screen19.userData.color = 0x0A0A0A;
             screensGroup.add(screen19);
 
             // ======================
@@ -5573,14 +5573,14 @@
             const width20 = 3.806;
             const height20 = 192.458;
             const geometry20 = new THREE.PlaneGeometry(width20, height20);
-            const material20 = createWallFormMaterial(0x606060); // Gris
+            const material20 = createWallFormMaterial(0x0A0A0A); // Gris
             const screen20 = new THREE.Mesh(geometry20, material20);
             screen20.position.set(-198.825, -76.484, 95.645);
             screen20.rotation.set(-3.141593, 0, -3.141593);
             screen20.scale.set(1, 1, 1);
             screen20.userData.screenNumber = 20;
             screen20.userData.isColorSurface = true;
-            screen20.userData.color = 0x606060;
+            screen20.userData.color = 0x0A0A0A;
             screensGroup.add(screen20);
 
             // ======================
@@ -5589,14 +5589,14 @@
             const width21b = 3.576;
             const height21b = 192.458;
             const geometry21b = new THREE.PlaneGeometry(width21b, height21b);
-            const material21b = createWallFormMaterial(0x606060); // Gris
+            const material21b = createWallFormMaterial(0x0A0A0A); // Gris
             const screen21b = new THREE.Mesh(geometry21b, material21b);
             screen21b.position.set(-198.975, -76.484, 130.621);
             screen21b.rotation.set(-3.141593, 0, -3.141593);
             screen21b.scale.set(1, 1, 1);
             screen21b.userData.screenNumber = 21;
             screen21b.userData.isColorSurface = true;
-            screen21b.userData.color = 0x606060;
+            screen21b.userData.color = 0x0A0A0A;
             screensGroup.add(screen21b);
 
             // ======================
