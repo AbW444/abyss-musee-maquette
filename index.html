@@ -4637,12 +4637,12 @@
                 }
             }
 
-            // CRITICAL: Preserve custom shapes (>21) before clearing
+            // CRITICAL: Preserve custom shapes (>23) before clearing
             const customShapesToPreserve = {};
             if (allScreens) {
                 Object.keys(allScreens).forEach(key => {
                     const num = parseInt(key);
-                    if (num > 21) {
+                    if (num > 23) {
                         customShapesToPreserve[num] = allScreens[num];
                         // Remove from screensGroup temporarily to avoid disposal
                         if (allScreens[num].parent === screensGroup) {
@@ -4651,7 +4651,7 @@
                     }
                 });
             }
-            console.log('💾 Formes personnalisées préservées (>21):', Object.keys(customShapesToPreserve));
+            console.log('💾 Formes personnalisées préservées (>23):', Object.keys(customShapesToPreserve));
 
             // CRITICAL: Detach transform controls before clearing to avoid "object must be part of scene graph" error
             const wasScreenSelected = selectedScreen;
@@ -5511,7 +5511,7 @@
             const geometry17 = new THREE.PlaneGeometry(width17, height17);
             const material17 = createWallFormMaterial(0x808080); // Gris (8421504 = 0x808080)
             const screen17 = new THREE.Mesh(geometry17, material17);
-            screen17.position.set(-200.774, -6.116, 47.768); // Position mise à jour
+            screen17.position.set(-200.734, -6.116, 47.768); // Position mise à jour
             screen17.rotation.set(0, 1.570796, 0);
             screen17.scale.set(1, 1, 1);
             screen17.userData.screenNumber = 16; // Renuméroté: 17 → 16
@@ -5520,39 +5520,119 @@
             screensGroup.add(screen17);
 
             // ======================
-            // SCREEN 18: Custom shape (color surface) - gray thin panel
+            // SCREEN 18: Custom shape (color surface) - gray thin panel (FORME 17)
             // ======================
             const width18 = 96.102;
             const height18 = 231.29;
             const geometry18 = new THREE.PlaneGeometry(width18, height18);
-            const material18 = createWallFormMaterial(0x000000); // Shader subtil pour mur-forme
+            const material18 = createWallFormMaterial(0x808080); // Gris (même que forme 16)
             const screen18 = new THREE.Mesh(geometry18, material18);
             screen18.position.set(-200.734, -0.471, 178.493);
             screen18.rotation.set(0, 1.570796, 0);
             screen18.scale.set(1, 1, 1);
             screen18.userData.screenNumber = 17; // Renuméroté: 18 → 17
             screen18.userData.isColorSurface = true;
-            screen18.userData.color = 0x000000;
+            screen18.userData.color = 0x808080; // Gris (8421504)
             screensGroup.add(screen18);
 
             // ======================
-            // SCREEN 21: Custom shape (color surface) - gray horizontal panel
+            // SCREEN 21: Custom shape (color surface) - gray horizontal panel (FORME 18)
             // ======================
             const width21 = 163.506;
             const height21 = 239.079;
             const geometry21 = new THREE.PlaneGeometry(width21, height21);
-            const material21 = createWallFormMaterial(0x000000); // Shader subtil pour mur-forme
+            const material21 = createWallFormMaterial(0x808080); // Gris (même que formes 16-17)
             const screen21 = new THREE.Mesh(geometry21, material21);
             screen21.position.set(-200.871, 27.391, 110.392);
             screen21.rotation.set(1.570796, 1.570796, 0);
             screen21.scale.set(1, 1, 1);
             screen21.userData.screenNumber = 18; // Renuméroté: 21 → 18 (après suppression forme 18)
             screen21.userData.isColorSurface = true;
-            screen21.userData.color = 0x000000;
+            screen21.userData.color = 0x808080; // Gris (8421504)
             screensGroup.add(screen21);
 
-            // Restore custom shapes (>21) - both in allScreens and screensGroup
-            console.log('🔄 Restauration des formes personnalisées (>21):', Object.keys(customShapesToPreserve));
+            // ======================
+            // FORME 19: Gray floor panel (sol gris)
+            // ======================
+            const width19 = 163.506;
+            const height19 = 239.079;
+            const geometry19 = new THREE.PlaneGeometry(width19, height19);
+            const material19 = createWallFormMaterial(0x808080); // Gris
+            const screen19 = new THREE.Mesh(geometry19, material19);
+            screen19.position.set(-278.502, -54.612, 110.34);
+            screen19.rotation.set(1.570796, 0, 0);
+            screen19.scale.set(1, 1, 1);
+            screen19.userData.screenNumber = 19;
+            screen19.userData.isColorSurface = true;
+            screen19.userData.color = 0x808080;
+            screensGroup.add(screen19);
+
+            // ======================
+            // FORME 20: Gray thin vertical panel 1
+            // ======================
+            const width20 = 3.806;
+            const height20 = 192.458;
+            const geometry20 = new THREE.PlaneGeometry(width20, height20);
+            const material20 = createWallFormMaterial(0x808080); // Gris
+            const screen20 = new THREE.Mesh(geometry20, material20);
+            screen20.position.set(-198.825, -76.484, 95.645);
+            screen20.rotation.set(-3.141593, 0, -3.141593);
+            screen20.scale.set(1, 1, 1);
+            screen20.userData.screenNumber = 20;
+            screen20.userData.isColorSurface = true;
+            screen20.userData.color = 0x808080;
+            screensGroup.add(screen20);
+
+            // ======================
+            // FORME 21: Gray thin vertical panel 2
+            // ======================
+            const width21b = 3.576;
+            const height21b = 192.458;
+            const geometry21b = new THREE.PlaneGeometry(width21b, height21b);
+            const material21b = createWallFormMaterial(0x808080); // Gris
+            const screen21b = new THREE.Mesh(geometry21b, material21b);
+            screen21b.position.set(-198.975, -76.484, 130.621);
+            screen21b.rotation.set(-3.141593, 0, -3.141593);
+            screen21b.scale.set(1, 1, 1);
+            screen21b.userData.screenNumber = 21;
+            screen21b.userData.isColorSurface = true;
+            screen21b.userData.color = 0x808080;
+            screensGroup.add(screen21b);
+
+            // ======================
+            // FORME 22: Dark panel back
+            // ======================
+            const width22 = 235.076;
+            const height22 = 60.353;
+            const geometry22 = new THREE.PlaneGeometry(width22, height22);
+            const material22 = createWallFormMaterial(0x060606); // Noir foncé (394758)
+            const screen22 = new THREE.Mesh(geometry22, material22);
+            screen22.position.set(-315.617, -81.71, 180.248);
+            screen22.rotation.set(-3.141593, 0, -3.141593);
+            screen22.scale.set(1, 1, 1);
+            screen22.userData.screenNumber = 22;
+            screen22.userData.isColorSurface = true;
+            screen22.userData.color = 0x060606;
+            screensGroup.add(screen22);
+
+            // ======================
+            // FORME 23: Dark panel front
+            // ======================
+            const width23 = 235.076;
+            const height23 = 60.353;
+            const geometry23 = new THREE.PlaneGeometry(width23, height23);
+            const material23 = createWallFormMaterial(0x060606); // Noir foncé (394758)
+            const screen23 = new THREE.Mesh(geometry23, material23);
+            screen23.position.set(-315.617, -81.71, 48.644);
+            screen23.rotation.set(-3.141593, 0, -3.141593);
+            screen23.scale.set(1, 1, 1);
+            screen23.userData.screenNumber = 23;
+            screen23.userData.isColorSurface = true;
+            screen23.userData.color = 0x060606;
+            screensGroup.add(screen23);
+
+            // Restore custom shapes (>23) - both in allScreens and screensGroup
+            console.log('🔄 Restauration des formes personnalisées (>23):', Object.keys(customShapesToPreserve));
             Object.keys(customShapesToPreserve).forEach(key => {
                 const shape = customShapesToPreserve[key];
                 screensGroup.add(shape); // Re-add to scene
@@ -5560,31 +5640,35 @@
                 console.log(`  ✓ Forme #${key} réajoutée à la scène et à allScreens`);
             });
 
-            // Update volumetric screens & shapes - RENUMÉROTÉS SANS TROUS (1-18)
-            // ÉCRANS volumétriques: 1-6 | FORMES: 7-18
-            // NOTE: Forme 18 (screen19) supprimée, screen21 devient 18
+            // Update volumetric screens & shapes - RENUMÉROTÉS (1-23)
+            // ÉCRANS volumétriques: 1-6 | FORMES: 7-23
             allScreens = {
                 1: particles,           // ÉCRAN: Wall back left (volumetric)
                 2: particlesRight,      // ÉCRAN: Wall back right (volumetric)
-                3: screen7,             // ÉCRAN: Side panel (volumetric) - était 6
-                4: wallOppB,            // ÉCRAN: Wall front right (volumetric) - était 5
-                5: screen3,             // ÉCRAN: Floor rectangle (volumetric) - était 3
-                6: wallOppA,            // ÉCRAN: Wall front left (volumetric) - était 4
-                7: screen4,             // FORME: Ceiling gray panel - était 4
+                3: screen7,             // ÉCRAN: Side panel (volumetric)
+                4: wallOppB,            // ÉCRAN: Wall front right (volumetric)
+                5: screen3,             // ÉCRAN: Floor rectangle (volumetric)
+                6: wallOppA,            // ÉCRAN: Wall front left (volumetric)
+                7: screen4,             // FORME: Ceiling gray panel
                 8: screen8,             // FORME: Center gray panel
                 9: screen9,             // FORME: Back gray panel
                 10: screen10,           // FORME: Floor lighter green panel
                 11: screen11,           // FORME: Small dark green panel
                 12: screen12,           // FORME: Dark green vertical panel
-                13: screen14,           // FORME: Dark green thin panel 1 - était 14
-                14: screen15,           // FORME: Dark green thin panel 2 - était 15
-                15: screen16,           // FORME: Dark green horizontal panel - était 16
-                16: screen17,           // FORME: Gray thin panel 1 - était 17
-                17: screen18,           // FORME: Gray thin panel 2 - était 18
-                18: screen21,           // FORME: Gray horizontal panel - était 21
-                ...customShapesToPreserve // Restore custom shapes (>18)
+                13: screen14,           // FORME: Dark green thin panel 1
+                14: screen15,           // FORME: Dark green thin panel 2
+                15: screen16,           // FORME: Dark green horizontal panel
+                16: screen17,           // FORME: Gray thin panel 1
+                17: screen18,           // FORME: Gray thin panel 2
+                18: screen21,           // FORME: Gray horizontal panel
+                19: screen19,           // FORME: Gray floor panel
+                20: screen20,           // FORME: Gray thin vertical panel 1
+                21: screen21b,          // FORME: Gray thin vertical panel 2
+                22: screen22,           // FORME: Dark panel back
+                23: screen23,           // FORME: Dark panel front
+                ...customShapesToPreserve // Restore custom shapes (>23)
             };
-            console.log('✅ Tous les écrans renumérotés (1-18 + custom):', Object.keys(allScreens));
+            console.log('✅ Tous les écrans (1-23 + custom):', Object.keys(allScreens));
 
             // CRITICAL: Update screen list UI immediately after allScreens is populated
             updateScreenList();
