@@ -587,6 +587,7 @@
             top: 50%;
             transform: translateY(-50%);
             width: var(--textColW);
+            max-width: 580px; /* ~60-65 caractères par ligne */
             z-index: 2;
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--clickFadeMs) ease;
         }
@@ -638,6 +639,40 @@
         .welcome-text strong {
             font-weight: 400;
             color: rgba(255,255,255,0.85);
+        }
+        /* Phrase manifeste - ancrage conceptuel */
+        .welcome-manifesto {
+            font-family: 'Inter', sans-serif;
+            font-size: 17px;
+            font-weight: 400;
+            color: rgba(255,255,255,0.88);
+            line-height: 1.7;
+            margin-bottom: 38px;
+            letter-spacing: 0.4px;
+            text-align: left;
+            padding-left: 0;
+            border-left: none;
+        }
+        /* Paragraphe contextuel - poids réduit */
+        .welcome-text.contextual {
+            font-size: 14px;
+            color: rgba(255,255,255,0.55);
+            margin-bottom: 18px;
+        }
+        /* Paragraphe de positionnement critique - plus affirmé */
+        .welcome-text.critical {
+            font-size: 15px;
+            color: rgba(255,255,255,0.78);
+            font-weight: 350;
+        }
+        /* Conclusion curatoriale - isolée visuellement */
+        .welcome-text.conclusion {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.60);
+            font-size: 14px;
+            font-style: italic;
         }
         .welcome-context {
             font-family: 'IBM Plex Mono', monospace;
@@ -766,7 +801,7 @@
             display: flex;
         }
         .pause-content {
-            max-width: 850px;
+            max-width: 680px; /* ~60-65 caractères par ligne */
             background: rgba(0,0,0,0.7);
             backdrop-filter: blur(40px);
             border: none;
@@ -786,9 +821,19 @@
             letter-spacing: 1.2px;
             text-transform: uppercase;
         }
+        /* Phrase manifeste pause - ancrage conceptuel */
+        .pause-manifesto {
+            font-family: 'Inter', sans-serif;
+            font-size: 18px;
+            font-weight: 400;
+            color: rgba(255,255,255,0.90);
+            line-height: 1.6;
+            margin-bottom: 38px;
+            letter-spacing: 0.3px;
+        }
         .pause-text {
             font-family: 'Inter', sans-serif;
-            font-size: 17px;
+            font-size: 16px;
             font-weight: 300;
             color: rgba(255,255,255,0.70);
             line-height: 1.9;
@@ -798,6 +843,66 @@
         .pause-text strong {
             font-weight: 400;
             color: rgba(255,255,255,0.85);
+        }
+        /* Paragraphe contextuel pause */
+        .pause-text.contextual {
+            font-size: 15px;
+            color: rgba(255,255,255,0.55);
+            margin-bottom: 20px;
+        }
+        /* Paragraphe critique pause */
+        .pause-text.critical {
+            font-size: 16px;
+            color: rgba(255,255,255,0.78);
+            font-weight: 350;
+        }
+        /* Liste conceptuelle - noyau de sens */
+        .pause-conceptual-list {
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 300;
+            color: rgba(255,255,255,0.75);
+            line-height: 2.4;
+            margin: 30px 0;
+            padding: 28px 0 28px 24px;
+            border-left: 2px solid rgba(255,255,255,0.12);
+            letter-spacing: 0.3px;
+        }
+        .pause-conceptual-list .list-intro {
+            display: block;
+            margin-bottom: 18px;
+            color: rgba(255,255,255,0.65);
+            font-size: 15px;
+        }
+        .pause-conceptual-list .list-item {
+            display: block;
+            padding-left: 8px;
+            color: rgba(255,255,255,0.80);
+        }
+        .pause-conceptual-list .list-item em {
+            font-style: normal;
+            color: rgba(255,255,255,0.95);
+            font-weight: 400;
+        }
+        /* Conclusion curatoriale pause */
+        .pause-text.conclusion {
+            margin-top: 36px;
+            padding-top: 28px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.60);
+            font-size: 15px;
+            font-style: italic;
+        }
+        /* Notes de salle - mentions secondaires */
+        .pause-note {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            font-weight: 300;
+            color: rgba(255,255,255,0.38);
+            line-height: 1.8;
+            margin-top: 40px;
+            padding-top: 20px;
+            letter-spacing: 0.2px;
         }
         .pause-meta {
             font-family: 'IBM Plex Mono', monospace;
@@ -1195,7 +1300,11 @@
                 <span class="welcome-subtitle-inline">Maquette de dispositif d'exposition</span>
             </h1>
 
-            <p class="welcome-text">
+            <p class="welcome-manifesto">
+                Traduire des images scientifiques en formes exposables, sans les simplifier ni les fictionnaliser.
+            </p>
+
+            <p class="welcome-text contextual">
                 Présences aquatiques rares est une maquette de dispositif d'exposition développée dans le cadre d'une étude prospective de médiation scientifique.
             </p>
 
@@ -1203,7 +1312,7 @@
                 Le projet explore comment des images réelles issues de captations sous-marines rares, souvent fragmentaires, instables ou difficilement lisibles, peuvent être traduites visuellement afin de rendre perceptible une présence vivante autrement inaccessible au public.
             </p>
 
-            <p class="welcome-text">
+            <p class="welcome-text critical">
                 À partir de ces images, un protocole de transformation volumétrique est appliqué. Celui-ci ne vise ni la reconstitution fidèle du milieu aquatique, ni la production d'images spectaculaires, mais la conception de formes traduites, plus stables, plus proches et regardables dans le temps de l'exposition, tout en conservant leur ancrage documentaire.
             </p>
 
@@ -1211,7 +1320,7 @@
                 L'espace que vous traversez n'est pas une exposition finale, mais une maquette spatiale et perceptive. Elle permet de tester l'échelle, la proximité, la temporalité et la relation du regard à ces formes, dans la perspective d'un futur dispositif d'exposition physique.
             </p>
 
-            <p class="welcome-text">
+            <p class="welcome-text conclusion">
                 Cette maquette s'inscrit dans une réflexion sur la médiation scientifique : comment exposer des formes de vie rarement observables sans les simplifier, sans les fictionnaliser, et sans prétendre les rendre totalement accessibles.
             </p>
 
@@ -1261,31 +1370,31 @@
         <div class="pause-content" onclick="event.stopPropagation()">
             <h2 class="pause-title">À propos de cette maquette</h2>
 
-            <p class="pause-text">
+            <p class="pause-manifesto">
                 Vous explorez une maquette de dispositif d'exposition, et non une exposition aboutie.
             </p>
 
-            <p class="pause-text">
+            <p class="pause-text contextual">
                 Cet espace numérique a été conçu comme un outil de simulation perceptive, permettant de tester comment des formes issues d'images scientifiques réelles peuvent être perçues lorsqu'elles sont traduites volumétriquement et mises en situation d'exposition.
             </p>
 
-            <p class="pause-text">
+            <p class="pause-text critical">
                 Les formes présentées ne sont ni des reconstitutions fidèles, ni des créations fictionnelles. Elles résultent d'un processus de traduction visuelle, appliqué à des captations existantes, afin de rendre perceptible une présence vivante tout en assumant les limites du réel et de l'image.
             </p>
 
-            <p class="pause-text">
-                Le choix d'une maquette web répond à des contraintes de temps et de moyens. Il permet néanmoins d'explorer des questions essentielles :<br>
-                — distance et proximité du regard<br>
-                — échelle et corporalité<br>
-                — temporalité de l'observation<br>
-                — relation entre image documentaire et forme exposée
-            </p>
+            <div class="pause-conceptual-list">
+                <span class="list-intro">Le choix d'une maquette web répond à des contraintes de temps et de moyens. Il permet néanmoins d'explorer des questions essentielles :</span>
+                <span class="list-item">— <em>distance</em> et proximité du regard</span>
+                <span class="list-item">— <em>échelle</em> et corporalité</span>
+                <span class="list-item">— <em>temporalité</em> de l'observation</span>
+                <span class="list-item">— <em>relation</em> entre image documentaire et forme exposée</span>
+            </div>
 
-            <p class="pause-text">
+            <p class="pause-text conclusion">
                 Cette interface ne remplace pas une exposition physique. Elle en constitue une prévisualisation critique, destinée à nourrir la réflexion sur de futurs dispositifs de médiation.
             </p>
 
-            <div class="pause-meta">
+            <div class="pause-note">
                 Navigation libre — déplacement lent recommandé<br>
                 Les contenus projetés peuvent évoluer au cours du projet
             </div>
