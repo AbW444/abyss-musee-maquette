@@ -2041,6 +2041,20 @@
             video.currentTime = pos * video.duration;
         }
 
+        // Fonction pour vérifier et cacher les instructions (niveau global pour scroll + clavier)
+        function checkHideInstructions() {
+            if (instructionsHidden) return;
+
+            // Conditions: au moins 2 touches distinctes ET au moins 3 scrolls
+            if (uniqueKeysPressed.size >= REQUIRED_UNIQUE_KEYS && scrollCount >= REQUIRED_SCROLLS) {
+                const instructionsElement = document.getElementById('game-instructions');
+                if (instructionsElement) {
+                    instructionsElement.classList.add('hidden');
+                    instructionsHidden = true;
+                }
+            }
+        }
+
         // Keyboard controls
         document.addEventListener('keydown', function(e) {
             // SPECTATOR MODE: Only allow movement keys and mode toggle
@@ -2068,20 +2082,6 @@
 
                     // Vérifier si les conditions sont remplies (touches + scrolls)
                     checkHideInstructions();
-                }
-            }
-
-            // Fonction pour vérifier et cacher les instructions
-            function checkHideInstructions() {
-                if (instructionsHidden) return;
-
-                // Conditions: au moins 2 touches distinctes ET au moins 3 scrolls
-                if (uniqueKeysPressed.size >= REQUIRED_UNIQUE_KEYS && scrollCount >= REQUIRED_SCROLLS) {
-                    const instructionsElement = document.getElementById('game-instructions');
-                    if (instructionsElement) {
-                        instructionsElement.classList.add('hidden');
-                        instructionsHidden = true;
-                    }
                 }
             }
 
