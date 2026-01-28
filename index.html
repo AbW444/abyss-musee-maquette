@@ -1215,7 +1215,7 @@
         <div class="welcome-logo-container" id="welcome-logo-container">
             <img src="img/presences_rares_logo.png" alt="Logo" class="welcome-logo" id="welcome-logo">
             <video class="welcome-logo-video" id="welcome-logo-video" loop muted playsinline preload="auto">
-                <source src="videos/dumbo_icone_chargement.webm" type="video/webm">
+                <source src="videos/poulpe_icone_chargement.webm" type="video/webm">
             </video>
         </div>
 
@@ -1337,7 +1337,7 @@
     <!-- Loading Screen -->
     <div id="loading-screen">
         <video class="loading-video" autoplay loop muted playsinline preload="auto">
-            <source src="videos/dumbo_icone_chargement.webm" type="video/webm">
+            <source src="videos/poulpe_icone_chargement.webm" type="video/webm">
         </video>
     </div>
 
@@ -5815,17 +5815,17 @@
             // FORME 20: Gray thin vertical panel 1
             // Hauteur ajustée pour ne pas dépasser sous le sol 11 (Y=-111.773)
             // ======================
-            const width20 = 3.806;
+            const width20 = 3.246;
             const height20 = 131.518; // Ajusté: ancien haut (19.745) - sol (-111.773)
             const geometry20 = new THREE.PlaneGeometry(width20, height20);
-            const material20 = createWallFormMaterial(0x808080); // Gris
+            const material20 = createWallFormMaterial(0x0A0A0A); // Noir foncé
             const screen20 = new THREE.Mesh(geometry20, material20);
             screen20.position.set(-199.153, -46.014, 95.645); // Y ajusté pour bas = -111.773
             screen20.rotation.set(-3.141593, 0, -3.141593);
             screen20.scale.set(1, 1, 1);
             screen20.userData.screenNumber = 20;
             screen20.userData.isColorSurface = true;
-            screen20.userData.color = 0x808080;
+            screen20.userData.color = 0x0A0A0A;
             screensGroup.add(screen20);
 
             // ======================
