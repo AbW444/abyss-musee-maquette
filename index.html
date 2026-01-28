@@ -3891,7 +3891,8 @@
             const SCROLL_MAX_STEP = 2; // Taille max d'une sous-étape (identique à currentSpeed clavier)
             const DEBUG_SCROLL = false; // Mettre à true pour logs debug
 
-            renderer.domElement.addEventListener('wheel', function(e) {
+            // Utiliser window pour recevoir les wheel events même sans focus sur le canvas
+            window.addEventListener('wheel', function(e) {
                 e.preventDefault();
 
                 // Bloquer le scroll si en pause
