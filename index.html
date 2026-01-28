@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Présences aquatiques rares — Maquette dispositif</title>
+    <title>Dumbo</title>
 
     <!-- Favicons -->
     <link rel="icon" type="image/png" sizes="32x32" href="img/presences_rares_favicon_v2.png">
@@ -644,7 +644,7 @@
         .welcome-manifesto {
             font-family: 'Inter', sans-serif;
             font-size: 17px;
-            font-weight: 600;
+            font-weight: 400;
             color: rgba(255,255,255,0.95);
             line-height: 1.6;
             margin-bottom: 32px;
@@ -2072,8 +2072,8 @@
         function checkHideInstructions() {
             if (instructionsHidden) return;
 
-            // Conditions: au moins 2 touches distinctes ET au moins 3 scrolls
-            if (uniqueKeysPressed.size >= REQUIRED_UNIQUE_KEYS && scrollCount >= REQUIRED_SCROLLS) {
+            // Conditions: au moins 2 touches distinctes OU au moins 3 scrolls
+            if (uniqueKeysPressed.size >= REQUIRED_UNIQUE_KEYS || scrollCount >= REQUIRED_SCROLLS) {
                 const instructionsElement = document.getElementById('game-instructions');
                 if (instructionsElement) {
                     instructionsElement.classList.add('hidden');
