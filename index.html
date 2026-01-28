@@ -4332,6 +4332,167 @@
             return { positions, colors, initialZ, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor };
         }
 
+        // === PANORAMIC VIDEO SYSTEM ===
+        // Single panoramic video (9600x1080) projected across 5 screens
+        // Each screen shows 1920x1080 (standard 16:9 HD)
+        let panoramicVideo = null; // Single video for all screens
+        const PANORAMIC_SCREENS = [1, 2, 3, 4, 5]; // Screens that show panoramic portions (excluding 6=floor)
+        const PANORAMIC_WIDTH = 9600; // Total panoramic video width (5 x 1920)
+        const PANORAMIC_HEIGHT = 1080; // Panoramic video height
+
+        // Helper function: Extract particle data from a PORTION of the panoramic video
+        // portionIndex: 0-based index (0=leftmost, 4=rightmost for 5 screens)
+        // totalPortions: how many portions to divide the video into (5 for our case)
+        function createParticleDataFromVideoPortion(video, portionIndex, totalPortions) {
+            const { step, TARGET_WIDTH, TARGET_HEIGHT } = calculateDensityParams(particleDensity);
+
+            // Create sampling canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = TARGET_WIDTH;
+            canvas.height = TARGET_HEIGHT;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+            // Calculate portion bounds in the panoramic video
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+            const portionWidth = videoWidth / totalPortions;
+
+            // Source coordinates for this portion
+            const sourceX = portionIndex * portionWidth;
+            const sourceY = 0;
+            const sourceWidth = portionWidth;
+            const sourceHeight = videoHeight;
+
+            // Draw only this portion of the video, scaled to fill the target canvas
+            ctx.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+            const imageData = ctx.getImageData(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+            const data = imageData.data;
+
+            const positions = [];
+            const colors = [];
+            const initialZ = [];
+            const scaleFactor = 0.5;
+            const halfWidth = TARGET_WIDTH / 2;
+            const halfHeight = TARGET_HEIGHT / 2;
+            const depthSpread = TARGET_HEIGHT * scaleFactor * depthMultiplier;
+            const rgbToLumFactor = 1 / (3 * 255);
+
+            // Contrast/Saturation flags
+            const useContrast = contrast !== 1.0;
+            const useSaturation = saturation !== 1.0;
+
+            // FIRST PASS: Find minimum luminance
+            let minLuminance = Infinity;
+            for (let y = 0; y < TARGET_HEIGHT; y += step) {
+                for (let x = 0; x < TARGET_WIDTH; x += step) {
+                    const i = (y * TARGET_WIDTH + x) * 4;
+                    const alpha = data[i + 3];
+                    if (alpha > 30) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const maxColor = Math.max(r, g, b);
+                        if (hideBlack && maxColor < blackThreshold) continue;
+                        if (hideBackground) {
+                            const colorDist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+                            if (colorDist < bgThreshold) continue;
+                        }
+                        const luminance = (r + g + b) * rgbToLumFactor;
+                        minLuminance = Math.min(minLuminance, luminance);
+                    }
+                }
+            }
+            if (minLuminance === Infinity) minLuminance = 0;
+
+            // SECOND PASS: Create particles with safety cap
+            let particleCount = 0;
+            outerLoopPanorama: for (let y = 0; y < TARGET_HEIGHT; y += step) {
+                for (let x = 0; x < TARGET_WIDTH; x += step) {
+                    const i = (y * TARGET_WIDTH + x) * 4;
+                    const alpha = data[i + 3];
+                    if (alpha > 30) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const maxColor = Math.max(r, g, b);
+                        if (hideBlack && maxColor < blackThreshold) continue;
+                        if (hideBackground) {
+                            const colorDist = Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB);
+                            if (colorDist < bgThreshold) continue;
+                        }
+
+                        // Safety cap: prevent performance issues
+                        if (particleCount >= MAX_PARTICLES) {
+                            console.warn(`⚠️ Panorama portion ${portionIndex}: Cap MAX_PARTICLES atteint (${MAX_PARTICLES.toLocaleString()})`);
+                            break outerLoopPanorama;
+                        }
+
+                        const px = (x - halfWidth) * scaleFactor;
+                        const py = -(y - halfHeight) * scaleFactor;
+                        const luminance = (r + g + b) * rgbToLumFactor;
+                        const pz = (luminance - minLuminance) * depthSpread;
+
+                        positions.push(px, py, pz);
+                        initialZ.push(pz);
+                        particleCount++;
+
+                        let rNorm = r * 0.00392156862745098;
+                        let gNorm = g * 0.00392156862745098;
+                        let bNorm = b * 0.00392156862745098;
+
+                        if (useContrast) {
+                            rNorm = (rNorm - 0.5) * contrast + 0.5;
+                            gNorm = (gNorm - 0.5) * contrast + 0.5;
+                            bNorm = (bNorm - 0.5) * contrast + 0.5;
+                            rNorm = Math.max(0, Math.min(1, rNorm));
+                            gNorm = Math.max(0, Math.min(1, gNorm));
+                            bNorm = Math.max(0, Math.min(1, bNorm));
+                        }
+
+                        if (useSaturation) {
+                            const gray = 0.299 * rNorm + 0.587 * gNorm + 0.114 * bNorm;
+                            rNorm = gray + saturation * (rNorm - gray);
+                            gNorm = gray + saturation * (gNorm - gray);
+                            bNorm = gray + saturation * (bNorm - gray);
+                            rNorm = Math.max(0, Math.min(1, rNorm));
+                            gNorm = Math.max(0, Math.min(1, gNorm));
+                            bNorm = Math.max(0, Math.min(1, bNorm));
+                        }
+
+                        colors.push(
+                            Math.min(1.0, rNorm * brightness),
+                            Math.min(1.0, gNorm * brightness),
+                            Math.min(1.0, bNorm * brightness)
+                        );
+                    }
+                }
+            }
+
+            // Apply depth culling if enabled
+            if (enableDepthCull && depthCullPower > 0) {
+                let minZ = Infinity;
+                let maxZ = -Infinity;
+                for (let i = 0; i < initialZ.length; i++) {
+                    minZ = Math.min(minZ, initialZ[i]);
+                    maxZ = Math.max(maxZ, initialZ[i]);
+                }
+                const zRange = maxZ - minZ;
+                if (zRange > 0) {
+                    const cullThreshold = minZ + zRange * depthCullPower;
+                    for (let i = 0; i < initialZ.length; i++) {
+                        if (initialZ[i] < cullThreshold) {
+                            colors[i * 3] = 0;
+                            colors[i * 3 + 1] = 0;
+                            colors[i * 3 + 2] = 0;
+                        }
+                    }
+                }
+            }
+
+            console.log(`🎬 Panorama portion ${portionIndex + 1}/${totalPortions}: ${particleCount.toLocaleString()} particules`);
+            return { positions, colors, initialZ, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor };
+        }
+
         function generate(video) {
             console.log('═══════════════════════════════════════════════════════');
             console.log('🎬 GENERATE() APPELÉ');
@@ -4339,8 +4500,14 @@
             console.log('📦 allScreens avant:', Object.keys(allScreens || {}));
             console.log('🎥 Vidéo:', video ? `${video.videoWidth}x${video.videoHeight}` : 'null');
 
-            // Multi-video system: prefer screen-specific video if available
-            if (screenVideos[1]) {
+            // PANORAMIC MODE: Check if panoramic video is available
+            const isPanoramicMode = panoramicVideo !== null;
+            if (isPanoramicMode) {
+                console.log('🌅 MODE PANORAMIQUE ACTIVÉ');
+                console.log(`   Vidéo: ${panoramicVideo.videoWidth}x${panoramicVideo.videoHeight}`);
+                console.log(`   5 écrans × 1920px chacun = 9600px total`);
+                video = panoramicVideo; // Use panoramic video as base
+            } else if (screenVideos[1]) {
                 console.log('🎬 Multi-video mode: Utilisation de video_01.mp4 pour génération');
                 video = screenVideos[1];
             }
@@ -4430,11 +4597,23 @@
             const data = imageData.data;
 
             // Create particle for each pixel (1 pixel = 1 particle)
-            const positions = [];
-            const colors = [];
-            const initialZ = [];
+            let positions = [];
+            let colors = [];
+            let initialZ = [];
+            let scaleFactor = 0.5;
 
-            const scaleFactor = 0.5;
+            // === PANORAMIC MODE: Use portion-based generation for screen 1 ===
+            if (isPanoramicMode) {
+                console.log('🌅 Génération écran 1 depuis portion 0 (gauche) du panorama');
+                const screen1Data = createParticleDataFromVideoPortion(panoramicVideo, 0, 5);
+                positions = screen1Data.positions;
+                colors = screen1Data.colors;
+                initialZ = screen1Data.initialZ;
+                scaleFactor = screen1Data.scaleFactor;
+                console.log(`   ✅ ${(positions.length / 3).toLocaleString()} particules générées`);
+            } else {
+            // === STANDARD MODE: Inline generation ===
+
             const halfWidth = TARGET_WIDTH / 2;
             const halfHeight = TARGET_HEIGHT / 2;
 
@@ -4630,6 +4809,7 @@
             if (capReached) {
                 console.warn(`   ⚠️ CAP ATTEINT! Limite MAX_PARTICLES (${MAX_PARTICLES.toLocaleString()}) appliquée pour éviter lag.`);
             }
+            } // END: Standard mode (else block)
 
             // v1.3.1 — Apply depth culling if enabled (make particles truly invisible)
             if (enableDepthCull && depthCullPower > 0) {
@@ -4808,11 +4988,18 @@
             const screenH = TARGET_HEIGHT * scaleFactor;
             const wallBottomY = -screenH / 2;
 
-            // === ÉCRAN 2: Generate from video_02.mp4 if available (multi-video system) ===
+            // === ÉCRAN 2: Generate from panorama portion 1 or video_02.mp4 ===
             let particlesRight;
-            if (screenVideos[2] && screenVideos[2] !== video) {
+            let screen2Data = null;
+            if (isPanoramicMode) {
+                console.log('🌅 Génération écran 2 depuis portion 1 du panorama');
+                screen2Data = createParticleDataFromVideoPortion(panoramicVideo, 1, 5);
+            } else if (screenVideos[2] && screenVideos[2] !== video) {
                 console.log('🎬 Génération écran 2 depuis video_02.mp4');
-                const screen2Data = createParticleDataFromVideo(screenVideos[2]);
+                screen2Data = createParticleDataFromVideo(screenVideos[2]);
+            }
+
+            if (screen2Data) {
 
                 if (is3DMode) {
                     const count2 = screen2Data.positions.length / 3;
@@ -4871,8 +5058,8 @@
                     particlesRight = new THREE.Points(geometry2, material);
                 }
             } else {
-                // Fallback: Clone screen 1 if video_02.mp4 not available
-                console.log('🎬 Écran 2: Clonage de l\'écran 1 (video_02.mp4 non disponible)');
+                // Fallback: Clone screen 1 if no video available
+                console.log('🎬 Écran 2: Clonage de l\'écran 1 (fallback)');
                 particlesRight = particles.clone();
                 particlesRight.geometry = particles.geometry;
                 particlesRight.material = particles.material;
@@ -4983,11 +5170,18 @@
 
             // --- Opposite wall (in front of right wall), hinged to the floor end ---
 
-            // === ÉCRAN 5: Generate from video_05.mp4 if available ===
+            // === ÉCRAN 5 (allScreens[5]): Generate from panorama portion 4 or video_05.mp4 ===
             let wallOppA;
-            if (screenVideos[5]) {
+            let screen5Data = null;
+            if (isPanoramicMode) {
+                console.log('🌅 Génération écran 5 depuis portion 4 (droite) du panorama');
+                screen5Data = createParticleDataFromVideoPortion(panoramicVideo, 4, 5);
+            } else if (screenVideos[5]) {
                 console.log('🎬 Génération écran 5 depuis video_05.mp4');
-                const screen5Data = createParticleDataFromVideo(screenVideos[5]);
+                screen5Data = createParticleDataFromVideo(screenVideos[5]);
+            }
+
+            if (screen5Data) {
 
                 if (is3DMode) {
                     const count5 = screen5Data.positions.length / 3;
@@ -5047,8 +5241,8 @@
                     wallOppA = new THREE.Points(geometry5, material);
                 }
             } else {
-                // Fallback: Clone screen 1
-                console.log('🎬 Écran 5: Clonage de l\'écran 1 (video_05.mp4 non disponible)');
+                // Fallback: Clone screen 1 if no video available
+                console.log('🎬 Écran 5: Clonage de l\'écran 1 (fallback)');
                 wallOppA = particles.clone();
                 wallOppA.geometry = particles.geometry;
                 wallOppA.material = particles.material;
@@ -5061,11 +5255,18 @@
 
             screensGroup.add(wallOppA);
 
-            // === ÉCRAN 6: Generate from video_06.mp4 if available ===
+            // === ÉCRAN 6 (allScreens[4]): Generate from panorama portion 3 or video_06.mp4 ===
             let wallOppB;
-            if (screenVideos[6]) {
+            let screen6Data = null;
+            if (isPanoramicMode) {
+                console.log('🌅 Génération écran 4 depuis portion 3 du panorama');
+                screen6Data = createParticleDataFromVideoPortion(panoramicVideo, 3, 5);
+            } else if (screenVideos[6]) {
                 console.log('🎬 Génération écran 6 depuis video_06.mp4');
-                const screen6Data = createParticleDataFromVideo(screenVideos[6]);
+                screen6Data = createParticleDataFromVideo(screenVideos[6]);
+            }
+
+            if (screen6Data) {
 
                 if (is3DMode) {
                     const count6 = screen6Data.positions.length / 3;
@@ -5125,25 +5326,33 @@
                     wallOppB = new THREE.Points(geometry6, material);
                 }
             } else {
-                // Fallback: Clone screen 2
-                console.log('🎬 Écran 6: Clonage de l\'écran 2 (video_06.mp4 non disponible)');
+                // Fallback: Clone screen 2 if no video available
+                console.log('🎬 Écran 4: Clonage de l\'écran 2 (fallback)');
                 wallOppB = particlesRight.clone();
                 wallOppB.geometry = particles.geometry;
                 wallOppB.material = particles.material;
             }
 
-            // Écran 6 - Position de base
+            // Écran 4 (anciennement 6) - Position de base
             wallOppB.position.set(400, 0, 225);
             wallOppB.rotation.set(-Math.PI, 0, -Math.PI); // Rotation 180° pour faire face vers -Z
             if (!wallOppB.userData.screenNumber) wallOppB.userData.screenNumber = 4; // Renuméroté: anciennement 5 → 4
 
             screensGroup.add(wallOppB);
 
-            // === ÉCRAN 7: panneau latéral CARRÉ - Generate from video_07.mp4 if available ===
+            // === ÉCRAN 7 (allScreens[3]): Generate from panorama portion 2 or video_07.mp4 ===
             let screen7Positions, screen7Colors, screen7InitialZ;
             let useVideo7 = false;
 
-            if (screenVideos[7]) {
+            if (isPanoramicMode) {
+                // Use panorama portion 2 (middle)
+                console.log('🌅 Génération écran 3 depuis portion 2 (centre) du panorama');
+                const screen7Data = createParticleDataFromVideoPortion(panoramicVideo, 2, 5);
+                screen7Positions = screen7Data.positions;
+                screen7Colors = screen7Data.colors;
+                screen7InitialZ = screen7Data.initialZ;
+                useVideo7 = true;
+            } else if (screenVideos[7]) {
                 // Use video_07.mp4
                 console.log('🎬 Génération écran 7 depuis video_07.mp4');
                 const screen7Data = createParticleDataFromVideo(screenVideos[7]);
@@ -5153,7 +5362,7 @@
                 useVideo7 = true;
             } else {
                 // Fallback: Filter from screen 1 video to create square
-                console.log('🎬 Écran 7: Filtrage depuis l\'écran 1 (video_07.mp4 non disponible)');
+                console.log('🎬 Écran 3: Filtrage depuis l\'écran 1 (fallback)');
                 screen7Positions = [];
                 screen7Colors = [];
                 screen7InitialZ = [];
@@ -7617,56 +7826,58 @@
             });
         }
 
-        // Multi-video system: Load videos for all volumetric screens
+        // PANORAMIC VIDEO SYSTEM: Load single panoramic video for all screens
         async function loadVolumetricScreenVideos() {
-            console.log('🎬 Chargement des vidéos pour écrans volumétriques...');
+            console.log('🎬 Chargement de la vidéo panoramique (9600x1080)...');
 
-            const loadPromises = VOLUMETRIC_SCREENS.map(screenNum => {
-                return new Promise((resolve, reject) => {
-                    // Create hidden video element for this screen
-                    const videoElement = document.createElement('video');
-                    videoElement.id = `video-screen-${screenNum}`;
-                    videoElement.muted = true;
-                    videoElement.loop = true;
-                    videoElement.playsinline = true;
-                    videoElement.style.display = 'none';
-                    document.body.appendChild(videoElement);
+            return new Promise((resolve, reject) => {
+                // Create hidden video element for panoramic video
+                const videoElement = document.createElement('video');
+                videoElement.id = 'video-panorama';
+                videoElement.muted = true;
+                videoElement.loop = true;
+                videoElement.playsinline = true;
+                videoElement.style.display = 'none';
+                document.body.appendChild(videoElement);
 
-                    // Load video file with zero-padded number (video_01.mp4, video_02.mp4, etc.)
-                    const videoPath = `videos/video_${screenNum.toString().padStart(2, '0')}.mp4`;
-                    videoElement.src = videoPath;
-                    videoElement.load();
+                // Load panoramic video
+                const videoPath = 'videos/panorama.mp4';
+                videoElement.src = videoPath;
+                videoElement.load();
 
-                    videoElement.onloadeddata = function() {
-                        console.log(`✅ Vidéo chargée pour écran ${screenNum}:`, videoPath);
-                        screenVideos[screenNum] = videoElement;
+                videoElement.onloadeddata = function() {
+                    console.log(`✅ Vidéo panoramique chargée: ${videoPath}`);
+                    console.log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+                    console.log(`   Attendu: ${PANORAMIC_WIDTH}x${PANORAMIC_HEIGHT}`);
 
-                        // Start playing
-                        videoElement.play().catch(err => {
-                            console.warn(`⚠️ Autoplay bloqué pour écran ${screenNum}:`, err);
-                        });
+                    // Store as the panoramic video
+                    panoramicVideo = videoElement;
 
-                        resolve(screenNum);
-                    };
+                    // Also set as screenVideos[1] for backward compatibility with generate()
+                    screenVideos[1] = videoElement;
 
-                    videoElement.onerror = function(error) {
-                        console.warn(`⚠️ Vidéo non trouvée pour écran ${screenNum}:`, videoPath);
-                        // Don't reject, just skip this screen
-                        resolve(null);
-                    };
+                    // Start playing
+                    videoElement.play().catch(err => {
+                        console.warn('⚠️ Autoplay bloqué pour vidéo panoramique:', err);
+                    });
 
-                    // Timeout fallback
-                    setTimeout(() => {
-                        if (!screenVideos[screenNum]) {
-                            console.warn(`⏱️ Timeout chargement vidéo écran ${screenNum}`);
-                            resolve(null);
-                        }
-                    }, 3000);
-                });
+                    resolve(true);
+                };
+
+                videoElement.onerror = function(error) {
+                    console.warn('⚠️ Vidéo panoramique non trouvée:', videoPath);
+                    console.warn('   Fallback: système multi-vidéos désactivé');
+                    resolve(false);
+                };
+
+                // Timeout fallback
+                setTimeout(() => {
+                    if (!panoramicVideo) {
+                        console.warn('⏱️ Timeout chargement vidéo panoramique');
+                        resolve(false);
+                    }
+                }, 5000);
             });
-
-            await Promise.all(loadPromises);
-            console.log(`✅ ${Object.keys(screenVideos).length} vidéos chargées sur ${VOLUMETRIC_SCREENS.length} écrans`);
         }
 
         // Helper sleep function
