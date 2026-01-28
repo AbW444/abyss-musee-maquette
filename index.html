@@ -4961,7 +4961,7 @@
                 screen3.userData.initialZ = screen3InitialZ;
                 screen3.userData.positions = screen3Positions;
                 screen3.userData.is3D = true;
-                screen3.userData.screenNumber = 5; // Renuméroté: était 3 → 5
+                screen3.userData.screenNumber = 6; // Sol - anciennement 5 → 6
 
             } else {
                 // Mode 2D : créer Points avec les particules du rectangle
@@ -4971,7 +4971,7 @@
                 geometry3.setAttribute('initialZ', new THREE.Float32BufferAttribute(screen3InitialZ, 1));
 
                 screen3 = new THREE.Points(geometry3, material);
-                screen3.userData.screenNumber = 5; // Renuméroté: était 3 → 5
+                screen3.userData.screenNumber = 6; // Sol - anciennement 5 → 6
             }
 
             // Position et orientation de base
@@ -5037,7 +5037,7 @@
                     wallOppA.userData.initialZ = screen5Data.initialZ;
                     wallOppA.userData.positions = screen5Data.positions;
                     wallOppA.userData.is3D = true;
-                    wallOppA.userData.screenNumber = 6; // Renuméroté: anciennement 4 → 6
+                    wallOppA.userData.screenNumber = 5; // Mur droit - anciennement 6 → 5
                 } else {
                     const geometry5 = new THREE.BufferGeometry();
                     geometry5.setAttribute('position', new THREE.Float32BufferAttribute(screen5Data.positions, 3));
@@ -5057,7 +5057,7 @@
             // Écran 5 - Position de base
             wallOppA.position.set(0, 0, 225);
             wallOppA.rotation.set(-Math.PI, 0, -Math.PI); // Rotation 180° pour faire face vers -Z
-            if (!wallOppA.userData.screenNumber) wallOppA.userData.screenNumber = 6; // Renuméroté: anciennement 4 → 6
+            if (!wallOppA.userData.screenNumber) wallOppA.userData.screenNumber = 5; // Mur droit - anciennement 6 → 5
 
             screensGroup.add(wallOppA);
 
@@ -6142,8 +6142,8 @@
                 }
 
                 // CRITICAL: Also update screen 3 if it exists (3D mode) - now at position 5
-                if (allScreens[5] && allScreens[5].instanceColor) {
-                    const screen3 = allScreens[5];
+                if (allScreens[6] && allScreens[6].instanceColor) {
+                    const screen3 = allScreens[6];
                     const colors3 = screen3.instanceColor.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
                     const halfH_screen3 = halfH / 2; // Hauteur réduite pour écran 3
@@ -6263,8 +6263,8 @@
                 }
 
                 // CRITICAL: Also update screen 3 if it exists (2D mode) - now at position 5
-                if (allScreens[5] && allScreens[5].geometry && allScreens[5].geometry.attributes.color) {
-                    const screen3 = allScreens[5];
+                if (allScreens[6] && allScreens[6].geometry && allScreens[6].geometry.attributes.color) {
+                    const screen3 = allScreens[6];
                     const geom3 = screen3.geometry;
                     const colors3 = geom3.attributes.color.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
@@ -6501,8 +6501,8 @@
                     }
 
                     // CRITICAL: Also update screen 3 if it has its own geometry (3D mode) - now at position 5
-                    if (allScreens[5] && allScreens[5].userData && allScreens[5].userData.is3D) {
-                        const screen3 = allScreens[5];
+                    if (allScreens[6] && allScreens[6].userData && allScreens[6].userData.is3D) {
+                        const screen3 = allScreens[6];
                         const initialZs3 = screen3.userData.initialZ;
                         const positions3 = screen3.userData.positions;
 
@@ -6604,8 +6604,8 @@
                     }
 
                     // CRITICAL: Also update screen 3 if it has its own geometry (2D mode) - now at position 5
-                    if (allScreens[5] && allScreens[5].geometry && allScreens[5].geometry.attributes.position) {
-                        const screen3 = allScreens[5];
+                    if (allScreens[6] && allScreens[6].geometry && allScreens[6].geometry.attributes.position) {
+                        const screen3 = allScreens[6];
                         const geom3 = screen3.geometry;
                         const positions3 = geom3.attributes.position.array;
                         const initialZs3 = geom3.attributes.initialZ.array;
@@ -6723,7 +6723,7 @@
                     reusableRaycaster.set(camera.position, downVector);
 
                     const floorScreens = [];
-                    if (allScreens[5]) floorScreens.push(allScreens[5]); // screen3 (floor) is now at position 5
+                    if (allScreens[6]) floorScreens.push(allScreens[6]); // screen3 (floor) is now at position 6
                     if (allScreens[10]) floorScreens.push(allScreens[10]);
                     if (allScreens[11]) floorScreens.push(allScreens[11]);
 
