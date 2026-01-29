@@ -8081,71 +8081,53 @@
             });
         }
 
-        // MULTI-VIDEO SYSTEM: Load individual videos for each screen (ecran1.mp4 to ecran5.mp4)
+        // PANORAMIC VIDEO SYSTEM: Load single panorama.mp4 for all screens
         async function loadVolumetricScreenVideos() {
-            console.log('🎬 Chargement des vidéos individuelles (ecran1-5.mp4)...');
-
-            // SIMPLIFIED MAPPING: ecran file → screenVideos index = allScreens index
-            // ecran1.mp4 → screenVideos[1] → allScreens[1] (particles)
-            // ecran2.mp4 → screenVideos[2] → allScreens[2] (particlesRight)
-            // ecran3.mp4 → screenVideos[3] → allScreens[3] (screen7 - Side panel)
-            // ecran4.mp4 → screenVideos[4] → allScreens[4] (wallOppB)
-            // ecran5.mp4 → screenVideos[5] → allScreens[5] (wallOppA)
-            const videoMapping = [
-                { file: 'videos/ecran1.mp4', index: 1, name: 'Écran 1' },
-                { file: 'videos/ecran2.mp4', index: 2, name: 'Écran 2' },
-                { file: 'videos/ecran3.mp4', index: 3, name: 'Écran 3' },
-                { file: 'videos/ecran4.mp4', index: 4, name: 'Écran 4' },
-                { file: 'videos/ecran5.mp4', index: 5, name: 'Écran 5' }
-            ];
-
-            let loadedCount = 0;
-            const totalVideos = videoMapping.length;
+            console.log('🎬 Tentative de chargement de la vidéo panoramique (panorama.mp4)...');
 
             return new Promise((resolve) => {
-                videoMapping.forEach(({ file, index, name }) => {
-                    const videoElement = document.createElement('video');
-                    videoElement.id = `video-ecran-${index}`;
-                    videoElement.muted = true;
-                    videoElement.loop = true;
-                    videoElement.playsinline = true;
-                    videoElement.style.display = 'none';
-                    document.body.appendChild(videoElement);
+                // Create hidden video element for panoramic video
+                const videoElement = document.createElement('video');
+                videoElement.id = 'video-panorama';
+                videoElement.muted = true;
+                videoElement.loop = true;
+                videoElement.playsinline = true;
+                videoElement.style.display = 'none';
+                document.body.appendChild(videoElement);
 
-                    videoElement.src = file;
-                    videoElement.load();
+                // Try to load panoramic video
+                const videoPath = 'videos/panorama.mp4';
+                videoElement.src = videoPath;
+                videoElement.load();
 
-                    videoElement.onloadeddata = function() {
-                        console.log(`✅ ${name} chargé: ${file} (${videoElement.videoWidth}x${videoElement.videoHeight})`);
-                        screenVideos[index] = videoElement;
+                videoElement.onloadeddata = function() {
+                    console.log(`✅ Vidéo panoramique chargée: ${videoPath}`);
+                    console.log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+                    console.log(`   Attendu: ${PANORAMIC_WIDTH}x${PANORAMIC_HEIGHT}`);
 
-                        // Ne pas lancer la vidéo ici - attendre syncStartAllVideos()
+                    // Store as the panoramic video
+                    panoramicVideo = videoElement;
 
-                        loadedCount++;
-                        if (loadedCount === totalVideos) {
-                            console.log(`🎬 Toutes les vidéos chargées (${loadedCount}/${totalVideos})`);
-                            // Ne pas activer le mode panoramique - utiliser le mode multi-vidéos
-                            panoramicVideo = null;
-                            resolve(true);
-                        }
-                    };
+                    // Also set as screenVideos[1] for backward compatibility with generate()
+                    screenVideos[1] = videoElement;
 
-                    videoElement.onerror = function() {
-                        console.warn(`⚠️ Vidéo non trouvée: ${file}`);
-                        loadedCount++;
-                        if (loadedCount === totalVideos) {
-                            console.log(`🎬 Chargement terminé (${loadedCount}/${totalVideos})`);
-                            panoramicVideo = null;
-                            resolve(loadedCount > 0);
-                        }
-                    };
-                });
+                    // Ne pas lancer la vidéo ici - attendre syncStartAllVideos()
+                    console.log('🌅 MODE PANORAMIQUE ACTIVÉ');
+                    resolve(true);
+                };
+
+                videoElement.onerror = function() {
+                    console.warn('⚠️ Vidéo panoramique non trouvée:', videoPath);
+                    console.warn('   Le fichier videos/panorama.mp4 est requis');
+                    panoramicVideo = null;
+                    resolve(false);
+                };
 
                 // Timeout fallback
                 setTimeout(() => {
-                    if (loadedCount < totalVideos) {
-                        console.warn(`⏱️ Timeout: ${loadedCount}/${totalVideos} vidéos chargées`);
-                        resolve(loadedCount > 0);
+                    if (!panoramicVideo) {
+                        console.warn('⏱️ Timeout chargement vidéo panoramique');
+                        resolve(false);
                     }
                 }, 10000);
             });
@@ -8155,7 +8137,17 @@
         function syncStartAllVideos() {
             console.log('🔄 Synchronisation et lancement de toutes les vidéos...');
 
-            // Récupérer toutes les vidéos chargées
+            // Mode panoramique: une seule vidéo à gérer
+            if (panoramicVideo) {
+                panoramicVideo.currentTime = 0;
+                panoramicVideo.play().catch(err => {
+                    console.warn('⚠️ Erreur play panorama:', err);
+                });
+                console.log('✅ Vidéo panoramique lancée');
+                return;
+            }
+
+            // Mode multi-vidéos: synchroniser toutes les vidéos
             const videos = Object.values(screenVideos).filter(v => v && v.videoWidth > 0);
 
             if (videos.length === 0) {
