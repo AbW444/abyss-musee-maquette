@@ -4509,7 +4509,7 @@
                 }
             }
 
-            console.log(`🎬 Panorama portion ${portionIndex + 1}/${totalPortions}: ${particleCount.toLocaleString()} particules`);
+            console.log(`🎬 Panorama portion ${Math.round(startFraction * 9)}/9 → ${Math.round((startFraction + widthFraction) * 9)}/9: ${particleCount.toLocaleString()} particules`);
             return { positions, colors, initialZ, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor };
         }
 
