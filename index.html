@@ -6547,9 +6547,11 @@
             }
         }
 
-        // Update colors for screens 2-5 from their respective videos
+        // Update colors AND depth for screens 2-5 from their respective videos
         let lastMultiScreenUpdate = 0;
         const MULTI_SCREEN_UPDATE_INTERVAL = 50; // ms between updates
+        const reusableMatrix2 = new THREE.Matrix4();
+        const reusableColor2 = new THREE.Color();
 
         function updateMultiScreenColors() {
             const now = performance.now();
@@ -6558,6 +6560,8 @@
 
             // Screens to update: 2, 3, 4, 5 (screen 1 is updated by updateColorsFromVideo)
             const screensToUpdate = [2, 3, 4, 5];
+            const scaleFactor = 0.5;
+            const rgbToLumFactor = 1 / (3 * 255);
 
             for (const screenNum of screensToUpdate) {
                 const screen = allScreens[screenNum];
@@ -6579,6 +6583,9 @@
                 const { canvas, ctx } = screenSamplingCanvases[screenNum];
                 const TARGET_WIDTH = canvas.width;
                 const TARGET_HEIGHT = canvas.height;
+                const halfWidth = TARGET_WIDTH / 2;
+                const halfHeight = TARGET_HEIGHT / 2;
+                const depthSpread = TARGET_HEIGHT * scaleFactor * depthMultiplier;
 
                 // Draw video frame to canvas
                 const videoWidth = video.videoWidth;
@@ -6603,67 +6610,135 @@
                 const imageData = ctx.getImageData(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
                 const data = imageData.data;
 
-                // Get colors array from screen geometry
-                let colorsArray = null;
-                let is3DMode = false;
-
-                if (screen.instanceColor) {
-                    colorsArray = screen.instanceColor.array;
-                    is3DMode = true;
-                } else if (screen.geometry && screen.geometry.attributes.color) {
-                    colorsArray = screen.geometry.attributes.color.array;
-                }
-
-                if (!colorsArray) continue;
-
                 // Calculate step based on particle density
                 const step = Math.max(1, Math.floor(10 / particleDensity));
                 const useContrast = contrast !== 1.0;
                 const useSaturation = saturation !== 1.0;
 
-                // Update colors
-                let particleIndex = 0;
-                for (let y = 0; y < TARGET_HEIGHT && particleIndex * 3 < colorsArray.length; y += step) {
-                    for (let x = 0; x < TARGET_WIDTH && particleIndex * 3 < colorsArray.length; x += step) {
+                // First pass: find min luminance
+                let minLuminance = Infinity;
+                for (let y = 0; y < TARGET_HEIGHT; y += step) {
+                    for (let x = 0; x < TARGET_WIDTH; x += step) {
                         const i = (y * TARGET_WIDTH + x) * 4;
-                        const alpha = data[i + 3];
-
-                        if (alpha > 30) {
-                            let r = data[i];
-                            let g = data[i + 1];
-                            let b = data[i + 2];
-
-                            let rNorm = r / 255;
-                            let gNorm = g / 255;
-                            let bNorm = b / 255;
-
-                            if (useContrast) {
-                                rNorm = Math.max(0, Math.min(1, (rNorm - 0.5) * contrast + 0.5));
-                                gNorm = Math.max(0, Math.min(1, (gNorm - 0.5) * contrast + 0.5));
-                                bNorm = Math.max(0, Math.min(1, (bNorm - 0.5) * contrast + 0.5));
-                            }
-
-                            if (useSaturation) {
-                                const gray = 0.299 * rNorm + 0.587 * gNorm + 0.114 * bNorm;
-                                rNorm = Math.max(0, Math.min(1, gray + saturation * (rNorm - gray)));
-                                gNorm = Math.max(0, Math.min(1, gray + saturation * (gNorm - gray)));
-                                bNorm = Math.max(0, Math.min(1, gray + saturation * (bNorm - gray)));
-                            }
-
-                            colorsArray[particleIndex * 3] = Math.min(1.0, rNorm * brightness);
-                            colorsArray[particleIndex * 3 + 1] = Math.min(1.0, gNorm * brightness);
-                            colorsArray[particleIndex * 3 + 2] = Math.min(1.0, bNorm * brightness);
-
-                            particleIndex++;
+                        if (data[i + 3] > 30) {
+                            const luminance = (data[i] + data[i + 1] + data[i + 2]) * rgbToLumFactor;
+                            minLuminance = Math.min(minLuminance, luminance);
                         }
                     }
                 }
+                if (minLuminance === Infinity) minLuminance = 0;
 
-                // Mark colors as needing update
-                if (is3DMode && screen.instanceColor) {
+                // Check if 3D mode (InstancedMesh) or 2D mode (Points)
+                const is3DMode = screen.userData && screen.userData.is3D;
+
+                if (is3DMode && screen.instanceColor && screen.userData.initialZ) {
+                    // 3D MODE: Update instance colors and positions
+                    const colorsArray = screen.instanceColor.array;
+                    const initialZs = screen.userData.initialZ;
+                    const positions = screen.userData.positions;
+
+                    let particleIndex = 0;
+                    for (let y = 0; y < TARGET_HEIGHT && particleIndex < initialZs.length; y += step) {
+                        for (let x = 0; x < TARGET_WIDTH && particleIndex < initialZs.length; x += step) {
+                            const i = (y * TARGET_WIDTH + x) * 4;
+                            if (data[i + 3] > 30) {
+                                const r = data[i], g = data[i + 1], b = data[i + 2];
+                                const luminance = (r + g + b) * rgbToLumFactor;
+                                const newDepth = (luminance - minLuminance) * depthSpread;
+
+                                // Update depth with smoothing
+                                const oldDepth = initialZs[particleIndex];
+                                const depthDelta = Math.abs(newDepth - oldDepth);
+                                if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
+                                    initialZs[particleIndex] = newDepth;
+                                }
+
+                                // Update color
+                                let rNorm = r / 255, gNorm = g / 255, bNorm = b / 255;
+                                if (useContrast) {
+                                    rNorm = Math.max(0, Math.min(1, (rNorm - 0.5) * contrast + 0.5));
+                                    gNorm = Math.max(0, Math.min(1, (gNorm - 0.5) * contrast + 0.5));
+                                    bNorm = Math.max(0, Math.min(1, (bNorm - 0.5) * contrast + 0.5));
+                                }
+                                if (useSaturation) {
+                                    const gray = 0.299 * rNorm + 0.587 * gNorm + 0.114 * bNorm;
+                                    rNorm = Math.max(0, Math.min(1, gray + saturation * (rNorm - gray)));
+                                    gNorm = Math.max(0, Math.min(1, gray + saturation * (gNorm - gray)));
+                                    bNorm = Math.max(0, Math.min(1, gray + saturation * (bNorm - gray)));
+                                }
+
+                                colorsArray[particleIndex * 3] = Math.min(1.0, rNorm * brightness);
+                                colorsArray[particleIndex * 3 + 1] = Math.min(1.0, gNorm * brightness);
+                                colorsArray[particleIndex * 3 + 2] = Math.min(1.0, bNorm * brightness);
+
+                                // Update instance matrix position
+                                if (positions) {
+                                    const px = positions[particleIndex * 3];
+                                    const py = positions[particleIndex * 3 + 1];
+                                    const targetZ = initialZs[particleIndex];
+                                    reusableMatrix2.setPosition(px, py, targetZ);
+                                    screen.setMatrixAt(particleIndex, reusableMatrix2);
+                                }
+
+                                particleIndex++;
+                            }
+                        }
+                    }
                     screen.instanceColor.needsUpdate = true;
+                    screen.instanceMatrix.needsUpdate = true;
+
                 } else if (screen.geometry && screen.geometry.attributes.color) {
+                    // 2D MODE: Update point colors and positions
+                    const colorsArray = screen.geometry.attributes.color.array;
+                    const positionsArray = screen.geometry.attributes.position.array;
+                    const initialZArray = screen.geometry.attributes.initialZ ? screen.geometry.attributes.initialZ.array : null;
+
+                    let particleIndex = 0;
+                    for (let y = 0; y < TARGET_HEIGHT && particleIndex * 3 < colorsArray.length; y += step) {
+                        for (let x = 0; x < TARGET_WIDTH && particleIndex * 3 < colorsArray.length; x += step) {
+                            const i = (y * TARGET_WIDTH + x) * 4;
+                            if (data[i + 3] > 30) {
+                                const r = data[i], g = data[i + 1], b = data[i + 2];
+                                const luminance = (r + g + b) * rgbToLumFactor;
+                                const newDepth = (luminance - minLuminance) * depthSpread;
+
+                                // Update depth
+                                if (initialZArray) {
+                                    const oldDepth = initialZArray[particleIndex];
+                                    const depthDelta = Math.abs(newDepth - oldDepth);
+                                    if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
+                                        initialZArray[particleIndex] = newDepth;
+                                        positionsArray[particleIndex * 3 + 2] = newDepth;
+                                    }
+                                }
+
+                                // Update color
+                                let rNorm = r / 255, gNorm = g / 255, bNorm = b / 255;
+                                if (useContrast) {
+                                    rNorm = Math.max(0, Math.min(1, (rNorm - 0.5) * contrast + 0.5));
+                                    gNorm = Math.max(0, Math.min(1, (gNorm - 0.5) * contrast + 0.5));
+                                    bNorm = Math.max(0, Math.min(1, (bNorm - 0.5) * contrast + 0.5));
+                                }
+                                if (useSaturation) {
+                                    const gray = 0.299 * rNorm + 0.587 * gNorm + 0.114 * bNorm;
+                                    rNorm = Math.max(0, Math.min(1, gray + saturation * (rNorm - gray)));
+                                    gNorm = Math.max(0, Math.min(1, gray + saturation * (gNorm - gray)));
+                                    bNorm = Math.max(0, Math.min(1, gray + saturation * (bNorm - gray)));
+                                }
+
+                                colorsArray[particleIndex * 3] = Math.min(1.0, rNorm * brightness);
+                                colorsArray[particleIndex * 3 + 1] = Math.min(1.0, gNorm * brightness);
+                                colorsArray[particleIndex * 3 + 2] = Math.min(1.0, bNorm * brightness);
+
+                                particleIndex++;
+                            }
+                        }
+                    }
                     screen.geometry.attributes.color.needsUpdate = true;
+                    screen.geometry.attributes.position.needsUpdate = true;
+                    if (initialZArray) {
+                        screen.geometry.attributes.initialZ.needsUpdate = true;
+                    }
                 }
             }
         }
