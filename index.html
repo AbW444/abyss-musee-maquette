@@ -8131,7 +8131,7 @@
                 videoElement.src = videoPath;
                 videoElement.load();
 
-                videoElement.onloadeddata = function() {
+                videoElement.oncanplaythrough = function() {
                     console.log(`✅ Vidéo panoramique chargée: ${videoPath}`);
                     console.log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
                     console.log(`   Attendu: ${PANORAMIC_WIDTH}x${PANORAMIC_HEIGHT}`);
@@ -8142,9 +8142,18 @@
                     // Also set as screenVideos[1] for backward compatibility with generate()
                     screenVideos[1] = videoElement;
 
-                    // Ne pas lancer la vidéo ici - attendre syncStartAllVideos()
-                    console.log('🌅 MODE PANORAMIQUE ACTIVÉ');
-                    resolve(true);
+                    // Jouer brièvement pour que les pixels soient disponibles
+                    videoElement.currentTime = 0.1;
+                    videoElement.play().then(() => {
+                        setTimeout(() => {
+                            videoElement.pause();
+                            console.log('🌅 MODE PANORAMIQUE ACTIVÉ - Pixels prêts');
+                            resolve(true);
+                        }, 100);
+                    }).catch(() => {
+                        console.log('🌅 MODE PANORAMIQUE ACTIVÉ');
+                        resolve(true);
+                    });
                 };
 
                 videoElement.onerror = function() {
