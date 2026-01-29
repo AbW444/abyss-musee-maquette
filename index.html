@@ -1801,10 +1801,10 @@
         const reusableUp = new THREE.Vector3(0, 1, 0);
         const reusablePrevPosition = new THREE.Vector3();
 
-        // Scroll lissé (smooth scroll)
+        // Scroll lissé (smooth scroll) - Effet réduit de moitié
         let scrollVelocity = 0; // Vitesse de scroll actuelle
-        const SCROLL_SMOOTHING = 0.15; // Facteur de lissage (0.1 = très lisse, 0.3 = plus réactif)
-        const SCROLL_DECAY = 0.92; // Décroissance de la vitesse (0.9 = décroissance rapide, 0.95 = lente)
+        const SCROLL_SMOOTHING = 0.30; // Facteur de lissage (plus haut = plus réactif)
+        const SCROLL_DECAY = 0.84; // Décroissance de la vitesse (plus bas = arrêt plus rapide)
 
         // Performance optimization: Throttle video updates to reduce CPU load
         let lastVideoUpdateTime = 0;
