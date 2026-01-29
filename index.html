@@ -7966,6 +7966,11 @@
                 applySettings();
                 await sleep(500);
 
+                // Step 4: Synchroniser et lancer toutes les vidéos ensemble
+                console.log('🔄 AUTO-LOAD: Synchronisation des vidéos...');
+                syncStartAllVideos();
+                await sleep(200);
+
                 // Step 5: Hide loading screen
                 console.log('✅ AUTO-LOAD: Séquence terminée!');
                 await sleep(500);
@@ -8114,9 +8119,7 @@
                         console.log(`✅ ${name} chargé: ${file} (${videoElement.videoWidth}x${videoElement.videoHeight})`);
                         screenVideos[index] = videoElement;
 
-                        videoElement.play().catch(err => {
-                            console.warn(`⚠️ Autoplay bloqué pour ${name}:`, err);
-                        });
+                        // Ne pas lancer la vidéo ici - attendre syncStartAllVideos()
 
                         loadedCount++;
                         if (loadedCount === totalVideos) {
@@ -8146,6 +8149,34 @@
                     }
                 }, 10000);
             });
+        }
+
+        // Synchroniser et lancer toutes les vidéos en même temps
+        function syncStartAllVideos() {
+            console.log('🔄 Synchronisation et lancement de toutes les vidéos...');
+
+            // Récupérer toutes les vidéos chargées
+            const videos = Object.values(screenVideos).filter(v => v && v.videoWidth > 0);
+
+            if (videos.length === 0) {
+                console.warn('⚠️ Aucune vidéo à synchroniser');
+                return;
+            }
+
+            // Mettre toutes les vidéos à 0 et les lancer en même temps
+            videos.forEach(video => {
+                video.currentTime = 0;
+            });
+
+            // Petit délai pour s'assurer que currentTime est appliqué
+            setTimeout(() => {
+                videos.forEach(video => {
+                    video.play().catch(err => {
+                        console.warn('⚠️ Erreur play:', err);
+                    });
+                });
+                console.log(`✅ ${videos.length} vidéos lancées en synchronisation`);
+            }, 50);
         }
 
         // Helper sleep function
