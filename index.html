@@ -7718,11 +7718,8 @@
             const loadingScreen = document.getElementById('loading-screen');
 
             try {
-                // Step 1: Load videos for all volumetric screens
-                console.log('🎬 AUTO-LOAD: Chargement des vidéos multi-écrans...');
-                await loadVolumetricScreenVideos();
-
-                // Fallback: also load default video for backward compatibility
+                // Step 1: Load default video
+                console.log('🎬 AUTO-LOAD: Chargement de la vidéo...');
                 await loadDefaultVideo();
                 await sleep(500);
 
