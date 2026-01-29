@@ -1738,19 +1738,6 @@
         let screenVideos = {}; // {1: video_element, 2: video_element, 5: video_element, ...}
         let videoTextures = {}; // {1: texture, 2: texture, 5: texture, ...}
 
-        // Mapping between visual screen numbers (allScreens) and screenVideos indices
-        // SIMPLIFIED: Écran N → screenVideos[N] → ecranN.mp4
-        const SCREEN_TO_VIDEO_MAP = {
-            1: 1,  // Écran 1 → ecran1.mp4
-            2: 2,  // Écran 2 → ecran2.mp4
-            3: 3,  // Écran 3 → ecran3.mp4
-            4: 4,  // Écran 4 → ecran4.mp4
-            5: 5   // Écran 5 → ecran5.mp4
-        };
-
-        // Sampling canvases for each screen (for continuous video updates)
-        let screenSamplingCanvases = {};  // {screenNum: {canvas, ctx, data}}
-
         // New v1.3.1 parameters
         let enableDepthCull = false;
         let depthCullPower = 0.4;
@@ -4238,10 +4225,6 @@
             const depthSpread = TARGET_HEIGHT * scaleFactor * depthMultiplier;
             const rgbToLumFactor = 1 / (3 * 255);
 
-            // Contrast/Saturation flags (use global variables)
-            const useContrast = contrast !== 1.0;
-            const useSaturation = saturation !== 1.0;
-
             // FIRST PASS: Find minimum luminance
             let minLuminance = Infinity;
             for (let y = 0; y < TARGET_HEIGHT; y += step) {
@@ -5282,9 +5265,9 @@
             if (isPanoramicMode) {
                 console.log('🌅 Génération écran 4 depuis portion 3 du panorama');
                 screen6Data = createParticleDataFromVideoPortion(panoramicVideo, 3, 5);
-            } else if (screenVideos[4]) {
-                console.log('🎬 Génération écran 4 depuis ecran4.mp4');
-                screen6Data = createParticleDataFromVideo(screenVideos[4]);
+            } else if (screenVideos[6]) {
+                console.log('🎬 Génération écran 6 depuis video_06.mp4');
+                screen6Data = createParticleDataFromVideo(screenVideos[6]);
             }
 
             if (screen6Data) {
@@ -5373,10 +5356,10 @@
                 screen7Colors = screen7Data.colors;
                 screen7InitialZ = screen7Data.initialZ;
                 useVideo7 = true;
-            } else if (screenVideos[3]) {
-                // Use ecran3.mp4
-                console.log('🎬 Génération écran 3 depuis ecran3.mp4');
-                const screen7Data = createParticleDataFromVideo(screenVideos[3]);
+            } else if (screenVideos[7]) {
+                // Use video_07.mp4
+                console.log('🎬 Génération écran 7 depuis video_07.mp4');
+                const screen7Data = createParticleDataFromVideo(screenVideos[7]);
                 screen7Positions = screen7Data.positions;
                 screen7Colors = screen7Data.colors;
                 screen7InitialZ = screen7Data.initialZ;
@@ -6326,8 +6309,7 @@
                 }
 
                 // CRITICAL: Also update screen 7 if it exists (3D mode) - now at position 3
-                // SKIP if multi-video system has a dedicated video for this screen
-                if (allScreens[3] && allScreens[3].instanceColor && !screenVideos[SCREEN_TO_VIDEO_MAP[3]]) {
+                if (allScreens[3] && allScreens[3].instanceColor) {
                     const screen7 = allScreens[3];
                     const colors7 = screen7.instanceColor.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
@@ -6444,8 +6426,7 @@
                 }
 
                 // CRITICAL: Also update screen 7 if it exists (2D mode) - now at position 3
-                // SKIP if multi-video system has a dedicated video for this screen
-                if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.color && !screenVideos[SCREEN_TO_VIDEO_MAP[3]]) {
+                if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.color) {
                     const screen7 = allScreens[3];
                     const geom7 = screen7.geometry;
                     const colors7 = geom7.attributes.color.array;
@@ -6542,202 +6523,6 @@
                     geom3.attributes.color.needsUpdate = true;
                     if (geom3.attributes.initialZ) {
                         geom3.attributes.initialZ.needsUpdate = true;
-                    }
-                }
-            }
-        }
-
-        // Update colors AND depth for screens 2-5 from their respective videos
-        let lastMultiScreenUpdate = 0;
-        const MULTI_SCREEN_UPDATE_INTERVAL = 50; // ms between updates
-        const reusableMatrix2 = new THREE.Matrix4();
-        const reusableColor2 = new THREE.Color();
-
-        function updateMultiScreenColors() {
-            const now = performance.now();
-            if (now - lastMultiScreenUpdate < MULTI_SCREEN_UPDATE_INTERVAL) return;
-            lastMultiScreenUpdate = now;
-
-            // Screens to update: 2, 3, 4, 5 (screen 1 is updated by updateColorsFromVideo)
-            const screensToUpdate = [2, 3, 4, 5];
-            const scaleFactor = 0.5;
-            const rgbToLumFactor = 1 / (3 * 255);
-
-            for (const screenNum of screensToUpdate) {
-                const screen = allScreens[screenNum];
-                const video = screenVideos[screenNum];
-
-                if (!screen || !video || video.paused || video.videoWidth === 0) continue;
-
-                // Create or get sampling canvas for this screen
-                if (!screenSamplingCanvases[screenNum]) {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 800;
-                    canvas.height = 450;
-                    screenSamplingCanvases[screenNum] = {
-                        canvas: canvas,
-                        ctx: canvas.getContext('2d', { willReadFrequently: true })
-                    };
-                }
-
-                const { canvas, ctx } = screenSamplingCanvases[screenNum];
-                const TARGET_WIDTH = canvas.width;
-                const TARGET_HEIGHT = canvas.height;
-                const halfWidth = TARGET_WIDTH / 2;
-                const halfHeight = TARGET_HEIGHT / 2;
-                const depthSpread = TARGET_HEIGHT * scaleFactor * depthMultiplier;
-
-                // Draw video frame to canvas
-                const videoWidth = video.videoWidth;
-                const videoHeight = video.videoHeight;
-                const videoAspect = videoWidth / videoHeight;
-                const targetAspect = 16 / 9;
-
-                let sourceWidth, sourceHeight, offsetX, offsetY;
-                if (videoAspect > targetAspect) {
-                    sourceHeight = videoHeight;
-                    sourceWidth = videoHeight * targetAspect;
-                    offsetX = (videoWidth - sourceWidth) / 2;
-                    offsetY = 0;
-                } else {
-                    sourceWidth = videoWidth;
-                    sourceHeight = videoWidth / targetAspect;
-                    offsetX = 0;
-                    offsetY = (videoHeight - sourceHeight) / 2;
-                }
-
-                ctx.drawImage(video, offsetX, offsetY, sourceWidth, sourceHeight, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
-                const imageData = ctx.getImageData(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
-                const data = imageData.data;
-
-                // Calculate step based on particle density
-                const step = Math.max(1, Math.floor(10 / particleDensity));
-                const useContrast = contrast !== 1.0;
-                const useSaturation = saturation !== 1.0;
-
-                // First pass: find min luminance
-                let minLuminance = Infinity;
-                for (let y = 0; y < TARGET_HEIGHT; y += step) {
-                    for (let x = 0; x < TARGET_WIDTH; x += step) {
-                        const i = (y * TARGET_WIDTH + x) * 4;
-                        if (data[i + 3] > 30) {
-                            const luminance = (data[i] + data[i + 1] + data[i + 2]) * rgbToLumFactor;
-                            minLuminance = Math.min(minLuminance, luminance);
-                        }
-                    }
-                }
-                if (minLuminance === Infinity) minLuminance = 0;
-
-                // Check if 3D mode (InstancedMesh) or 2D mode (Points)
-                const is3DMode = screen.userData && screen.userData.is3D;
-
-                if (is3DMode && screen.instanceColor && screen.userData.initialZ) {
-                    // 3D MODE: Update instance colors and positions
-                    const colorsArray = screen.instanceColor.array;
-                    const initialZs = screen.userData.initialZ;
-                    const positions = screen.userData.positions;
-
-                    let particleIndex = 0;
-                    for (let y = 0; y < TARGET_HEIGHT && particleIndex < initialZs.length; y += step) {
-                        for (let x = 0; x < TARGET_WIDTH && particleIndex < initialZs.length; x += step) {
-                            const i = (y * TARGET_WIDTH + x) * 4;
-                            if (data[i + 3] > 30) {
-                                const r = data[i], g = data[i + 1], b = data[i + 2];
-                                const luminance = (r + g + b) * rgbToLumFactor;
-                                const newDepth = (luminance - minLuminance) * depthSpread;
-
-                                // Update depth with smoothing
-                                const oldDepth = initialZs[particleIndex];
-                                const depthDelta = Math.abs(newDepth - oldDepth);
-                                if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
-                                    initialZs[particleIndex] = newDepth;
-                                }
-
-                                // Update color
-                                let rNorm = r / 255, gNorm = g / 255, bNorm = b / 255;
-                                if (useContrast) {
-                                    rNorm = Math.max(0, Math.min(1, (rNorm - 0.5) * contrast + 0.5));
-                                    gNorm = Math.max(0, Math.min(1, (gNorm - 0.5) * contrast + 0.5));
-                                    bNorm = Math.max(0, Math.min(1, (bNorm - 0.5) * contrast + 0.5));
-                                }
-                                if (useSaturation) {
-                                    const gray = 0.299 * rNorm + 0.587 * gNorm + 0.114 * bNorm;
-                                    rNorm = Math.max(0, Math.min(1, gray + saturation * (rNorm - gray)));
-                                    gNorm = Math.max(0, Math.min(1, gray + saturation * (gNorm - gray)));
-                                    bNorm = Math.max(0, Math.min(1, gray + saturation * (bNorm - gray)));
-                                }
-
-                                colorsArray[particleIndex * 3] = Math.min(1.0, rNorm * brightness);
-                                colorsArray[particleIndex * 3 + 1] = Math.min(1.0, gNorm * brightness);
-                                colorsArray[particleIndex * 3 + 2] = Math.min(1.0, bNorm * brightness);
-
-                                // Update instance matrix position
-                                if (positions) {
-                                    const px = positions[particleIndex * 3];
-                                    const py = positions[particleIndex * 3 + 1];
-                                    const targetZ = initialZs[particleIndex];
-                                    reusableMatrix2.setPosition(px, py, targetZ);
-                                    screen.setMatrixAt(particleIndex, reusableMatrix2);
-                                }
-
-                                particleIndex++;
-                            }
-                        }
-                    }
-                    screen.instanceColor.needsUpdate = true;
-                    screen.instanceMatrix.needsUpdate = true;
-
-                } else if (screen.geometry && screen.geometry.attributes.color) {
-                    // 2D MODE: Update point colors and positions
-                    const colorsArray = screen.geometry.attributes.color.array;
-                    const positionsArray = screen.geometry.attributes.position.array;
-                    const initialZArray = screen.geometry.attributes.initialZ ? screen.geometry.attributes.initialZ.array : null;
-
-                    let particleIndex = 0;
-                    for (let y = 0; y < TARGET_HEIGHT && particleIndex * 3 < colorsArray.length; y += step) {
-                        for (let x = 0; x < TARGET_WIDTH && particleIndex * 3 < colorsArray.length; x += step) {
-                            const i = (y * TARGET_WIDTH + x) * 4;
-                            if (data[i + 3] > 30) {
-                                const r = data[i], g = data[i + 1], b = data[i + 2];
-                                const luminance = (r + g + b) * rgbToLumFactor;
-                                const newDepth = (luminance - minLuminance) * depthSpread;
-
-                                // Update depth
-                                if (initialZArray) {
-                                    const oldDepth = initialZArray[particleIndex];
-                                    const depthDelta = Math.abs(newDepth - oldDepth);
-                                    if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
-                                        initialZArray[particleIndex] = newDepth;
-                                        positionsArray[particleIndex * 3 + 2] = newDepth;
-                                    }
-                                }
-
-                                // Update color
-                                let rNorm = r / 255, gNorm = g / 255, bNorm = b / 255;
-                                if (useContrast) {
-                                    rNorm = Math.max(0, Math.min(1, (rNorm - 0.5) * contrast + 0.5));
-                                    gNorm = Math.max(0, Math.min(1, (gNorm - 0.5) * contrast + 0.5));
-                                    bNorm = Math.max(0, Math.min(1, (bNorm - 0.5) * contrast + 0.5));
-                                }
-                                if (useSaturation) {
-                                    const gray = 0.299 * rNorm + 0.587 * gNorm + 0.114 * bNorm;
-                                    rNorm = Math.max(0, Math.min(1, gray + saturation * (rNorm - gray)));
-                                    gNorm = Math.max(0, Math.min(1, gray + saturation * (gNorm - gray)));
-                                    bNorm = Math.max(0, Math.min(1, gray + saturation * (bNorm - gray)));
-                                }
-
-                                colorsArray[particleIndex * 3] = Math.min(1.0, rNorm * brightness);
-                                colorsArray[particleIndex * 3 + 1] = Math.min(1.0, gNorm * brightness);
-                                colorsArray[particleIndex * 3 + 2] = Math.min(1.0, bNorm * brightness);
-
-                                particleIndex++;
-                            }
-                        }
-                    }
-                    screen.geometry.attributes.color.needsUpdate = true;
-                    screen.geometry.attributes.position.needsUpdate = true;
-                    if (initialZArray) {
-                        screen.geometry.attributes.initialZ.needsUpdate = true;
                     }
                 }
             }
@@ -6859,9 +6644,6 @@
                 updateColorsFromVideo();
             }
 
-            // Update colors for screens 2-5 from their respective videos
-            updateMultiScreenColors();
-
             // Update video texture
             if (videoTexture && currentVideo) {
                 videoTexture.needsUpdate = true;
@@ -6900,8 +6682,7 @@
                     }
 
                     // CRITICAL: Also update screen 7 if it has its own geometry (3D mode) - now at position 3
-                    // SKIP if multi-video system has a dedicated video for this screen
-                    if (allScreens[3] && allScreens[3].userData && allScreens[3].userData.is3D && !screenVideos[SCREEN_TO_VIDEO_MAP[3]]) {
+                    if (allScreens[3] && allScreens[3].userData && allScreens[3].userData.is3D) {
                         const screen7 = allScreens[3];
                         const initialZs7 = screen7.userData.initialZ;
                         const positions7 = screen7.userData.positions;
@@ -6999,8 +6780,7 @@
                     geometry.attributes.position.needsUpdate = true;
 
                     // CRITICAL: Also update screen 7 if it has its own geometry (2D mode) - now at position 3
-                    // SKIP if multi-video system has a dedicated video for this screen
-                    if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.position && !screenVideos[SCREEN_TO_VIDEO_MAP[3]]) {
+                    if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.position) {
                         const screen7 = allScreens[3];
                         const geom7 = screen7.geometry;
                         const positions7 = geom7.attributes.position.array;
@@ -7999,34 +7779,9 @@
             }
         }
 
-        // Helper function to load default video (uses ecran1.mp4 if available, fallback to test_01.mp4)
+        // Helper function to load default video
         function loadDefaultVideo() {
             return new Promise((resolve, reject) => {
-                // If multi-video system loaded ecran1.mp4, use it instead of test_01.mp4
-                if (screenVideos[1] && screenVideos[1].videoWidth > 0) {
-                    console.log('✅ Utilisation de ecran1.mp4 comme vidéo principale');
-                    currentVideo = screenVideos[1];
-
-                    // Show preview
-                    const previewSrc = screenVideos[1].src || 'videos/ecran1.mp4';
-                    document.getElementById('preview').innerHTML = '<video src="' + previewSrc + '" muted loop playsinline style="max-width:100%;max-height:100%;"></video>';
-                    document.getElementById('preview').classList.add('loaded');
-                    const previewVideo = document.getElementById('preview').querySelector('video');
-                    if (previewVideo) previewVideo.play();
-
-                    // Auto-apply
-                    console.log('🎬 Apply automatique après chargement vidéo multi-écrans...');
-                    applySettings();
-
-                    setTimeout(() => {
-                        console.log('🎬 Apply automatique (2ème passe)...');
-                        applySettings();
-                        resolve();
-                    }, 100);
-                    return;
-                }
-
-                // Fallback: load test_01.mp4
                 const videoElement = document.getElementById('video-source');
                 const videoPath = 'videos/test_01.mp4';
 
@@ -8034,7 +7789,7 @@
                 videoElement.load();
 
                 videoElement.onloadeddata = function() {
-                    console.log('✅ Vidéo fallback chargée:', videoPath);
+                    console.log('✅ Vidéo chargée:', videoPath);
                     currentVideo = videoElement;
 
                     // CRITICAL: Start playing the source video
@@ -8076,75 +7831,57 @@
             });
         }
 
-        // MULTI-VIDEO SYSTEM: Load individual videos for each screen (ecran1.mp4 to ecran5.mp4)
+        // PANORAMIC VIDEO SYSTEM: Load single panoramic video for all screens
         async function loadVolumetricScreenVideos() {
-            console.log('🎬 Chargement des vidéos individuelles (ecran1-5.mp4)...');
+            console.log('🎬 Chargement de la vidéo panoramique (9600x1080)...');
 
-            // SIMPLIFIED MAPPING: ecran file → screenVideos index = allScreens index
-            // ecran1.mp4 → screenVideos[1] → allScreens[1] (particles)
-            // ecran2.mp4 → screenVideos[2] → allScreens[2] (particlesRight)
-            // ecran3.mp4 → screenVideos[3] → allScreens[3] (screen7 - Side panel)
-            // ecran4.mp4 → screenVideos[4] → allScreens[4] (wallOppB)
-            // ecran5.mp4 → screenVideos[5] → allScreens[5] (wallOppA)
-            const videoMapping = [
-                { file: 'videos/ecran1.mp4', index: 1, name: 'Écran 1' },
-                { file: 'videos/ecran2.mp4', index: 2, name: 'Écran 2' },
-                { file: 'videos/ecran3.mp4', index: 3, name: 'Écran 3' },
-                { file: 'videos/ecran4.mp4', index: 4, name: 'Écran 4' },
-                { file: 'videos/ecran5.mp4', index: 5, name: 'Écran 5' }
-            ];
+            return new Promise((resolve, reject) => {
+                // Create hidden video element for panoramic video
+                const videoElement = document.createElement('video');
+                videoElement.id = 'video-panorama';
+                videoElement.muted = true;
+                videoElement.loop = true;
+                videoElement.playsinline = true;
+                videoElement.style.display = 'none';
+                document.body.appendChild(videoElement);
 
-            let loadedCount = 0;
-            const totalVideos = videoMapping.length;
+                // Load panoramic video
+                const videoPath = 'videos/panorama.mp4';
+                videoElement.src = videoPath;
+                videoElement.load();
 
-            return new Promise((resolve) => {
-                videoMapping.forEach(({ file, index, name }) => {
-                    const videoElement = document.createElement('video');
-                    videoElement.id = `video-ecran-${index}`;
-                    videoElement.muted = true;
-                    videoElement.loop = true;
-                    videoElement.playsinline = true;
-                    videoElement.style.display = 'none';
-                    document.body.appendChild(videoElement);
+                videoElement.onloadeddata = function() {
+                    console.log(`✅ Vidéo panoramique chargée: ${videoPath}`);
+                    console.log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+                    console.log(`   Attendu: ${PANORAMIC_WIDTH}x${PANORAMIC_HEIGHT}`);
 
-                    videoElement.src = file;
-                    videoElement.load();
+                    // Store as the panoramic video
+                    panoramicVideo = videoElement;
 
-                    videoElement.onloadeddata = function() {
-                        console.log(`✅ ${name} chargé: ${file} (${videoElement.videoWidth}x${videoElement.videoHeight})`);
-                        screenVideos[index] = videoElement;
+                    // Also set as screenVideos[1] for backward compatibility with generate()
+                    screenVideos[1] = videoElement;
 
-                        videoElement.play().catch(err => {
-                            console.warn(`⚠️ Autoplay bloqué pour ${name}:`, err);
-                        });
+                    // Start playing
+                    videoElement.play().catch(err => {
+                        console.warn('⚠️ Autoplay bloqué pour vidéo panoramique:', err);
+                    });
 
-                        loadedCount++;
-                        if (loadedCount === totalVideos) {
-                            console.log(`🎬 Toutes les vidéos chargées (${loadedCount}/${totalVideos})`);
-                            // Ne pas activer le mode panoramique - utiliser le mode multi-vidéos
-                            panoramicVideo = null;
-                            resolve(true);
-                        }
-                    };
+                    resolve(true);
+                };
 
-                    videoElement.onerror = function() {
-                        console.warn(`⚠️ Vidéo non trouvée: ${file}`);
-                        loadedCount++;
-                        if (loadedCount === totalVideos) {
-                            console.log(`🎬 Chargement terminé (${loadedCount}/${totalVideos})`);
-                            panoramicVideo = null;
-                            resolve(loadedCount > 0);
-                        }
-                    };
-                });
+                videoElement.onerror = function(error) {
+                    console.warn('⚠️ Vidéo panoramique non trouvée:', videoPath);
+                    console.warn('   Fallback: système multi-vidéos désactivé');
+                    resolve(false);
+                };
 
                 // Timeout fallback
                 setTimeout(() => {
-                    if (loadedCount < totalVideos) {
-                        console.warn(`⏱️ Timeout: ${loadedCount}/${totalVideos} vidéos chargées`);
-                        resolve(loadedCount > 0);
+                    if (!panoramicVideo) {
+                        console.warn('⏱️ Timeout chargement vidéo panoramique');
+                        resolve(false);
                     }
-                }, 10000);
+                }, 5000);
             });
         }
 
