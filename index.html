@@ -4224,6 +4224,8 @@
             const halfHeight = TARGET_HEIGHT / 2;
             const depthSpread = TARGET_HEIGHT * scaleFactor * depthMultiplier;
             const rgbToLumFactor = 1 / (3 * 255);
+            const useContrast = contrast !== 1.0;
+            const useSaturation = saturation !== 1.0;
 
             // FIRST PASS: Find minimum luminance
             let minLuminance = Infinity;
