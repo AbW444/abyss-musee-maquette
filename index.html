@@ -6082,7 +6082,15 @@
 
             let sourceWidth, sourceHeight, offsetX, offsetY;
 
-            if (videoAspect > targetAspect) {
+            // MODE PANORAMIQUE: Écran 1 = portion 0 (gauche) de la vidéo
+            if (panoramicVideo && currentVideo === panoramicVideo) {
+                // Extraire la portion gauche (0/5) de la vidéo panoramique
+                const portionWidth = videoWidth / 5;
+                offsetX = 0; // Portion 0 = tout à gauche
+                offsetY = 0;
+                sourceWidth = portionWidth;
+                sourceHeight = videoHeight;
+            } else if (videoAspect > targetAspect) {
                 // Video is wider, fit to height and crop sides
                 sourceHeight = videoHeight;
                 sourceWidth = videoHeight * targetAspect;
