@@ -4624,10 +4624,9 @@
             let scaleFactor = 0.5;
 
             // === PANORAMIC MODE: Use portion-based generation for screen 1 ===
-            // Video divided in 9ths: Screen 1 = 2/9 (first 2 ninths from left)
             if (isPanoramicMode) {
-                console.log('🌅 Génération écran 1 depuis 0-2/9 du panorama');
-                const screen1Data = createParticleDataFromVideoPortion(panoramicVideo, 0, 4.5);
+                console.log('🌅 Génération écran 1 depuis portion 0 (gauche) du panorama');
+                const screen1Data = createParticleDataFromVideoPortion(panoramicVideo, 0, 5);
                 positions = screen1Data.positions;
                 colors = screen1Data.colors;
                 initialZ = screen1Data.initialZ;
@@ -6566,13 +6565,16 @@
             const scaleFactor = 0.5;
             const rgbToLumFactor = 1 / (3 * 255);
 
-            // Mapping from allScreens index to panorama fractions (in ninths)
-            // Video divided: Screen 1=2/9, Screen 2=2/9, Screen 3=1/9, Screen 4=2/9, Screen 5=2/9
-            const screenToNinths = {
-                2: { start: 2/9, width: 2/9 },  // Écran 2: 2/9 to 4/9
-                3: { start: 4/9, width: 1/9 },  // Écran 3: 4/9 to 5/9 (centre)
-                4: { start: 5/9, width: 2/9 },  // Écran 4: 5/9 to 7/9
-                5: { start: 7/9, width: 2/9 }   // Écran 5: 7/9 to 9/9
+            // Mapping from allScreens index to panorama portion index
+            // allScreens[2] (particlesRight) → portion 1
+            // allScreens[3] (screen7/Side panel) → portion 2
+            // allScreens[4] (wallOppB = ÉCRAN 6) → portion 3
+            // allScreens[5] (wallOppA = ÉCRAN 5) → portion 4
+            const screenToPortion = {
+                2: 1,  // allScreens[2] → portion 1/5
+                3: 2,  // allScreens[3] = ÉCRAN 7 → portion 2/5
+                4: 3,  // allScreens[4] = ÉCRAN 6 → portion 3/5
+                5: 4   // allScreens[5] = ÉCRAN 5 → portion 4/5
             };
 
             for (const screenNum of screensToUpdate) {
@@ -6608,11 +6610,14 @@
                 let sourceX, sourceY, sourceWidth, sourceHeight;
 
                 if (panoramicVideo) {
-                    // PANORAMIC MODE: Extract the correct portion using ninths
-                    const ninths = screenToNinths[screenNum];
-                    sourceX = ninths.start * videoWidth;
+                    // PANORAMIC MODE: Extract the correct portion of the panorama
+                    const portionIndex = screenToPortion[screenNum];
+                    const totalPortions = 5;
+                    const portionWidth = videoWidth / totalPortions;
+
+                    sourceX = portionIndex * portionWidth;
                     sourceY = 0;
-                    sourceWidth = ninths.width * videoWidth;
+                    sourceWidth = portionWidth;
                     sourceHeight = videoHeight;
                 } else {
                     // MULTI-VIDEO MODE: Use the whole video with aspect ratio handling
