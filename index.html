@@ -8131,7 +8131,12 @@
                 videoElement.src = videoPath;
                 videoElement.load();
 
+                let videoReady = false;
                 videoElement.oncanplaythrough = function() {
+                    if (videoReady) return; // Éviter les appels multiples
+                    videoReady = true;
+                    videoElement.oncanplaythrough = null; // Supprimer le handler
+
                     console.log(`✅ Vidéo panoramique chargée: ${videoPath}`);
                     console.log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
                     console.log(`   Attendu: ${PANORAMIC_WIDTH}x${PANORAMIC_HEIGHT}`);
