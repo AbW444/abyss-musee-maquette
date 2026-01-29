@@ -747,10 +747,14 @@
             object-fit: contain;
         }
 
+        .welcome-logo {
+            transition: opacity 0.2s ease;
+        }
+
         .welcome-logo-video {
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.2s ease;
         }
 
         .welcome-logo-video.active {
@@ -7582,8 +7586,12 @@
             document.body.classList.remove('hoverPlay');
             document.body.classList.add('clickedPlay');
 
-            // Activer le logo animé
+            // Activer le logo animé et cacher le logo statique
             const logoVideo = document.getElementById('welcome-logo-video');
+            const logoStatic = document.getElementById('welcome-logo');
+            if (logoStatic) {
+                logoStatic.style.opacity = '0';
+            }
             if (logoVideo) {
                 logoVideo.classList.add('active');
                 logoVideo.play();
