@@ -6327,7 +6327,8 @@
 
                 // CRITICAL: Also update screen 7 if it exists (3D mode) - now at position 3
                 // SKIP if multi-video system has a dedicated video for this screen
-                if (allScreens[3] && allScreens[3].instanceColor && !screenVideos[SCREEN_TO_VIDEO_MAP[3]]) {
+                // SKIP in panoramic mode (updateMultiScreenColors handles it with the correct portion)
+                if (allScreens[3] && allScreens[3].instanceColor && !screenVideos[SCREEN_TO_VIDEO_MAP[3]] && !panoramicVideo) {
                     const screen7 = allScreens[3];
                     const colors7 = screen7.instanceColor.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
@@ -6445,7 +6446,8 @@
 
                 // CRITICAL: Also update screen 7 if it exists (2D mode) - now at position 3
                 // SKIP if multi-video system has a dedicated video for this screen
-                if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.color && !screenVideos[SCREEN_TO_VIDEO_MAP[3]]) {
+                // SKIP in panoramic mode (updateMultiScreenColors handles it with the correct portion)
+                if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.color && !screenVideos[SCREEN_TO_VIDEO_MAP[3]] && !panoramicVideo) {
                     const screen7 = allScreens[3];
                     const geom7 = screen7.geometry;
                     const colors7 = geom7.attributes.color.array;
@@ -6563,9 +6565,23 @@
             const scaleFactor = 0.5;
             const rgbToLumFactor = 1 / (3 * 255);
 
+            // Mapping from allScreens index to panorama portion index
+            // allScreens[2] (particlesRight) → portion 1
+            // allScreens[3] (screen7/Side panel) → portion 2
+            // allScreens[4] (wallOppB = ÉCRAN 6) → portion 3
+            // allScreens[5] (wallOppA = ÉCRAN 5) → portion 4
+            const screenToPortion = {
+                2: 1,  // allScreens[2] → portion 1/5
+                3: 2,  // allScreens[3] = ÉCRAN 7 → portion 2/5
+                4: 3,  // allScreens[4] = ÉCRAN 6 → portion 3/5
+                5: 4   // allScreens[5] = ÉCRAN 5 → portion 4/5
+            };
+
             for (const screenNum of screensToUpdate) {
                 const screen = allScreens[screenNum];
-                const video = screenVideos[screenNum];
+
+                // Use panoramicVideo in panoramic mode, otherwise use individual screenVideos
+                const video = panoramicVideo || screenVideos[screenNum];
 
                 if (!screen || !video || video.paused || video.videoWidth === 0) continue;
 
@@ -6590,23 +6606,38 @@
                 // Draw video frame to canvas
                 const videoWidth = video.videoWidth;
                 const videoHeight = video.videoHeight;
-                const videoAspect = videoWidth / videoHeight;
-                const targetAspect = 16 / 9;
 
-                let sourceWidth, sourceHeight, offsetX, offsetY;
-                if (videoAspect > targetAspect) {
+                let sourceX, sourceY, sourceWidth, sourceHeight;
+
+                if (panoramicVideo) {
+                    // PANORAMIC MODE: Extract the correct portion of the panorama
+                    const portionIndex = screenToPortion[screenNum];
+                    const totalPortions = 5;
+                    const portionWidth = videoWidth / totalPortions;
+
+                    sourceX = portionIndex * portionWidth;
+                    sourceY = 0;
+                    sourceWidth = portionWidth;
                     sourceHeight = videoHeight;
-                    sourceWidth = videoHeight * targetAspect;
-                    offsetX = (videoWidth - sourceWidth) / 2;
-                    offsetY = 0;
                 } else {
-                    sourceWidth = videoWidth;
-                    sourceHeight = videoWidth / targetAspect;
-                    offsetX = 0;
-                    offsetY = (videoHeight - sourceHeight) / 2;
+                    // MULTI-VIDEO MODE: Use the whole video with aspect ratio handling
+                    const videoAspect = videoWidth / videoHeight;
+                    const targetAspect = 16 / 9;
+
+                    if (videoAspect > targetAspect) {
+                        sourceHeight = videoHeight;
+                        sourceWidth = videoHeight * targetAspect;
+                        sourceX = (videoWidth - sourceWidth) / 2;
+                        sourceY = 0;
+                    } else {
+                        sourceWidth = videoWidth;
+                        sourceHeight = videoWidth / targetAspect;
+                        sourceX = 0;
+                        sourceY = (videoHeight - sourceHeight) / 2;
+                    }
                 }
 
-                ctx.drawImage(video, offsetX, offsetY, sourceWidth, sourceHeight, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+                ctx.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
                 const imageData = ctx.getImageData(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
                 const data = imageData.data;
 
