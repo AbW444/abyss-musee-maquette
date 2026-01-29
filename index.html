@@ -8112,9 +8112,9 @@
             });
         }
 
-        // PANORAMIC VIDEO SYSTEM: Load single panorama.mp4 for all screens
+        // PANORAMIC VIDEO SYSTEM: Load single panorama_opti.webm for all screens
         async function loadVolumetricScreenVideos() {
-            console.log('🎬 Tentative de chargement de la vidéo panoramique (panorama.mp4)...');
+            console.log('🎬 Tentative de chargement de la vidéo panoramique (panorama_opti.webm)...');
 
             return new Promise((resolve) => {
                 // Create hidden video element for panoramic video
@@ -8127,7 +8127,7 @@
                 document.body.appendChild(videoElement);
 
                 // Try to load panoramic video
-                const videoPath = 'videos/panorama.mp4';
+                const videoPath = 'videos/panorama_opti.webm';
                 videoElement.src = videoPath;
                 videoElement.load();
 
@@ -8149,7 +8149,7 @@
 
                 videoElement.onerror = function() {
                     console.warn('⚠️ Vidéo panoramique non trouvée:', videoPath);
-                    console.warn('   Le fichier videos/panorama.mp4 est requis');
+                    console.warn('   Le fichier videos/panorama_opti.webm est requis');
                     panoramicVideo = null;
                     resolve(false);
                 };
