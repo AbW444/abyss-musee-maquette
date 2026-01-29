@@ -5680,53 +5680,53 @@
             screensGroup.add(screen12);
 
             // ======================
-            // SCREEN 14: Custom shape (color surface) - dark green thin panel (FORME 13)
+            // SCREEN 14: Custom shape (color surface) - FORME 13 (couleur unie presque noire)
             // Hauteur ajustée pour ne pas dépasser sous le sol 11 (Y=-111.773)
             // ======================
             const width14 = 96.102;
             const height14 = 231.269; // Ajusté pour bas = -111.773
             const geometry14 = new THREE.PlaneGeometry(width14, height14);
-            const material14 = createWallFormMaterial(0x080808);
+            const material14 = new THREE.MeshBasicMaterial({ color: 0x030303, side: THREE.DoubleSide });
             const screen14 = new THREE.Mesh(geometry14, material14);
             screen14.position.set(-197.183, 3.862, 178.672); // Y ajusté
             screen14.rotation.set(0, 1.570796, 0);
             screen14.scale.set(1, 1, 1);
             screen14.userData.screenNumber = 13; // Renuméroté: 14 → 13
             screen14.userData.isColorSurface = true;
-            screen14.userData.color = 0x080808;
+            screen14.userData.color = 0x030303;
             screensGroup.add(screen14);
 
             // ======================
-            // SCREEN 15: Custom shape (color surface) - dark green thin panel (FORME 14)
+            // SCREEN 15: Custom shape (color surface) - FORME 14 (couleur unie presque noire)
             // Hauteur ajustée pour ne pas dépasser sous le sol 11 (Y=-111.773)
             // ======================
             const width15 = 96.102;
             const height15 = 231.187; // Ajusté pour bas = -111.773
             const geometry15 = new THREE.PlaneGeometry(width15, height15);
-            const material15 = createWallFormMaterial(0x080808);
+            const material15 = new THREE.MeshBasicMaterial({ color: 0x030303, side: THREE.DoubleSide });
             const screen15 = new THREE.Mesh(geometry15, material15);
             screen15.position.set(-197.107, 3.821, 47.768); // Y ajusté
             screen15.rotation.set(0, 1.570796, 0);
             screen15.scale.set(1, 1, 1);
             screen15.userData.screenNumber = 14; // Renuméroté: 15 → 14
             screen15.userData.isColorSurface = true;
-            screen15.userData.color = 0x080808;
+            screen15.userData.color = 0x030303;
             screensGroup.add(screen15);
 
             // ======================
-            // SCREEN 16: Custom shape (color surface) - dark green horizontal panel
+            // SCREEN 16: Custom shape (color surface) - FORME 15 (couleur unie presque noire)
             // ======================
             const width16 = 163.506;
             const height16 = 239.079;
             const geometry16 = new THREE.PlaneGeometry(width16, height16);
-            const material16 = createWallFormMaterial(0x080808); // Shader subtil pour mur-forme
+            const material16 = new THREE.MeshBasicMaterial({ color: 0x030303, side: THREE.DoubleSide });
             const screen16 = new THREE.Mesh(geometry16, material16);
             screen16.position.set(-197.04, 27.158, 110.291);
             screen16.rotation.set(1.570796, 1.570796, 0);
             screen16.scale.set(1, 1, 1);
             screen16.userData.screenNumber = 15; // Renuméroté: 16 → 15
             screen16.userData.isColorSurface = true;
-            screen16.userData.color = 0x080808;
+            screen16.userData.color = 0x030303;
             screensGroup.add(screen16);
 
             // ======================
