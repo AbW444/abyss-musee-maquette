@@ -4443,7 +4443,7 @@
 
                         // Safety cap: prevent performance issues
                         if (particleCount >= MAX_PARTICLES) {
-                            console.warn(`⚠️ Panorama portion ${portionIndex}: Cap MAX_PARTICLES atteint (${MAX_PARTICLES.toLocaleString()})`);
+                            console.warn(`⚠️ Panorama portion ${Math.round(startFraction * 9)}/9: Cap MAX_PARTICLES atteint (${MAX_PARTICLES.toLocaleString()})`);
                             break outerLoopPanorama;
                         }
 
