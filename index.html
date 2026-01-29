@@ -1803,7 +1803,10 @@
 
         // Performance optimization: Throttle video updates to reduce CPU load
         let lastVideoUpdateTime = 0;
-        const VIDEO_UPDATE_INTERVAL = 16; // ~60fps, adjust if needed (33ms = ~30fps)
+        const VIDEO_UPDATE_INTERVAL = 33; // ~30fps - reduced from 60fps for better performance
+
+        // Race condition protection: prevent updates during generate()
+        let isGenerating = false;
 
         // Transform controls for manipulating screens
         let transformControls = null;
@@ -4515,6 +4518,9 @@
         }
 
         function generate(video) {
+            // Protection against race conditions
+            isGenerating = true;
+
             console.log('═══════════════════════════════════════════════════════');
             console.log('🎬 GENERATE() APPELÉ');
             console.log('═══════════════════════════════════════════════════════');
@@ -5981,6 +5987,9 @@
             }
 
             console.log('🏁 generate() terminé - allScreens final:', Object.keys(allScreens));
+
+            // Release lock - allow updates again
+            isGenerating = false;
         }
 
         function applySettings() {
@@ -6051,6 +6060,8 @@
 
         // Update particle colors and luminance-based depth from current video frame
         function updateColorsFromVideo() {
+            // Skip updates during generate() to prevent race conditions
+            if (isGenerating) return;
             if (!currentVideo || !videoSamplingCanvas || !videoSamplingData || !particles) return;
 
             // Optimization: Throttle updates to reduce CPU load
@@ -6074,29 +6085,38 @@
 
             const { step, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor, halfWidth, halfHeight, depthMultiplier } = videoSamplingData;
 
-            // Draw current video frame to canvas with cover behavior (16:9)
+            // Draw current video frame to canvas
             const videoWidth = currentVideo.videoWidth;
             const videoHeight = currentVideo.videoHeight;
-            const videoAspect = videoWidth / videoHeight;
-            const targetAspect = 16 / 9; // 16:9 aspect ratio
 
-            let sourceWidth, sourceHeight, offsetX, offsetY;
+            let sourceX, sourceY, sourceWidth, sourceHeight;
 
-            if (videoAspect > targetAspect) {
-                // Video is wider, fit to height and crop sides
+            if (panoramicVideo) {
+                // PANORAMIC MODE: Extract portion 0 (leftmost 1/5th) for screen 1
+                const portionWidth = videoWidth / 5;
+                sourceX = 0;  // Portion 0 = left side
+                sourceY = 0;
+                sourceWidth = portionWidth;
                 sourceHeight = videoHeight;
-                sourceWidth = videoHeight * targetAspect;
-                offsetX = (videoWidth - sourceWidth) / 2;
-                offsetY = 0;
             } else {
-                // Video is taller, fit to width and crop top/bottom
-                sourceWidth = videoWidth;
-                sourceHeight = videoWidth / targetAspect;
-                offsetX = 0;
-                offsetY = (videoHeight - sourceHeight) / 2;
+                // STANDARD VIDEO MODE: Use aspect ratio handling
+                const videoAspect = videoWidth / videoHeight;
+                const targetAspect = 16 / 9;
+
+                if (videoAspect > targetAspect) {
+                    sourceHeight = videoHeight;
+                    sourceWidth = videoHeight * targetAspect;
+                    sourceX = (videoWidth - sourceWidth) / 2;
+                    sourceY = 0;
+                } else {
+                    sourceWidth = videoWidth;
+                    sourceHeight = videoWidth / targetAspect;
+                    sourceX = 0;
+                    sourceY = (videoHeight - sourceHeight) / 2;
+                }
             }
 
-            videoSamplingCtx.drawImage(currentVideo, offsetX, offsetY, sourceWidth, sourceHeight, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+            videoSamplingCtx.drawImage(currentVideo, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
             const imageData = videoSamplingCtx.getImageData(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
             const data = imageData.data;
 
@@ -6551,11 +6571,14 @@
 
         // Update colors AND depth for screens 2-5 from their respective videos
         let lastMultiScreenUpdate = 0;
-        const MULTI_SCREEN_UPDATE_INTERVAL = 50; // ms between updates
+        const MULTI_SCREEN_UPDATE_INTERVAL = 33; // ms between updates - synchronized with VIDEO_UPDATE_INTERVAL
         const reusableMatrix2 = new THREE.Matrix4();
         const reusableColor2 = new THREE.Color();
 
         function updateMultiScreenColors() {
+            // Skip updates during generate() to prevent race conditions
+            if (isGenerating) return;
+
             const now = performance.now();
             if (now - lastMultiScreenUpdate < MULTI_SCREEN_UPDATE_INTERVAL) return;
             lastMultiScreenUpdate = now;
@@ -6585,11 +6608,11 @@
 
                 if (!screen || !video || video.paused || video.videoWidth === 0) continue;
 
-                // Create or get sampling canvas for this screen
+                // Create or get sampling canvas for this screen (reduced size for performance)
                 if (!screenSamplingCanvases[screenNum]) {
                     const canvas = document.createElement('canvas');
-                    canvas.width = 800;
-                    canvas.height = 450;
+                    canvas.width = 400;  // Reduced from 800 for 75% less memory
+                    canvas.height = 225; // Reduced from 450 for 75% less memory
                     screenSamplingCanvases[screenNum] = {
                         canvas: canvas,
                         ctx: canvas.getContext('2d', { willReadFrequently: true })
@@ -8123,16 +8146,38 @@
                 videoElement.muted = true;
                 videoElement.loop = true;
                 videoElement.playsinline = true;
+                videoElement.preload = 'auto'; // Prioritize loading
                 videoElement.style.display = 'none';
                 document.body.appendChild(videoElement);
+
+                // Track loading state
+                let isLoaded = false;
+                let loadStartTime = performance.now();
 
                 // Try to load panoramic video
                 const videoPath = 'videos/panorama.mp4';
                 videoElement.src = videoPath;
                 videoElement.load();
 
+                // Progress tracking for slow connections
+                videoElement.onprogress = function() {
+                    const elapsed = ((performance.now() - loadStartTime) / 1000).toFixed(1);
+                    if (videoElement.buffered.length > 0) {
+                        const loaded = videoElement.buffered.end(0);
+                        const total = videoElement.duration || 0;
+                        if (total > 0) {
+                            const percent = Math.round((loaded / total) * 100);
+                            console.log(`📦 Chargement panorama: ${percent}% (${elapsed}s)`);
+                        }
+                    }
+                };
+
                 videoElement.onloadeddata = function() {
-                    console.log(`✅ Vidéo panoramique chargée: ${videoPath}`);
+                    if (isLoaded) return; // Prevent double resolve
+                    isLoaded = true;
+
+                    const elapsed = ((performance.now() - loadStartTime) / 1000).toFixed(1);
+                    console.log(`✅ Vidéo panoramique chargée en ${elapsed}s: ${videoPath}`);
                     console.log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
                     console.log(`   Attendu: ${PANORAMIC_WIDTH}x${PANORAMIC_HEIGHT}`);
 
@@ -8147,20 +8192,28 @@
                     resolve(true);
                 };
 
-                videoElement.onerror = function() {
+                videoElement.onerror = function(e) {
+                    if (isLoaded) return;
+                    isLoaded = true;
+
                     console.warn('⚠️ Vidéo panoramique non trouvée:', videoPath);
                     console.warn('   Le fichier videos/panorama.mp4 est requis');
+                    console.warn('   Erreur:', e);
                     panoramicVideo = null;
                     resolve(false);
                 };
 
-                // Timeout fallback
+                // Extended timeout for slow connections (30 seconds)
                 setTimeout(() => {
-                    if (!panoramicVideo) {
-                        console.warn('⏱️ Timeout chargement vidéo panoramique');
+                    if (!isLoaded) {
+                        isLoaded = true;
+                        const elapsed = ((performance.now() - loadStartTime) / 1000).toFixed(1);
+                        console.warn(`⏱️ Timeout chargement vidéo panoramique après ${elapsed}s`);
+                        console.warn('   Conseil: Vérifiez votre connexion ou réduisez la taille du fichier');
+                        panoramicVideo = null;
                         resolve(false);
                     }
-                }, 10000);
+                }, 30000); // 30 seconds timeout for slow connections
             });
         }
 
