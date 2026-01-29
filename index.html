@@ -1801,6 +1801,11 @@
         const reusableUp = new THREE.Vector3(0, 1, 0);
         const reusablePrevPosition = new THREE.Vector3();
 
+        // Scroll lissé (smooth scroll)
+        let scrollVelocity = 0; // Vitesse de scroll actuelle
+        const SCROLL_SMOOTHING = 0.15; // Facteur de lissage (0.1 = très lisse, 0.3 = plus réactif)
+        const SCROLL_DECAY = 0.92; // Décroissance de la vitesse (0.9 = décroissance rapide, 0.95 = lente)
+
         // Performance optimization: Throttle video updates to reduce CPU load
         let lastVideoUpdateTime = 0;
         const VIDEO_UPDATE_INTERVAL = 16; // ~60fps, adjust if needed (33ms = ~30fps)
@@ -3930,11 +3935,7 @@
                 }
             }
 
-            // Mouse wheel movement - UTILISE LA MÊME LOGIQUE DE COLLISION QUE LE CLAVIER
-            // Anti-tunneling: divise le mouvement en sous-étapes pour éviter de traverser les objets
-            const SCROLL_MAX_STEP = 2; // Taille max d'une sous-étape (identique à currentSpeed clavier)
-            const DEBUG_SCROLL = false; // Mettre à true pour logs debug
-
+            // Mouse wheel movement - SCROLL LISSÉ (smooth scroll)
             // Utiliser window pour recevoir les wheel events même sans focus sur le canvas
             window.addEventListener('wheel', function(e) {
                 e.preventDefault();
@@ -3948,57 +3949,10 @@
                     checkHideInstructions();
                 }
 
-                const scrollSpeed = fpsSettings.fpsScrollSpeed; // Vitesse configurable
+                // Accumuler la vitesse de scroll (au lieu d'appliquer directement)
+                const scrollSpeed = fpsSettings.fpsScrollSpeed;
                 const delta = e.deltaY > 0 ? 1 : -1;
-                const totalDistance = scrollSpeed; // Distance totale à parcourir
-
-                // OPTIMIZED: Reuse global Vector3
-                camera.getWorldDirection(reusableForward);
-
-                if (fpsMode) {
-                    // MODE FPS: Sauvegarder Y pour bloquer mouvement vertical
-                    const savedY = camera.position.y;
-
-                    // Déplacement horizontal uniquement (X et Z)
-                    reusableForward.y = 0;
-                    reusableForward.normalize();
-
-                    // ANTI-TUNNELING: Diviser le mouvement en sous-étapes
-                    const numSteps = Math.max(1, Math.ceil(totalDistance / SCROLL_MAX_STEP));
-                    const stepDistance = totalDistance / numSteps;
-
-                    if (DEBUG_SCROLL) {
-                        console.log(`🖱️ SCROLL: distance=${totalDistance.toFixed(2)}, steps=${numSteps}, stepSize=${stepDistance.toFixed(2)}`);
-                    }
-
-                    let collisionDetected = false;
-
-                    // Appliquer le mouvement en sous-étapes (identique au clavier)
-                    for (let i = 0; i < numSteps && !collisionDetected; i++) {
-                        reusablePrevPosition.copy(camera.position);
-
-                        // Appliquer une sous-étape de mouvement
-                        camera.position.addScaledVector(reusableForward, -delta * stepDistance);
-                        camera.position.y = savedY; // Maintenir Y fixe
-
-                        // Vérifier collision (même fonction que clavier)
-                        if (checkCollision(camera.position, reusablePrevPosition)) {
-                            camera.position.copy(reusablePrevPosition);
-                            collisionDetected = true;
-
-                            if (DEBUG_SCROLL) {
-                                console.log(`   ⛔ Collision à step ${i+1}/${numSteps}`);
-                            }
-                        }
-                    }
-
-                    if (DEBUG_SCROLL && !collisionDetected) {
-                        console.log(`   ✅ Mouvement complet sans collision`);
-                    }
-                } else {
-                    // Mode normal (admin): zoom libre (tous axes), pas de collision
-                    camera.position.addScaledVector(reusableForward, -delta * scrollSpeed);
-                }
+                scrollVelocity += -delta * scrollSpeed * SCROLL_SMOOTHING;
             }, { passive: false });
 
             // Setup parameter controls
@@ -5093,29 +5047,39 @@
             // Add second screen to group
             screensGroup.add(particlesRight);
 
-            // === ÉCRAN 3: SOL RECTANGLE (surface doublée sans scale) ===
-            // Créer une géométrie rectangulaire : largeur complète, hauteur réduite de moitié
-            // Positions multipliées x2 : largeur finale = 800, hauteur = 225, surface doublée
-            const screen3Positions = [];
-            const screen3Colors = [];
-            const screen3InitialZ = [];
+            // === ÉCRAN 6: SOL - Utilise floorVideo si disponible ===
+            let screen3Positions = [];
+            let screen3Colors = [];
+            let screen3InitialZ = [];
 
-            // Dimensions du rectangle : Largeur complète (toutes les particules), hauteur réduite de moitié
-            const halfH = screenH / 2; // Demi-hauteur pour centrage (112.5)
-            const halfH_screen3 = halfH / 2; // Hauteur réduite pour écran 3 (56.25)
+            if (floorVideo && floorVideo.videoWidth > 0) {
+                // Utiliser la vidéo du sol
+                console.log('🏠 Génération écran 6 (sol) depuis ecran_sol.webm');
+                const floorData = createParticleDataFromVideo(floorVideo);
+                if (floorData) {
+                    // Multiplier X et Y par 2 pour surface doublée
+                    for (let i = 0; i < floorData.positions.length / 3; i++) {
+                        screen3Positions.push(floorData.positions[i * 3] * 2, floorData.positions[i * 3 + 1] * 2, floorData.positions[i * 3 + 2]);
+                        screen3Colors.push(floorData.colors[i * 3], floorData.colors[i * 3 + 1], floorData.colors[i * 3 + 2]);
+                        screen3InitialZ.push(floorData.initialZ[i]);
+                    }
+                }
+            } else {
+                // Fallback: Filtrer les particules de l'écran 1
+                console.log('🏠 Génération écran 6 (sol) depuis écran 1 (fallback)');
+                const halfH = screenH / 2;
+                const halfH_screen3 = halfH / 2;
 
-            // Filtrer les particules : TOUTES en largeur (pas de filtre sur X), hauteur réduite de moitié
-            for (let i = 0; i < positions.length / 3; i++) {
-                const x = positions[i * 3];
-                const y = positions[i * 3 + 1];
-                const z = positions[i * 3 + 2];
+                for (let i = 0; i < positions.length / 3; i++) {
+                    const x = positions[i * 3];
+                    const y = positions[i * 3 + 1];
+                    const z = positions[i * 3 + 2];
 
-                // Rectangle : TOUTE la largeur (pas de condition sur X), hauteur réduite de moitié
-                if (y >= -halfH_screen3 && y <= halfH_screen3) {
-                    // Multiplier X et Y par 2 pour surface doublée SANS scale (évite distorsion depth)
-                    screen3Positions.push(x * 2, y * 2, z);
-                    screen3Colors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
-                    screen3InitialZ.push(initialZ[i]);
+                    if (y >= -halfH_screen3 && y <= halfH_screen3) {
+                        screen3Positions.push(x * 2, y * 2, z);
+                        screen3Colors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
+                        screen3InitialZ.push(initialZ[i]);
+                    }
                 }
             }
 
@@ -6893,6 +6857,39 @@
 
             time += 0.001 * breathSpeed;
 
+            // SCROLL LISSÉ: Appliquer progressivement la vitesse de scroll
+            if (Math.abs(scrollVelocity) > 0.01) {
+                camera.getWorldDirection(reusableForward);
+
+                if (fpsMode) {
+                    // MODE FPS: Déplacement horizontal uniquement
+                    const savedY = camera.position.y;
+                    reusableForward.y = 0;
+                    reusableForward.normalize();
+
+                    reusablePrevPosition.copy(camera.position);
+                    camera.position.addScaledVector(reusableForward, scrollVelocity);
+                    camera.position.y = savedY;
+
+                    // Vérifier collision
+                    if (checkCollision(camera.position, reusablePrevPosition)) {
+                        camera.position.copy(reusablePrevPosition);
+                        scrollVelocity = 0; // Arrêter le mouvement en cas de collision
+                    }
+                } else {
+                    // Mode admin: zoom libre
+                    camera.position.addScaledVector(reusableForward, scrollVelocity);
+                }
+
+                // Décroissance de la vitesse (effet d'inertie)
+                scrollVelocity *= SCROLL_DECAY;
+
+                // Arrêter si très petit
+                if (Math.abs(scrollVelocity) < 0.01) {
+                    scrollVelocity = 0;
+                }
+            }
+
             // Update particle colors from current video frame (both 2D and 3D modes)
             if (currentVideo) {
                 updateColorsFromVideo();
@@ -8120,9 +8117,63 @@
             });
         }
 
+        // Charger la vidéo du sol (écran 6)
+        let floorVideo = null;
+        async function loadFloorVideo() {
+            return new Promise((resolve) => {
+                const videoElement = document.createElement('video');
+                videoElement.id = 'video-floor';
+                videoElement.muted = true;
+                videoElement.loop = true;
+                videoElement.playsinline = true;
+                videoElement.style.display = 'none';
+                document.body.appendChild(videoElement);
+
+                const videoPath = 'videos/ecran_sol.webm';
+                videoElement.src = videoPath;
+                videoElement.load();
+
+                let videoReady = false;
+                videoElement.oncanplaythrough = function() {
+                    if (videoReady) return;
+                    videoReady = true;
+                    videoElement.oncanplaythrough = null;
+
+                    console.log(`✅ Vidéo sol chargée: ${videoPath}`);
+                    console.log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+
+                    floorVideo = videoElement;
+                    screenVideos[6] = videoElement;
+
+                    videoElement.currentTime = 0.1;
+                    videoElement.play().then(() => {
+                        setTimeout(() => {
+                            videoElement.pause();
+                            console.log('🏠 Vidéo sol prête');
+                            resolve(true);
+                        }, 100);
+                    }).catch(() => {
+                        resolve(true);
+                    });
+                };
+
+                videoElement.onerror = function() {
+                    console.warn('⚠️ Vidéo sol non trouvée:', videoPath);
+                    resolve(false);
+                };
+
+                setTimeout(() => {
+                    if (!floorVideo) resolve(false);
+                }, 5000);
+            });
+        }
+
         // PANORAMIC VIDEO SYSTEM: Load single panorama_opti.webm for all screens
         async function loadVolumetricScreenVideos() {
             console.log('🎬 Tentative de chargement de la vidéo panoramique (panorama_opti.webm)...');
+
+            // Charger aussi la vidéo du sol en parallèle
+            loadFloorVideo();
 
             return new Promise((resolve) => {
                 // Create hidden video element for panoramic video
@@ -8190,7 +8241,16 @@
         function syncStartAllVideos() {
             console.log('🔄 Synchronisation et lancement de toutes les vidéos...');
 
-            // Mode panoramique: une seule vidéo à gérer
+            // Lancer la vidéo du sol si disponible
+            if (floorVideo) {
+                floorVideo.currentTime = 0;
+                floorVideo.play().catch(err => {
+                    console.warn('⚠️ Erreur play sol:', err);
+                });
+                console.log('✅ Vidéo sol lancée');
+            }
+
+            // Mode panoramique: vidéo principale
             if (panoramicVideo) {
                 panoramicVideo.currentTime = 0;
                 panoramicVideo.play().catch(err => {
