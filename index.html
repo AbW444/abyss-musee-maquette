@@ -1324,7 +1324,7 @@
 
         <div class="pause-controls" onclick="event.stopPropagation()">
             <div class="volume-control">
-                <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70" oninput="updateVolume(this.value)">
+                <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="30" oninput="updateVolume(this.value)">
             </div>
             <button class="mute-button" id="mute-button" onclick="toggleMute()">
                 <svg id="mute-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -7408,8 +7408,8 @@
             music: null,
             clickSound: null,
             audioContext: null,
-            masterVolume: 0.7,
-            currentMusicVolume: 0.7,
+            masterVolume: 0.3,
+            currentMusicVolume: 0.3,
             isMuted: false,
             fadeInterval: null,
 
