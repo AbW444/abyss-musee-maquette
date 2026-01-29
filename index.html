@@ -7669,9 +7669,7 @@
             isPaused = true;
             document.getElementById('pause-screen').classList.add('active');
 
-            // Progressive fade down (not complete pause)
-            fadeVolume(0.1, 800); // Fade to 10% volume
-
+            // Volume constant - pas de fade
             // Note: Pointer lock is automatically released by ESC key before this function is called
         }
 
@@ -7684,8 +7682,7 @@
             isPaused = false;
             document.getElementById('pause-screen').classList.remove('active');
 
-            // Progressive fade up
-            fadeVolume(0.7, 800); // Fade back to 70% volume
+            // Volume constant - pas de fade
 
             // CRITICAL: Request pointer lock immediately to avoid intermediate cursor state
             if (fpsMode && renderer && renderer.domElement) {
