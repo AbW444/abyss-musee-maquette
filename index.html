@@ -1739,13 +1739,13 @@
         let videoTextures = {}; // {1: texture, 2: texture, 5: texture, ...}
 
         // Mapping between visual screen numbers (allScreens) and screenVideos indices
-        // Écran 1 → screenVideos[1], Écran 2 → screenVideos[2], Écran 3 → screenVideos[7], etc.
+        // SIMPLIFIED: Écran N → screenVideos[N] → ecranN.mp4
         const SCREEN_TO_VIDEO_MAP = {
-            1: 1,  // Écran 1 → ecran1.mp4 (screenVideos[1])
-            2: 2,  // Écran 2 → ecran2.mp4 (screenVideos[2])
-            3: 7,  // Écran 3 → ecran3.mp4 (screenVideos[7])
-            4: 6,  // Écran 4 → ecran4.mp4 (screenVideos[6])
-            5: 5   // Écran 5 → ecran5.mp4 (screenVideos[5])
+            1: 1,  // Écran 1 → ecran1.mp4
+            2: 2,  // Écran 2 → ecran2.mp4
+            3: 3,  // Écran 3 → ecran3.mp4
+            4: 4,  // Écran 4 → ecran4.mp4
+            5: 5   // Écran 5 → ecran5.mp4
         };
 
         // Sampling canvases for each screen (for continuous video updates)
@@ -5282,9 +5282,9 @@
             if (isPanoramicMode) {
                 console.log('🌅 Génération écran 4 depuis portion 3 du panorama');
                 screen6Data = createParticleDataFromVideoPortion(panoramicVideo, 3, 5);
-            } else if (screenVideos[6]) {
-                console.log('🎬 Génération écran 6 depuis video_06.mp4');
-                screen6Data = createParticleDataFromVideo(screenVideos[6]);
+            } else if (screenVideos[4]) {
+                console.log('🎬 Génération écran 4 depuis ecran4.mp4');
+                screen6Data = createParticleDataFromVideo(screenVideos[4]);
             }
 
             if (screen6Data) {
@@ -5373,10 +5373,10 @@
                 screen7Colors = screen7Data.colors;
                 screen7InitialZ = screen7Data.initialZ;
                 useVideo7 = true;
-            } else if (screenVideos[7]) {
-                // Use video_07.mp4
-                console.log('🎬 Génération écran 7 depuis video_07.mp4');
-                const screen7Data = createParticleDataFromVideo(screenVideos[7]);
+            } else if (screenVideos[3]) {
+                // Use ecran3.mp4
+                console.log('🎬 Génération écran 3 depuis ecran3.mp4');
+                const screen7Data = createParticleDataFromVideo(screenVideos[3]);
                 screen7Positions = screen7Data.positions;
                 screen7Colors = screen7Data.colors;
                 screen7InitialZ = screen7Data.initialZ;
@@ -6547,6 +6547,127 @@
             }
         }
 
+        // Update colors for screens 2-5 from their respective videos
+        let lastMultiScreenUpdate = 0;
+        const MULTI_SCREEN_UPDATE_INTERVAL = 50; // ms between updates
+
+        function updateMultiScreenColors() {
+            const now = performance.now();
+            if (now - lastMultiScreenUpdate < MULTI_SCREEN_UPDATE_INTERVAL) return;
+            lastMultiScreenUpdate = now;
+
+            // Screens to update: 2, 3, 4, 5 (screen 1 is updated by updateColorsFromVideo)
+            const screensToUpdate = [2, 3, 4, 5];
+
+            for (const screenNum of screensToUpdate) {
+                const screen = allScreens[screenNum];
+                const video = screenVideos[screenNum];
+
+                if (!screen || !video || video.paused || video.videoWidth === 0) continue;
+
+                // Create or get sampling canvas for this screen
+                if (!screenSamplingCanvases[screenNum]) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 800;
+                    canvas.height = 450;
+                    screenSamplingCanvases[screenNum] = {
+                        canvas: canvas,
+                        ctx: canvas.getContext('2d', { willReadFrequently: true })
+                    };
+                }
+
+                const { canvas, ctx } = screenSamplingCanvases[screenNum];
+                const TARGET_WIDTH = canvas.width;
+                const TARGET_HEIGHT = canvas.height;
+
+                // Draw video frame to canvas
+                const videoWidth = video.videoWidth;
+                const videoHeight = video.videoHeight;
+                const videoAspect = videoWidth / videoHeight;
+                const targetAspect = 16 / 9;
+
+                let sourceWidth, sourceHeight, offsetX, offsetY;
+                if (videoAspect > targetAspect) {
+                    sourceHeight = videoHeight;
+                    sourceWidth = videoHeight * targetAspect;
+                    offsetX = (videoWidth - sourceWidth) / 2;
+                    offsetY = 0;
+                } else {
+                    sourceWidth = videoWidth;
+                    sourceHeight = videoWidth / targetAspect;
+                    offsetX = 0;
+                    offsetY = (videoHeight - sourceHeight) / 2;
+                }
+
+                ctx.drawImage(video, offsetX, offsetY, sourceWidth, sourceHeight, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+                const imageData = ctx.getImageData(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+                const data = imageData.data;
+
+                // Get colors array from screen geometry
+                let colorsArray = null;
+                let is3DMode = false;
+
+                if (screen.instanceColor) {
+                    colorsArray = screen.instanceColor.array;
+                    is3DMode = true;
+                } else if (screen.geometry && screen.geometry.attributes.color) {
+                    colorsArray = screen.geometry.attributes.color.array;
+                }
+
+                if (!colorsArray) continue;
+
+                // Calculate step based on particle density
+                const step = Math.max(1, Math.floor(10 / particleDensity));
+                const useContrast = contrast !== 1.0;
+                const useSaturation = saturation !== 1.0;
+
+                // Update colors
+                let particleIndex = 0;
+                for (let y = 0; y < TARGET_HEIGHT && particleIndex * 3 < colorsArray.length; y += step) {
+                    for (let x = 0; x < TARGET_WIDTH && particleIndex * 3 < colorsArray.length; x += step) {
+                        const i = (y * TARGET_WIDTH + x) * 4;
+                        const alpha = data[i + 3];
+
+                        if (alpha > 30) {
+                            let r = data[i];
+                            let g = data[i + 1];
+                            let b = data[i + 2];
+
+                            let rNorm = r / 255;
+                            let gNorm = g / 255;
+                            let bNorm = b / 255;
+
+                            if (useContrast) {
+                                rNorm = Math.max(0, Math.min(1, (rNorm - 0.5) * contrast + 0.5));
+                                gNorm = Math.max(0, Math.min(1, (gNorm - 0.5) * contrast + 0.5));
+                                bNorm = Math.max(0, Math.min(1, (bNorm - 0.5) * contrast + 0.5));
+                            }
+
+                            if (useSaturation) {
+                                const gray = 0.299 * rNorm + 0.587 * gNorm + 0.114 * bNorm;
+                                rNorm = Math.max(0, Math.min(1, gray + saturation * (rNorm - gray)));
+                                gNorm = Math.max(0, Math.min(1, gray + saturation * (gNorm - gray)));
+                                bNorm = Math.max(0, Math.min(1, gray + saturation * (bNorm - gray)));
+                            }
+
+                            colorsArray[particleIndex * 3] = Math.min(1.0, rNorm * brightness);
+                            colorsArray[particleIndex * 3 + 1] = Math.min(1.0, gNorm * brightness);
+                            colorsArray[particleIndex * 3 + 2] = Math.min(1.0, bNorm * brightness);
+
+                            particleIndex++;
+                        }
+                    }
+                }
+
+                // Mark colors as needing update
+                if (is3DMode && screen.instanceColor) {
+                    screen.instanceColor.needsUpdate = true;
+                } else if (screen.geometry && screen.geometry.attributes.color) {
+                    screen.geometry.attributes.color.needsUpdate = true;
+                }
+            }
+        }
+
         // Collision detection function (for FPS mode) - VERSION FINALE
         // FIX: Épaisseur minimale pour les PlaneGeometry qui n'ont pas d'épaisseur intrinsèque
         const WALL_THICKNESS = 10; // Épaisseur minimale des murs pour la collision (en unités)
@@ -6662,6 +6783,9 @@
             if (currentVideo) {
                 updateColorsFromVideo();
             }
+
+            // Update colors for screens 2-5 from their respective videos
+            updateMultiScreenColors();
 
             // Update video texture
             if (videoTexture && currentVideo) {
@@ -7881,18 +8005,18 @@
         async function loadVolumetricScreenVideos() {
             console.log('🎬 Chargement des vidéos individuelles (ecran1-5.mp4)...');
 
-            // Mapping: ecran file → screenVideos index
-            // ecran1.mp4 → screenVideos[1] (Écran 1 - Wall back left)
-            // ecran2.mp4 → screenVideos[2] (Écran 2 - Wall back right)
-            // ecran3.mp4 → screenVideos[7] (Écran 3 - Side panel)
-            // ecran4.mp4 → screenVideos[6] (Écran 4 - Wall front right)
-            // ecran5.mp4 → screenVideos[5] (Écran 5 - Wall front left)
+            // SIMPLIFIED MAPPING: ecran file → screenVideos index = allScreens index
+            // ecran1.mp4 → screenVideos[1] → allScreens[1] (particles)
+            // ecran2.mp4 → screenVideos[2] → allScreens[2] (particlesRight)
+            // ecran3.mp4 → screenVideos[3] → allScreens[3] (screen7 - Side panel)
+            // ecran4.mp4 → screenVideos[4] → allScreens[4] (wallOppB)
+            // ecran5.mp4 → screenVideos[5] → allScreens[5] (wallOppA)
             const videoMapping = [
-                { file: 'videos/ecran1.mp4', index: 1, name: 'Écran 1 - Wall back left' },
-                { file: 'videos/ecran2.mp4', index: 2, name: 'Écran 2 - Wall back right' },
-                { file: 'videos/ecran3.mp4', index: 7, name: 'Écran 3 - Side panel' },
-                { file: 'videos/ecran4.mp4', index: 6, name: 'Écran 4 - Wall front right' },
-                { file: 'videos/ecran5.mp4', index: 5, name: 'Écran 5 - Wall front left' }
+                { file: 'videos/ecran1.mp4', index: 1, name: 'Écran 1' },
+                { file: 'videos/ecran2.mp4', index: 2, name: 'Écran 2' },
+                { file: 'videos/ecran3.mp4', index: 3, name: 'Écran 3' },
+                { file: 'videos/ecran4.mp4', index: 4, name: 'Écran 4' },
+                { file: 'videos/ecran5.mp4', index: 5, name: 'Écran 5' }
             ];
 
             let loadedCount = 0;
