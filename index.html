@@ -6547,41 +6547,9 @@
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // VIDEO SYNCHRONIZATION - Keep all 5 videos in sync
-        // ═══════════════════════════════════════════════════════════════
-        let lastSyncTime = 0;
-        const SYNC_INTERVAL = 500; // Sync every 500ms
-        const SYNC_THRESHOLD = 0.1; // 100ms tolerance before forcing sync
-
-        function syncAllVideos() {
-            const now = performance.now();
-            if (now - lastSyncTime < SYNC_INTERVAL) return;
-            lastSyncTime = now;
-
-            // Use video 1 as reference
-            const refVideo = screenVideos[1];
-            if (!refVideo || refVideo.paused) return;
-
-            const refTime = refVideo.currentTime;
-
-            // Sync all other videos to reference
-            for (let i = 2; i <= 5; i++) {
-                const video = screenVideos[i];
-                if (!video || video.paused) continue;
-
-                const drift = Math.abs(video.currentTime - refTime);
-                if (drift > SYNC_THRESHOLD) {
-                    video.currentTime = refTime;
-                }
-            }
-        }
-
         // Update colors AND depth for screens 2-5 from their respective videos
         let lastMultiScreenUpdate = 0;
-        const MULTI_SCREEN_UPDATE_INTERVAL = 80; // Increased from 50ms for better performance
-        const SAMPLING_WIDTH = 640;  // Reduced from 800 for performance
-        const SAMPLING_HEIGHT = 360; // Reduced from 450 for performance
+        const MULTI_SCREEN_UPDATE_INTERVAL = 50; // ms between updates
         const reusableMatrix2 = new THREE.Matrix4();
         const reusableColor2 = new THREE.Color();
 
@@ -6604,8 +6572,8 @@
                 // Create or get sampling canvas for this screen
                 if (!screenSamplingCanvases[screenNum]) {
                     const canvas = document.createElement('canvas');
-                    canvas.width = SAMPLING_WIDTH;
-                    canvas.height = SAMPLING_HEIGHT;
+                    canvas.width = 800;
+                    canvas.height = 450;
                     screenSamplingCanvases[screenNum] = {
                         canvas: canvas,
                         ctx: canvas.getContext('2d', { willReadFrequently: true })
@@ -6890,9 +6858,6 @@
             if (currentVideo) {
                 updateColorsFromVideo();
             }
-
-            // Sync all videos to prevent drift
-            syncAllVideos();
 
             // Update colors for screens 2-5 from their respective videos
             updateMultiScreenColors();
