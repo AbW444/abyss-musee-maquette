@@ -1671,6 +1671,10 @@
                 bottom: calc(15px + env(safe-area-inset-bottom));
                 right: calc(15px + env(safe-area-inset-right));
             }
+            /* Cacher le volume sur mobile */
+            .volume-control {
+                display: none !important;
+            }
 
             /* FPS counter plus discret sur mobile */
             #fps-counter {
