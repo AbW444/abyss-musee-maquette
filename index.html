@@ -1079,6 +1079,24 @@
             font-style: italic;
         }
 
+        /* Initial Page Loader - visible immediately */
+        #initial-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000000;
+            z-index: 99999;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        #initial-loader.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
         /* Loading Screen */
         #loading-screen {
             position: fixed;
@@ -1180,6 +1198,9 @@
     </style>
 </head>
 <body>
+    <!-- Initial black loader - visible immediately, removed when page is ready -->
+    <div id="initial-loader"></div>
+
     <!-- Game Instructions (top-left, visible when on floor Y=11) -->
     <div class="game-instructions hidden" id="game-instructions">
         <div class="instruction-row">
@@ -1801,10 +1822,10 @@
         const reusableUp = new THREE.Vector3(0, 1, 0);
         const reusablePrevPosition = new THREE.Vector3();
 
-        // Scroll lissé (smooth scroll) - Effet minimal
+        // Scroll lissé (smooth scroll) - Effet très minimal
         let scrollVelocity = 0; // Vitesse de scroll actuelle
-        const SCROLL_SMOOTHING = 0.60; // Facteur de lissage (plus haut = plus réactif)
-        const SCROLL_DECAY = 0.68; // Décroissance de la vitesse (plus bas = arrêt plus rapide)
+        const SCROLL_SMOOTHING = 0.80; // Facteur de lissage (plus haut = plus réactif)
+        const SCROLL_DECAY = 0.50; // Décroissance de la vitesse (plus bas = arrêt plus rapide)
 
         // Performance optimization: Throttle video updates to reduce CPU load
         let lastVideoUpdateTime = 0;
@@ -7933,6 +7954,15 @@
             console.log('📦 WINDOW.ONLOAD - Page chargée');
             console.log('💡 Cliquez sur PLAY pour démarrer');
             console.log('═══════════════════════════════════════════════════════');
+
+            // Remove initial black loader
+            const initialLoader = document.getElementById('initial-loader');
+            if (initialLoader) {
+                initialLoader.classList.add('fade-out');
+                setTimeout(() => {
+                    initialLoader.remove();
+                }, 300);
+            }
 
             // Handle background video loading
             const welcomeVideo = document.getElementById('welcome-video-bg');
