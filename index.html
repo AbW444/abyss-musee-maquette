@@ -1510,13 +1510,18 @@
                 height: var(--logoSize) !important;
             }
 
-            /* Welcome screen mobile - hauteur dynamique */
+            /* Welcome screen mobile - hauteur dynamique, sans scrollbar */
             #welcome-screen {
                 height: 100dvh;
                 height: -webkit-fill-available;
                 overflow-y: auto;
                 overflow-x: hidden;
                 -webkit-overflow-scrolling: touch;
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none; /* IE/Edge */
+            }
+            #welcome-screen::-webkit-scrollbar {
+                display: none; /* Chrome/Safari */
             }
 
             /* Logo mobile: top center */
@@ -1587,7 +1592,7 @@
                 position: relative !important;
                 bottom: auto !important;
                 right: auto !important;
-                margin: 80px auto 60px auto;
+                margin: 50px auto 30px auto;
                 width: clamp(90px, 22vw, 120px);
                 height: clamp(90px, 22vw, 120px);
             }
@@ -9158,9 +9163,9 @@
 
             if (!joystick || !thumb) return;
 
-            const baseRadius = joystick.offsetWidth / 2;
-            const maxDistance = baseRadius - thumb.offsetWidth / 2;
-
+            // Variables recalculees au premier touch (quand visible)
+            let baseRadius = 0;
+            let maxDistance = 0;
             let touchId = null;
             let centerX = 0;
             let centerY = 0;
@@ -9168,6 +9173,13 @@
             joystick.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 if (touchId !== null) return;
+
+                // Recalculer les dimensions maintenant que le joystick est visible
+                if (baseRadius === 0) {
+                    baseRadius = joystick.offsetWidth / 2;
+                    maxDistance = baseRadius - (thumb.offsetWidth / 2);
+                    if (maxDistance <= 0) maxDistance = 35; // Fallback
+                }
 
                 const touch = e.changedTouches[0];
                 touchId = touch.identifier;
