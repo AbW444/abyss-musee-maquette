@@ -1333,7 +1333,7 @@
         #mobile-joystick {
             display: none;
             position: fixed;
-            bottom: calc(30px + env(safe-area-inset-bottom));
+            bottom: calc(50px + env(safe-area-inset-bottom));
             left: 50%;
             transform: translateX(-50%);
             z-index: 9998;
@@ -1369,7 +1369,7 @@
         #gyro-toggle-btn {
             display: none;
             position: fixed;
-            bottom: calc(30px + env(safe-area-inset-bottom));
+            bottom: calc(50px + env(safe-area-inset-bottom));
             left: calc(20px + env(safe-area-inset-left));
             z-index: 9999;
             width: 48px;
@@ -9252,9 +9252,16 @@
 
         // Appliquer le mouvement du joystick à la caméra
         function applyJoystickMovement() {
-            if (!joystickActive || !fpsMode || isPaused) return;
+            if (!fpsMode || isPaused) return;
 
-            const speed = fpsSettings.fpsKeySpeed * 0.7; // Légèrement plus lent sur mobile
+            // Si joystick pas actif, remettre toutes les touches a false
+            if (!joystickActive) {
+                cameraKeys.forward = false;
+                cameraKeys.backward = false;
+                cameraKeys.left = false;
+                cameraKeys.right = false;
+                return;
+            }
 
             // Forward/Backward (Y axis inversé)
             if (Math.abs(joystickData.y) > 0.1) {
@@ -9355,9 +9362,9 @@
                 // Sensibilite du drag
                 const sensitivity = 0.005;
 
-                // Appliquer la rotation
-                cameraYaw = initialYaw - deltaX * sensitivity;
-                cameraPitch = initialPitch - deltaY * sensitivity;
+                // Appliquer la rotation (signes inverses pour direction naturelle)
+                cameraYaw = initialYaw + deltaX * sensitivity;
+                cameraPitch = initialPitch + deltaY * sensitivity;
 
                 // Limiter le pitch
                 const maxPitch = Math.PI / 2.2;
