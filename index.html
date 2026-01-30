@@ -8944,6 +8944,34 @@
         let lastTouchY = 0;
 
         // ═══════════════════════════════════════════════════════════════
+        // VISIBILITY CHANGE - Couper le son quand page inactive
+        // ═══════════════════════════════════════════════════════════════
+        let wasPlayingBeforeHidden = false;
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Page cachee (telephone verrouille, onglet change, etc.)
+                if (AudioManager.music && !AudioManager.music.paused) {
+                    wasPlayingBeforeHidden = true;
+                    AudioManager.music.pause();
+                }
+            } else {
+                // Page redevient visible
+                if (wasPlayingBeforeHidden && AudioManager.music && fpsMode && !isPaused) {
+                    AudioManager.music.play().catch(() => {});
+                    wasPlayingBeforeHidden = false;
+                }
+            }
+        });
+
+        // Aussi gerer pagehide pour iOS Safari
+        window.addEventListener('pagehide', () => {
+            if (AudioManager.music) {
+                AudioManager.music.pause();
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════════
         // VOLUME SLIDER DYNAMIQUE
         // ═══════════════════════════════════════════════════════════════
         let volumeSliderTimeout = null;
