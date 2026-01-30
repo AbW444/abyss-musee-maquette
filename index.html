@@ -3013,7 +3013,7 @@
 
                     const colors = [
                         { hex: '#000000', value: 0x000000, name: 'Noir' },
-                        { hex: '#1a1a1a', value: 0x1a1a1a, name: 'Noir+' },
+                        { hex: '#1a1a1a', value: 0x070707, name: 'Noir+' },
                         { hex: '#333333', value: 0x333333, name: 'Gris foncé' },
                         { hex: '#4d4d4d', value: 0x4d4d4d, name: 'Gris moyen-foncé' },
                         { hex: '#666666', value: 0x666666, name: 'Gris' },
@@ -3138,7 +3138,7 @@
 
                     const colors = [
                         { hex: '#000000', value: 0x000000, name: 'Noir' },
-                        { hex: '#1a1a1a', value: 0x1a1a1a, name: 'Noir+' },
+                        { hex: '#1a1a1a', value: 0x070707, name: 'Noir+' },
                         { hex: '#333333', value: 0x333333, name: 'Gris foncé' },
                         { hex: '#4d4d4d', value: 0x4d4d4d, name: 'Gris moyen-foncé' },
                         { hex: '#666666', value: 0x666666, name: 'Gris' },
@@ -5505,7 +5505,7 @@
             const cubeCamera4 = new THREE.CubeCamera(1, 10000, cubeRenderTarget4);
 
             const material4 = new THREE.MeshStandardMaterial({
-                color: 0x0a0a0a,  // Noir profond pour mieux capter les reflets
+                color: 0x070707,  // Noir profond pour mieux capter les reflets
                 metalness: 0.3,   // Légèrement métallique
                 roughness: 0.6,   // Surface mate (pas miroir)
                 envMap: cubeRenderTarget4.texture,  // Texture de l'environnement capturé
@@ -5526,7 +5526,7 @@
             // Mark as color surface
             screen4.userData.screenNumber = 7; // Renuméroté: 4 → 7
             screen4.userData.isColorSurface = true;
-            screen4.userData.color = 0x000000;
+            screen4.userData.color = 0x070707;
             screen4.userData.cubeCamera = cubeCamera4;  // Référence pour la mise à jour
 
             screensGroup.add(screen4);
@@ -5686,14 +5686,14 @@
             const width14 = 96.102;
             const height14 = 231.269; // Ajusté pour bas = -111.773
             const geometry14 = new THREE.PlaneGeometry(width14, height14);
-            const material14 = new THREE.MeshBasicMaterial({ color: 0x1a1a1a, side: THREE.DoubleSide });
+            const material14 = new THREE.MeshBasicMaterial({ color: 0x070707, side: THREE.DoubleSide });
             const screen14 = new THREE.Mesh(geometry14, material14);
             screen14.position.set(-197.183, 3.862, 178.672); // Y ajusté
             screen14.rotation.set(0, 1.570796, 0);
             screen14.scale.set(1, 1, 1);
             screen14.userData.screenNumber = 13; // Renuméroté: 14 → 13
             screen14.userData.isColorSurface = true;
-            screen14.userData.color = 0x1a1a1a;
+            screen14.userData.color = 0x070707;
             screensGroup.add(screen14);
 
             // ======================
@@ -5703,14 +5703,14 @@
             const width15 = 96.102;
             const height15 = 231.187; // Ajusté pour bas = -111.773
             const geometry15 = new THREE.PlaneGeometry(width15, height15);
-            const material15 = new THREE.MeshBasicMaterial({ color: 0x1a1a1a, side: THREE.DoubleSide });
+            const material15 = new THREE.MeshBasicMaterial({ color: 0x070707, side: THREE.DoubleSide });
             const screen15 = new THREE.Mesh(geometry15, material15);
             screen15.position.set(-197.107, 3.821, 47.768); // Y ajusté
             screen15.rotation.set(0, 1.570796, 0);
             screen15.scale.set(1, 1, 1);
             screen15.userData.screenNumber = 14; // Renuméroté: 15 → 14
             screen15.userData.isColorSurface = true;
-            screen15.userData.color = 0x1a1a1a;
+            screen15.userData.color = 0x070707;
             screensGroup.add(screen15);
 
             // ======================
@@ -5719,14 +5719,14 @@
             const width16 = 163.506;
             const height16 = 239.079;
             const geometry16 = new THREE.PlaneGeometry(width16, height16);
-            const material16 = new THREE.MeshBasicMaterial({ color: 0x1a1a1a, side: THREE.DoubleSide });
+            const material16 = new THREE.MeshBasicMaterial({ color: 0x070707, side: THREE.DoubleSide });
             const screen16 = new THREE.Mesh(geometry16, material16);
             screen16.position.set(-197.04, 27.158, 110.291);
             screen16.rotation.set(1.570796, 1.570796, 0);
             screen16.scale.set(1, 1, 1);
             screen16.userData.screenNumber = 15; // Renuméroté: 16 → 15
             screen16.userData.isColorSurface = true;
-            screen16.userData.color = 0x1a1a1a;
+            screen16.userData.color = 0x070707;
             screensGroup.add(screen16);
 
             // ======================
