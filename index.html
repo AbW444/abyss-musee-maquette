@@ -5490,28 +5490,13 @@
                 });
             }
 
-            // SCREEN 4: Custom shape (color surface) - white panel
+            // SCREEN 4: Custom shape (color surface) - FORME 7 (couleur unie)
             // ======================
             const width4 = 964.573;
             const height4 = 228.534;
             const geometry4 = new THREE.PlaneGeometry(width4, height4);
 
-            // CubeCamera pour capturer l'environnement en temps réel
-            const cubeRenderTarget4 = new THREE.WebGLCubeRenderTarget(512, {
-                format: THREE.RGBAFormat,
-                generateMipmaps: true,
-                minFilter: THREE.LinearMipmapLinearFilter
-            });
-            const cubeCamera4 = new THREE.CubeCamera(1, 10000, cubeRenderTarget4);
-
-            const material4 = new THREE.MeshStandardMaterial({
-                color: 0x070707,  // Noir profond pour mieux capter les reflets
-                metalness: 0.3,   // Légèrement métallique
-                roughness: 0.6,   // Surface mate (pas miroir)
-                envMap: cubeRenderTarget4.texture,  // Texture de l'environnement capturé
-                envMapIntensity: 2.5,  // Intensité des réflexions
-                side: THREE.DoubleSide
-            });
+            const material4 = new THREE.MeshBasicMaterial({ color: 0x070707, side: THREE.DoubleSide });
             const screen4 = new THREE.Mesh(geometry4, material4);
 
             // Position et orientation (from user JSON)
@@ -5519,15 +5504,10 @@
             screen4.rotation.set(1.570796, 0, 0); // 90° on X
             screen4.scale.set(1, 1, 1);
 
-            // Positionner la CubeCamera à l'emplacement de l'écran
-            cubeCamera4.position.copy(screen4.position);
-            scene.add(cubeCamera4);
-
             // Mark as color surface
             screen4.userData.screenNumber = 7; // Renuméroté: 4 → 7
             screen4.userData.isColorSurface = true;
             screen4.userData.color = 0x070707;
-            screen4.userData.cubeCamera = cubeCamera4;  // Référence pour la mise à jour
 
             screensGroup.add(screen4);
 
