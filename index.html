@@ -718,6 +718,13 @@
         body.clickedPlay .play-button-container {
             opacity: 0;
         }
+        /* Desktop play visible, mobile play cache par defaut */
+        .play-button-container.mobile-play {
+            display: none;
+        }
+        .play-button-container.desktop-play {
+            display: block;
+        }
         .play-button-container .play-rond,
         .play-button-container .play-fleche {
             display: block;
@@ -903,8 +910,22 @@
             flex-direction: column;
             align-items: center;
             gap: 12px;
-            height: 150px;
+            height: auto;
             justify-content: center;
+            position: relative;
+        }
+        .volume-slider-container {
+            height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: height 0.3s ease, opacity 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .volume-control.active .volume-slider-container {
+            height: 130px;
+            opacity: 1;
         }
         .volume-label {
             font-size: 12px;
@@ -1344,6 +1365,47 @@
             background: rgba(255,255,255,0.4);
         }
 
+        /* Bouton Toggle Gyroscope */
+        #gyro-toggle-btn {
+            display: none;
+            position: fixed;
+            bottom: calc(30px + env(safe-area-inset-bottom));
+            left: calc(20px + env(safe-area-inset-left));
+            z-index: 9999;
+            width: 48px;
+            height: 48px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            color: #fff;
+            cursor: pointer;
+            padding: 0;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            transition: all 0.2s ease;
+        }
+        #gyro-toggle-btn:active {
+            background: rgba(255,255,255,0.2);
+            transform: scale(0.95);
+        }
+        #gyro-toggle-btn.touch-mode {
+            background: rgba(100,150,255,0.3);
+            border-color: rgba(100,150,255,0.5);
+        }
+        #gyro-toggle-btn .gyro-icon,
+        #gyro-toggle-btn .touch-icon {
+            display: block;
+        }
+        #gyro-toggle-btn.touch-mode .gyro-icon {
+            display: none;
+        }
+        #gyro-toggle-btn.touch-mode .touch-icon {
+            display: block !important;
+        }
+
         /* Mobile Instructions (remplace desktop instructions) */
         #mobile-instructions {
             display: none;
@@ -1352,15 +1414,15 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(10px);
-            padding: 16px 24px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
-            text-align: center;
-            font-size: 13px;
-            color: rgba(255,255,255,0.8);
-            max-width: 280px;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(12px);
+            padding: 14px 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            text-align: left;
+            font-size: 12px;
+            color: rgba(255,255,255,0.85);
+            max-width: 220px;
             opacity: 1;
             transition: opacity 0.5s ease;
         }
@@ -1368,10 +1430,22 @@
             opacity: 0;
             pointer-events: none;
         }
-        #mobile-instructions .instruction-icon {
-            font-size: 24px;
-            margin-bottom: 8px;
-            display: block;
+        #mobile-instructions .instruction-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        #mobile-instructions .instruction-line:last-child {
+            margin-bottom: 0;
+        }
+        #mobile-instructions .instruction-line.secondary {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+        }
+        #mobile-instructions .instruction-svg {
+            opacity: 0.7;
+            flex-shrink: 0;
         }
 
         /* Gyroscope permission button */
@@ -1425,9 +1499,15 @@
                 --textColW: calc(100vw - clamp(40px, 10vw, 80px));
                 --playRight: clamp(30px, 8vw, 60px);
                 --playBottom: clamp(80px, 15vh, 120px);
-                --logoSize: clamp(60px, 15vw, 80px);
+                --logoSize: clamp(45px, 12vw, 55px); /* 1.5x plus petit */
                 --hoverTextShift: 0px;
                 --clickTextExitX: 100px;
+            }
+
+            /* Icone de chargement: meme taille que le logo */
+            .loading-video {
+                width: var(--logoSize) !important;
+                height: var(--logoSize) !important;
             }
 
             /* Welcome screen mobile - hauteur dynamique */
@@ -1455,22 +1535,23 @@
                 transform: translate(-50%, -50%) !important;
             }
 
-            /* Texte mobile: gauche, plus haut */
+            /* Texte mobile: centre, forme plus proche du desktop */
             .welcome-content {
-                left: var(--textLeft) !important;
+                left: 50% !important;
                 top: calc(140px + env(safe-area-inset-top) + var(--logoSize)) !important;
-                transform: none !important;
-                width: var(--textColW) !important;
-                max-width: none !important;
-                padding-right: var(--textLeft);
-                padding-bottom: 200px; /* Espace pour le bouton play */
+                transform: translateX(-50%) !important;
+                width: calc(100vw - 40px) !important;
+                max-width: 500px !important;
+                padding-right: 0;
+                padding-bottom: 40px;
+                text-align: left;
             }
             body.hoverPlay .welcome-content {
-                transform: none !important;
+                transform: translateX(-50%) !important;
             }
             body.clickedPlay .welcome-content {
                 opacity: 0;
-                transform: translateX(50px) !important;
+                transform: translateX(-50%) translateY(-20px) !important;
             }
 
             /* Textes plus petits */
@@ -1500,12 +1581,18 @@
                 padding-top: 20px;
             }
 
-            /* Bouton play mobile: bas droite, zone pouce */
-            .play-button-container {
-                bottom: calc(var(--playBottom) + env(safe-area-inset-bottom)) !important;
-                right: var(--playRight) !important;
-                width: clamp(100px, 25vw, 140px);
-                height: clamp(100px, 25vw, 140px);
+            /* Boutons play: mobile visible, desktop cache */
+            .play-button-container.mobile-play {
+                display: block !important;
+                position: relative !important;
+                bottom: auto !important;
+                right: auto !important;
+                margin: 80px auto 60px auto;
+                width: clamp(90px, 22vw, 120px);
+                height: clamp(90px, 22vw, 120px);
+            }
+            .play-button-container.desktop-play {
+                display: none !important;
             }
             .play-button-container .play-rond {
                 width: 100%;
@@ -1544,26 +1631,40 @@
                 display: none !important;
             }
 
-            /* Pause screen mobile */
+            /* Pause screen mobile - compact */
             .pause-content {
-                max-width: 90vw;
-                padding: 30px 25px;
-                margin: 20px;
-                max-height: calc(100dvh - 200px);
+                max-width: 85vw;
+                width: auto;
+                padding: 22px 20px;
+                margin: 15px;
+                max-height: calc(100dvh - 280px);
                 overflow-y: auto;
+                font-size: 13px;
             }
             .pause-title {
-                font-size: clamp(18px, 5vw, 22px);
+                font-size: clamp(15px, 4vw, 18px);
+                margin-bottom: 18px;
             }
             .pause-text {
-                font-size: clamp(13px, 3.5vw, 15px);
+                font-size: clamp(11px, 3vw, 13px);
+                line-height: 1.6;
+                margin-bottom: 14px;
             }
             .pause-conceptual-list {
-                font-size: clamp(13px, 3.5vw, 15px);
+                font-size: clamp(11px, 3vw, 13px);
+                line-height: 1.8;
+            }
+            .pause-conceptual-list .list-intro {
+                margin-bottom: 8px;
+            }
+            .pause-meta {
+                font-size: clamp(8px, 2.5vw, 10px);
+                margin-top: 20px;
+                padding-top: 15px;
             }
             .pause-controls {
-                bottom: calc(20px + env(safe-area-inset-bottom));
-                right: calc(20px + env(safe-area-inset-right));
+                bottom: calc(15px + env(safe-area-inset-bottom));
+                right: calc(15px + env(safe-area-inset-right));
             }
 
             /* FPS counter plus discret sur mobile */
@@ -1654,11 +1755,44 @@
         <div class="joystick-thumb"></div>
     </div>
 
+    <!-- Bouton Toggle Gyroscope (bas gauche) -->
+    <button id="gyro-toggle-btn" class="hidden" aria-label="Toggle Gyroscope">
+        <svg class="gyro-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+        </svg>
+        <svg class="touch-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+            <path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v5"></path>
+            <path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v6"></path>
+            <path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"></path>
+            <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path>
+        </svg>
+    </button>
+
     <!-- Mobile Instructions -->
     <div id="mobile-instructions" class="hidden">
-        <span class="instruction-icon">📱</span>
-        <div>Orientez votre téléphone pour regarder</div>
-        <div style="margin-top:8px;opacity:0.7">Utilisez le joystick pour vous déplacer</div>
+        <div class="instruction-line">
+            <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="3"></circle>
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+            </svg>
+            <span>Inclinez pour regarder</span>
+        </div>
+        <div class="instruction-line secondary">
+            <svg class="instruction-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="4"></circle>
+            </svg>
+            <span>Joystick pour se deplacer</span>
+        </div>
     </div>
 
     <!-- Gyroscope Permission Request (iOS) -->
@@ -1743,9 +1877,16 @@
                 Images issues de sources scientifiques réelles<br>
                 Traductions visuelles réalisées dans un cadre expérimental
             </div>
+
+            <!-- Bouton Play mobile: dans le flux -->
+            <div class="play-button-container mobile-play" id="play-button-mobile" onclick="handlePlayClick()">
+                <img src="img/icone_play_rond.png" alt="Play" class="play-rond">
+                <img src="img/icone_play_fleche.png" alt="Play" class="play-fleche">
+            </div>
         </div>
 
-        <div class="play-button-container" id="play-button" onclick="handlePlayClick()">
+        <!-- Bouton Play desktop: position absolute -->
+        <div class="play-button-container desktop-play" id="play-button" onclick="handlePlayClick()">
             <img src="img/icone_play_rond.png" alt="Play" class="play-rond">
             <img src="img/icone_play_fleche.png" alt="Play" class="play-fleche">
         </div>
@@ -1811,16 +1952,18 @@
         </div>
 
         <div class="pause-controls" onclick="event.stopPropagation()">
-            <div class="volume-control">
-                <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="30" oninput="updateVolume(this.value)">
-            </div>
-            <button class="mute-button" id="mute-button" onclick="toggleMute()">
+            <div class="volume-control" id="volume-control">
+                <div class="volume-slider-container">
+                    <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="30" oninput="updateVolume(this.value)">
+                </div>
+                <button class="mute-button" id="mute-button" onclick="toggleMute()" ontouchstart="showVolumeSlider()" onmouseenter="showVolumeSlider()">
                 <svg id="mute-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
                     <path id="sound-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"></path>
                     <line id="mute-slash" x1="2" y1="2" x2="22" y2="22" style="display:none;"></line>
                 </svg>
             </button>
+            </div>
         </div>
 
         <div class="pause-credits">Musique : Teimo (schluss) par Thomas Köner</div>
@@ -7579,6 +7722,11 @@
                 }
             }
 
+            // Mobile joystick movement
+            if (typeof applyJoystickMovement === 'function') {
+                applyJoystickMovement();
+            }
+
             // Free camera rotation (apply yaw and pitch)
             if (freeCameraEnabled && camera) {
                 camera.rotation.order = 'YXZ';
@@ -8781,9 +8929,59 @@
         let initialAlpha = null;
         let initialBeta = null;
         let initialGamma = null;
+        let baseYaw = 0; // Orientation camera au demarrage
+        let basePitch = 0;
         let joystickActive = false;
         let joystickData = { x: 0, y: 0 };
         let mobileInstructionsHidden = false;
+        let touchDragEnabled = false; // Mode tap-and-drag actif
+        let lastTouchX = 0;
+        let lastTouchY = 0;
+
+        // ═══════════════════════════════════════════════════════════════
+        // VOLUME SLIDER DYNAMIQUE
+        // ═══════════════════════════════════════════════════════════════
+        let volumeSliderTimeout = null;
+
+        window.showVolumeSlider = function() {
+            const volumeControl = document.getElementById('volume-control');
+            if (volumeControl) {
+                volumeControl.classList.add('active');
+                // Auto-hide apres 3 secondes d'inactivite
+                clearTimeout(volumeSliderTimeout);
+                volumeSliderTimeout = setTimeout(() => {
+                    hideVolumeSlider();
+                }, 3000);
+            }
+        };
+
+        window.hideVolumeSlider = function() {
+            const volumeControl = document.getElementById('volume-control');
+            if (volumeControl) {
+                volumeControl.classList.remove('active');
+            }
+        };
+
+        // Garder ouvert si on interagit avec le slider
+        document.addEventListener('DOMContentLoaded', () => {
+            const slider = document.getElementById('volume-slider');
+            if (slider) {
+                slider.addEventListener('input', () => {
+                    clearTimeout(volumeSliderTimeout);
+                    volumeSliderTimeout = setTimeout(() => {
+                        hideVolumeSlider();
+                    }, 3000);
+                });
+                slider.addEventListener('touchstart', () => {
+                    clearTimeout(volumeSliderTimeout);
+                });
+                slider.addEventListener('touchend', () => {
+                    volumeSliderTimeout = setTimeout(() => {
+                        hideVolumeSlider();
+                    }, 2000);
+                });
+            }
+        });
 
         // ═══════════════════════════════════════════════════════════════
         // FULLSCREEN API
@@ -8893,10 +9091,10 @@
         }
 
         function handleDeviceOrientation(event) {
-            if (!fpsMode || isPaused || !gyroEnabled) return;
+            if (!fpsMode || isPaused || !gyroEnabled || touchDragEnabled) return;
 
-            const alpha = event.alpha || 0; // Rotation Z (compass)
-            const beta = event.beta || 0;   // Rotation X (tilt front/back)
+            const alpha = event.alpha || 0; // Rotation Z (compass/yaw)
+            const beta = event.beta || 0;   // Rotation X (tilt front/back = pitch)
             const gamma = event.gamma || 0; // Rotation Y (tilt left/right)
 
             // Initialiser les valeurs de référence au premier événement
@@ -8904,28 +9102,35 @@
                 initialAlpha = alpha;
                 initialBeta = beta;
                 initialGamma = gamma;
+                // Sauvegarder l'orientation camera actuelle comme base
+                baseYaw = cameraYaw;
+                basePitch = cameraPitch;
                 return;
             }
 
             // Calculer les deltas par rapport à la position initiale
             let deltaAlpha = alpha - initialAlpha;
-            let deltaBeta = beta - initialBeta;
-            let deltaGamma = gamma - initialGamma;
 
             // Normaliser deltaAlpha (-180 à 180)
             if (deltaAlpha > 180) deltaAlpha -= 360;
             if (deltaAlpha < -180) deltaAlpha += 360;
 
-            // Sensibilité et lissage
-            const sensitivity = 0.015;
-            const smoothing = 0.1;
+            // Pour le pitch, utiliser beta (inclinaison avant/arriere)
+            // beta = 0 quand le telephone est a plat, 90 quand vertical
+            // On veut que le telephone tenu normalement (beta ~60-90) corresponde a regarder droit
+            let deltaBeta = beta - initialBeta;
 
-            // Appliquer à la caméra avec lissage
-            const targetYaw = -deltaAlpha * sensitivity;
-            const targetPitch = -deltaBeta * sensitivity * 0.5;
+            // Sensibilité ajustee
+            const yawSensitivity = 0.018;
+            const pitchSensitivity = 0.012;
+            const smoothing = 0.15;
 
-            // Limiter le pitch
-            const maxPitch = Math.PI / 3;
+            // Calculer les cibles en ajoutant aux valeurs de base
+            const targetYaw = baseYaw - (deltaAlpha * yawSensitivity);
+            const targetPitch = basePitch + (deltaBeta * pitchSensitivity);
+
+            // Limiter le pitch (regarder haut/bas)
+            const maxPitch = Math.PI / 2.5;
             const clampedPitch = Math.max(-maxPitch, Math.min(maxPitch, targetPitch));
 
             // Lissage progressif
@@ -8938,6 +9143,8 @@
             initialAlpha = null;
             initialBeta = null;
             initialGamma = null;
+            baseYaw = cameraYaw;
+            basePitch = cameraPitch;
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -9057,6 +9264,101 @@
         }
 
         // ═══════════════════════════════════════════════════════════════
+        // GYROSCOPE TOGGLE ET TAP-AND-DRAG
+        // ═══════════════════════════════════════════════════════════════
+        function initGyroToggle() {
+            if (!isMobile) return;
+
+            const toggleBtn = document.getElementById('gyro-toggle-btn');
+            if (!toggleBtn) return;
+
+            toggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleGyroMode();
+            });
+
+            toggleBtn.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+            }, { passive: false });
+        }
+
+        function toggleGyroMode() {
+            touchDragEnabled = !touchDragEnabled;
+            const toggleBtn = document.getElementById('gyro-toggle-btn');
+
+            if (touchDragEnabled) {
+                // Mode tap-and-drag active
+                toggleBtn.classList.add('touch-mode');
+                // Reinitialiser la reference gyroscope pour quand on reactivera
+                resetGyroReference();
+                console.log('Mode tactile active');
+            } else {
+                // Mode gyroscope active
+                toggleBtn.classList.remove('touch-mode');
+                resetGyroReference();
+                console.log('Mode gyroscope active');
+            }
+        }
+
+        function initTouchDrag() {
+            if (!isMobile) return;
+
+            const canvas = document.getElementById('canvas');
+            if (!canvas) return;
+
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let initialYaw = 0;
+            let initialPitch = 0;
+
+            document.addEventListener('touchstart', (e) => {
+                if (!touchDragEnabled || !fpsMode || isPaused) return;
+
+                // Ignorer si on touche le joystick ou d'autres controles
+                if (e.target.closest('#mobile-joystick') ||
+                    e.target.closest('#mobile-pause-btn') ||
+                    e.target.closest('#gyro-toggle-btn') ||
+                    e.target.closest('.pause-controls')) return;
+
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                initialYaw = cameraYaw;
+                initialPitch = cameraPitch;
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!touchDragEnabled || !fpsMode || isPaused) return;
+                if (touchStartX === 0 && touchStartY === 0) return;
+
+                // Ignorer si on touche le joystick
+                if (e.target.closest('#mobile-joystick')) return;
+
+                const touchX = e.touches[0].clientX;
+                const touchY = e.touches[0].clientY;
+
+                const deltaX = touchX - touchStartX;
+                const deltaY = touchY - touchStartY;
+
+                // Sensibilite du drag
+                const sensitivity = 0.005;
+
+                // Appliquer la rotation
+                cameraYaw = initialYaw - deltaX * sensitivity;
+                cameraPitch = initialPitch - deltaY * sensitivity;
+
+                // Limiter le pitch
+                const maxPitch = Math.PI / 2.2;
+                cameraPitch = Math.max(-maxPitch, Math.min(maxPitch, cameraPitch));
+            }, { passive: true });
+
+            document.addEventListener('touchend', () => {
+                touchStartX = 0;
+                touchStartY = 0;
+            }, { passive: true });
+        }
+
+        // ═══════════════════════════════════════════════════════════════
         // MOBILE PAUSE BUTTON
         // ═══════════════════════════════════════════════════════════════
         function initMobilePauseButton() {
@@ -9119,6 +9421,8 @@
             initPullToRefresh();
             initJoystick();
             initMobilePauseButton();
+            initGyroToggle();
+            initTouchDrag();
 
             // Vérifier si on doit demander la permission gyroscope (iOS)
             if (isIOS && typeof DeviceOrientationEvent !== 'undefined' &&
@@ -9157,6 +9461,11 @@
                 // Afficher les contrôles mobiles
                 document.getElementById('mobile-pause-btn')?.classList.remove('hidden');
                 document.getElementById('mobile-joystick')?.classList.remove('hidden');
+                const gyroToggle = document.getElementById('gyro-toggle-btn');
+                if (gyroToggle) {
+                    gyroToggle.classList.remove('hidden');
+                    gyroToggle.style.display = 'flex';
+                }
 
                 // Afficher instructions après un délai
                 setTimeout(() => {
