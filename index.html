@@ -1504,10 +1504,10 @@
                 --clickTextExitX: 100px;
             }
 
-            /* Icone de chargement: meme taille que le logo */
+            /* Icone de chargement: taille fixe lisible sur mobile */
             .loading-video {
-                width: var(--logoSize) !important;
-                height: var(--logoSize) !important;
+                width: 80px !important;
+                height: 80px !important;
             }
 
             /* Welcome screen mobile - hauteur dynamique, sans scrollbar */
@@ -2351,9 +2351,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <script>
-        console.log('═══════════════════════════════════════════════════════');
-        console.log('🚀 SCRIPT DÉMARRÉ - Début du chargement');
-        console.log('═══════════════════════════════════════════════════════');
+        // PERFORMANCE: Désactiver tous les console.log en production
+        const DEBUG_MODE = false;
+        const _log = console.log.bind(console);
+        if (!DEBUG_MODE) {
+            console.log = function() {};
+        }
+
+        _log('═══════════════════════════════════════════════════════');
+        _log('🚀 SCRIPT DÉMARRÉ - DEBUG_MODE:', DEBUG_MODE);
+        _log('═══════════════════════════════════════════════════════');
 
         let scene, camera, renderer, particles;
         let geometry, material;
@@ -2414,15 +2421,21 @@
         let fpsCurrentFPS = 60;
         let fpsUpdateInterval = 500; // Update FPS display every 500ms
 
-        // Cache DOM elements for FPS counter to avoid repeated queries
+        // Cache DOM elements to avoid repeated queries in animate()
         let fpsDOMCache = {
             counter: null,
-            value: null
+            value: null,
+            gameInstructions: null
         };
 
         // CubeCamera optimization: throttle updates
         let cubeCameraUpdateCounter = 0;
         const CUBE_CAMERA_UPDATE_INTERVAL = 3; // Update every 3 frames
+
+        // PERFORMANCE: Throttle floor raycasting (gravity detection)
+        let raycastCounter = 0;
+        const RAYCAST_INTERVAL = 3; // Raycast every 3 frames
+        let lastGroundY = null; // Cache last ground hit
 
         // Flow movement data - stores random offsets for each particle
         let flowOffsets = null;
@@ -4358,8 +4371,8 @@
                 powerPreference: 'high-performance'
             });
             renderer.setSize(canvasWidth, canvasHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            // PERFORMANCE: Shadows désactivés (coûteux, pas visibles sur ce projet)
+            renderer.shadowMap.enabled = false;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 1.2;
             console.log('✅ Renderer créé et configuré');
@@ -4636,9 +4649,10 @@
             console.log('🚀 Démarrage de la boucle d\'animation...');
             animate();
 
-            // Initialize FPS counter DOM cache
+            // Initialize DOM cache (avoid repeated getElementById in animate loop)
             fpsDOMCache.counter = document.getElementById('fps-counter');
             fpsDOMCache.value = fpsDOMCache.counter.querySelector('.fps-value');
+            fpsDOMCache.gameInstructions = document.getElementById('game-instructions');
 
             console.log('═══════════════════════════════════════════════════════');
             console.log('✅ INIT() TERMINÉ AVEC SUCCÈS');
@@ -7523,7 +7537,10 @@
                 videoTexture.needsUpdate = true;
             }
 
-            if (particles && flowOffsets) {
+            // PERFORMANCE: Skip particle animation loop entirely if no breathing and no flow
+            const needsParticleAnimation = breathSpeed > 0 || flowIntensity > 0;
+
+            if (particles && flowOffsets && needsParticleAnimation) {
                 if (particles.userData && particles.userData.is3D) {
                     // 3D Mode: Update instance matrices for breathing and flow animation
                     const initialZs = particles.userData.initialZ;
@@ -7813,27 +7830,29 @@
                 if (fpsMode) {
                     // ===== MODE FPS: Gravité et marche sur le sol =====
 
-                    // OPTIMIZED: Reuse global raycaster instead of creating new one
-                    reusableRaycaster.set(camera.position, downVector);
+                    // PERFORMANCE: Throttle raycasting (coûteux) - 1 frame sur 3
+                    raycastCounter++;
+                    if (raycastCounter >= RAYCAST_INTERVAL) {
+                        raycastCounter = 0;
+                        reusableRaycaster.set(camera.position, downVector);
 
-                    const floorScreens = [];
-                    if (allScreens[6]) floorScreens.push(allScreens[6]); // screen3 (floor) is now at position 6
-                    if (allScreens[10]) floorScreens.push(allScreens[10]);
-                    if (allScreens[11]) floorScreens.push(allScreens[11]);
+                        const floorScreens = [];
+                        if (allScreens[6]) floorScreens.push(allScreens[6]);
+                        if (allScreens[10]) floorScreens.push(allScreens[10]);
+                        if (allScreens[11]) floorScreens.push(allScreens[11]);
 
-                    const intersects = reusableRaycaster.intersectObjects(floorScreens, false);
+                        const intersects = reusableRaycaster.intersectObjects(floorScreens, false);
+                        lastGroundY = intersects.length > 0 ? intersects[0].point.y + fpsSettings.fpsPlayerHeight : null;
+                    }
 
-                    if (intersects.length > 0) {
-                        const groundY = intersects[0].point.y + fpsSettings.fpsPlayerHeight;
-                        const distanceToGround = camera.position.y - groundY;
+                    if (lastGroundY !== null) {
+                        const distanceToGround = camera.position.y - lastGroundY;
 
                         if (distanceToGround <= 1) {
-                            // On est au sol - fixer Y et annuler vélocité
-                            camera.position.y = groundY;
+                            camera.position.y = lastGroundY;
                             playerVelocityY = 0;
                             isOnGround = true;
                         } else {
-                            // On est en l'air - appliquer gravité
                             isOnGround = false;
                             playerVelocityY += fpsSettings.fpsGravity;
                             camera.position.y += playerVelocityY;
@@ -7923,7 +7942,7 @@
 
             // Update game instructions visibility based on Y position
             // Floor 11 is at Y=-111.773, with eye height 25, camera should be at Y≈-86.773
-            const instructionsElement = document.getElementById('game-instructions');
+            const instructionsElement = fpsDOMCache.gameInstructions;
             if (instructionsElement) {
                 // Show instructions ONLY in FPS mode when on floor 11
                 if (fpsMode && !isPaused) {
