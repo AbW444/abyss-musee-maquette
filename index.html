@@ -610,20 +610,6 @@
             z-index: 1;
             pointer-events: none;
         }
-        #welcome-video-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: 0;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-        }
-        #welcome-video-bg.loaded {
-            opacity: 1;
-        }
         .welcome-content {
             position: absolute;
             left: var(--textLeft);
@@ -1842,10 +1828,6 @@
 
     <!-- Welcome Screen -->
     <div id="welcome-screen">
-        <video id="welcome-video-bg" autoplay loop muted playsinline>
-            <source src="videos/background.mp4" type="video/mp4">
-            <source src="videos/background.webm" type="video/webm">
-        </video>
 
         <div class="welcome-logo-container" id="welcome-logo-container">
             <img src="img/presences_rares_logo.png" alt="Logo" class="welcome-logo" id="welcome-logo">
@@ -5886,7 +5868,7 @@
 
             if (floorVideo && floorVideo.videoWidth > 0) {
                 // Utiliser la vidéo du sol
-                console.log('🏠 Génération écran 6 (sol) depuis ecran_sol.webm');
+                console.log('🏠 Génération écran 6 (sol) depuis ecran_06.webm');
                 const floorData = createParticleDataFromVideo(floorVideo);
                 if (floorData) {
                     // Multiplier X et Y par 2 pour surface doublée (UVs stay unchanged — they map to texture)
@@ -8783,19 +8765,6 @@
                 }, 300);
             }
 
-            // Handle background video loading
-            const welcomeVideo = document.getElementById('welcome-video-bg');
-            if (welcomeVideo) {
-                welcomeVideo.addEventListener('canplaythrough', function() {
-                    welcomeVideo.classList.add('loaded');
-                    console.log('✅ Vidéo d\'arrière-plan chargée');
-                });
-
-                welcomeVideo.addEventListener('error', function() {
-                    console.log('⚠️ Vidéo d\'arrière-plan non disponible - fond noir utilisé');
-                    welcomeVideo.style.display = 'none';
-                });
-            }
         };
 
         // Auto-load sequence: Load default video → Activate FPS → Show UI → Apply
@@ -8946,7 +8915,7 @@
             });
         }
 
-        // Charger la vidéo du sol (écran 6)
+        // Charger la vidéo de l'écran 6 (sol)
         let floorVideo = null;
         async function loadFloorVideo() {
             return new Promise((resolve) => {
@@ -8958,17 +8927,11 @@
                 videoElement.style.display = 'none';
                 document.body.appendChild(videoElement);
 
-                const videoPath = 'videos/ecran_sol.webm';
-                videoElement.src = videoPath;
-                videoElement.load();
+                const primaryPath = 'videos/ecran_06.webm';
+                const fallbackPath = 'videos/test_01.mp4';
 
-                let videoReady = false;
-                videoElement.oncanplaythrough = function() {
-                    if (videoReady) return;
-                    videoReady = true;
-                    videoElement.oncanplaythrough = null;
-
-                    console.log(`✅ Vidéo sol chargée: ${videoPath}`);
+                function onVideoReady(loadedPath) {
+                    console.log(`✅ Vidéo écran 6 chargée: ${loadedPath}`);
                     console.log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
 
                     floorVideo = videoElement;
@@ -8978,22 +8941,48 @@
                     videoElement.play().then(() => {
                         setTimeout(() => {
                             videoElement.pause();
-                            console.log('🏠 Vidéo sol prête');
+                            console.log('🏠 Vidéo écran 6 prête');
                             resolve(true);
                         }, 100);
                     }).catch(() => {
                         resolve(true);
                     });
+                }
+
+                let videoReady = false;
+                videoElement.oncanplaythrough = function() {
+                    if (videoReady) return;
+                    videoReady = true;
+                    videoElement.oncanplaythrough = null;
+                    onVideoReady(primaryPath);
                 };
 
                 videoElement.onerror = function() {
-                    console.warn('⚠️ Vidéo sol non trouvée:', videoPath);
-                    resolve(false);
+                    console.warn('⚠️ Vidéo écran 6 non trouvée:', primaryPath, '→ fallback test_01.mp4');
+                    videoReady = false;
+                    videoElement.onerror = null;
+
+                    videoElement.oncanplaythrough = function() {
+                        if (videoReady) return;
+                        videoReady = true;
+                        videoElement.oncanplaythrough = null;
+                        onVideoReady(fallbackPath);
+                    };
+                    videoElement.onerror = function() {
+                        console.warn('⚠️ Fallback vidéo écran 6 non trouvée:', fallbackPath);
+                        resolve(false);
+                    };
+
+                    videoElement.src = fallbackPath;
+                    videoElement.load();
                 };
+
+                videoElement.src = primaryPath;
+                videoElement.load();
 
                 setTimeout(() => {
                     if (!floorVideo) resolve(false);
-                }, 5000);
+                }, 10000);
             });
         }
 
