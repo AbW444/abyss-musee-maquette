@@ -696,13 +696,13 @@
         }
         .welcome-context {
             font-family: 'IBM Plex Mono', monospace;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 300;
-            color: rgba(255,255,255,0.35);
+            color: rgba(255,255,255,0.45);
             line-height: 1.7;
             margin-top: 50px;
             padding-top: 25px;
-            border-top: 1px solid rgba(255,255,255,0.08);
+            border-top: 1px solid rgba(255,255,255,0.15);
             letter-spacing: 0.3px;
         }
         .play-button-container {
@@ -818,8 +818,9 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0,0,0,0.15);
-            backdrop-filter: blur(30px);
+            background: transparent;
+            -webkit-backdrop-filter: blur(50px) saturate(1.2);
+            backdrop-filter: blur(50px) saturate(1.2);
             display: none;
             flex-direction: column;
             align-items: center;
@@ -833,13 +834,12 @@
         }
         .pause-content {
             max-width: 850px;
-            background: rgba(0,0,0,0.25);
-            backdrop-filter: blur(40px);
+            background: transparent;
             border: none;
             border-radius: 0;
             padding: 60px 70px;
             text-align: left;
-            box-shadow: 0 10px 60px rgba(0,0,0,0.6);
+            box-shadow: none;
             pointer-events: all;
             cursor: default;
         }
@@ -8786,10 +8786,15 @@
             // Handle background video loading
             const welcomeVideo = document.getElementById('welcome-video-bg');
             if (welcomeVideo) {
-                welcomeVideo.addEventListener('canplaythrough', function() {
+                if (welcomeVideo.readyState >= 3) {
                     welcomeVideo.classList.add('loaded');
-                    console.log('✅ Vidéo d\'arrière-plan chargée');
-                });
+                    console.log('✅ Vidéo d\'arrière-plan déjà prête');
+                } else {
+                    welcomeVideo.addEventListener('canplaythrough', function() {
+                        welcomeVideo.classList.add('loaded');
+                        console.log('✅ Vidéo d\'arrière-plan chargée');
+                    });
+                }
 
                 welcomeVideo.addEventListener('error', function() {
                     console.log('⚠️ Vidéo d\'arrière-plan non disponible - fond noir utilisé');
