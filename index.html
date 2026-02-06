@@ -5596,6 +5596,7 @@
             // Écran 1 - Position de base
             particles.position.set(0, 0, 0);
             particles.rotation.set(0, 0, 0);
+            particles.userData.screenNumber = 1;
 
             // Add first screen to group
             console.log('➕ Ajout des particules au screensGroup...');
@@ -5687,6 +5688,7 @@
             // Écran 2 - Position de base
             particlesRight.position.set(400, 0, 0);
             particlesRight.rotation.set(0, 0, 0);
+            particlesRight.userData.screenNumber = 2;
 
             // Add second screen to group
             screensGroup.add(particlesRight);
@@ -6907,18 +6909,26 @@
                 particles.instanceColor.needsUpdate = true;
 
                 // Update initialZ for depth animation with smoothing
+                // AND apply depth to instance matrices directly (volumetry)
                 if (particles.userData.initialZ) {
+                    const initialZs = particles.userData.initialZ;
+                    const positions = particles.userData.positions;
                     for (let i = 0; i < newDepths.length; i++) {
-                        const oldDepth = particles.userData.initialZ[i];
+                        const oldDepth = initialZs[i];
                         const newDepth = newDepths[i];
                         const depthDelta = Math.abs(newDepth - oldDepth);
 
-                        // Apply smoothing: only update if change exceeds threshold
                         if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
-                            particles.userData.initialZ[i] = newDepth;
+                            initialZs[i] = newDepth;
                         }
-                        // else: keep old depth (reduces micro-movements/noise)
+
+                        // VOLUMETRY: Update instance matrix position
+                        if (positions) {
+                            reusableMatrix.setPosition(positions[i * 3], positions[i * 3 + 1], initialZs[i]);
+                            particles.setMatrixAt(i, reusableMatrix);
+                        }
                     }
+                    particles.instanceMatrix.needsUpdate = true;
                 }
 
                 // CRITICAL: Also update screen 7 if it exists (3D mode) - now at position 3
@@ -6969,14 +6979,15 @@
                     screen7.instanceColor.needsUpdate = true;
                 }
 
-                // CRITICAL: Also update screen 3 if it exists (3D mode) - now at position 5
+                // CRITICAL: Also update screen 6 (sol) if it exists (3D mode)
                 if (allScreens[6] && allScreens[6].instanceColor) {
                     const screen3 = allScreens[6];
                     const colors3 = screen3.instanceColor.array;
-                    const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
-                    const halfH_screen3 = halfH / 2; // Hauteur réduite pour écran 3
+                    const screen3Positions = screen3.userData.positions;
+                    const screen3InitialZ = screen3.userData.initialZ;
+                    const halfH = TARGET_HEIGHT * scaleFactor / 2;
+                    const halfH_screen3 = halfH / 2;
 
-                    // Filter newColors and newDepths for screen 3 rectangle (full width, half height)
                     let particleIndex = 0;
                     let screen3Index = 0;
                     for (let y = 0; y < TARGET_HEIGHT; y += step) {
@@ -6985,26 +6996,28 @@
                             const alpha = data[i + 3];
 
                             if (alpha > 30) {
-                                const maxColor = Math.max(data[i], data[i + 1], data[i + 2]);
-
-                                // Calculate particle position
-                                const px = (x - halfWidth) * scaleFactor;
                                 const py = -(y - halfHeight) * scaleFactor;
 
-                                // Check if this particle is in screen 3 rectangle (NO filter on X, Y reduced by half)
                                 if (py >= -halfH_screen3 && py <= halfH_screen3) {
                                     colors3[screen3Index * 3] = newColors[particleIndex * 3];
                                     colors3[screen3Index * 3 + 1] = newColors[particleIndex * 3 + 1];
                                     colors3[screen3Index * 3 + 2] = newColors[particleIndex * 3 + 2];
 
-                                    if (screen3.userData.initialZ) {
-                                        const oldDepth = screen3.userData.initialZ[screen3Index];
+                                    if (screen3InitialZ) {
+                                        const oldDepth = screen3InitialZ[screen3Index];
                                         const newDepth = newDepths[particleIndex];
                                         const depthDelta = Math.abs(newDepth - oldDepth);
-
-                                        // Apply smoothing: only update if change exceeds threshold
                                         if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
-                                            screen3.userData.initialZ[screen3Index] = newDepth;
+                                            screen3InitialZ[screen3Index] = newDepth;
+                                        }
+                                        // VOLUMETRY: Update instance matrix position
+                                        if (screen3Positions) {
+                                            reusableMatrix.setPosition(
+                                                screen3Positions[screen3Index * 3],
+                                                screen3Positions[screen3Index * 3 + 1],
+                                                screen3InitialZ[screen3Index]
+                                            );
+                                            screen3.setMatrixAt(screen3Index, reusableMatrix);
                                         }
                                     }
                                     screen3Index++;
@@ -7014,6 +7027,7 @@
                         }
                     }
                     screen3.instanceColor.needsUpdate = true;
+                    screen3.instanceMatrix.needsUpdate = true;
                 }
 
             } else if (geometry && geometry.attributes.color) {
@@ -7025,19 +7039,23 @@
                 geometry.attributes.color.needsUpdate = true;
 
                 // Update initialZ attribute for depth animation with smoothing
+                // AND apply depth to position.z directly (volumetry)
                 if (geometry.attributes.initialZ) {
                     const initialZArray = geometry.attributes.initialZ.array;
+                    const positionsArray = geometry.attributes.position.array;
                     for (let i = 0; i < newDepths.length; i++) {
                         const oldDepth = initialZArray[i];
                         const newDepth = newDepths[i];
                         const depthDelta = Math.abs(newDepth - oldDepth);
 
-                        // Apply smoothing: only update if change exceeds threshold
                         if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
                             initialZArray[i] = newDepth;
                         }
+                        // VOLUMETRY: Update position.z
+                        positionsArray[i * 3 + 2] = initialZArray[i];
                     }
                     geometry.attributes.initialZ.needsUpdate = true;
+                    geometry.attributes.position.needsUpdate = true;
                 }
 
                 // CRITICAL: Also update screen 7 if it exists (2D mode) - now at position 3
@@ -7092,15 +7110,15 @@
                     }
                 }
 
-                // CRITICAL: Also update screen 3 if it exists (2D mode) - now at position 5
+                // CRITICAL: Also update screen 6 (sol) if it exists (2D mode)
                 if (allScreens[6] && allScreens[6].geometry && allScreens[6].geometry.attributes.color) {
                     const screen3 = allScreens[6];
                     const geom3 = screen3.geometry;
                     const colors3 = geom3.attributes.color.array;
-                    const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
-                    const halfH_screen3 = halfH / 2; // Hauteur réduite pour écran 3
+                    const positions3 = geom3.attributes.position.array;
+                    const halfH = TARGET_HEIGHT * scaleFactor / 2;
+                    const halfH_screen3 = halfH / 2;
 
-                    // Filter newColors and newDepths for screen 3 rectangle (full width, half height)
                     let particleIndex = 0;
                     let screen3Index = 0;
                     for (let y = 0; y < TARGET_HEIGHT; y += step) {
@@ -7109,13 +7127,8 @@
                             const alpha = data[i + 3];
 
                             if (alpha > 30) {
-                                const maxColor = Math.max(data[i], data[i + 1], data[i + 2]);
-
-                                // Calculate particle position
-                                const px = (x - halfWidth) * scaleFactor;
                                 const py = -(y - halfHeight) * scaleFactor;
 
-                                // Check if this particle is in screen 3 rectangle (NO filter on X, Y reduced by half)
                                 if (py >= -halfH_screen3 && py <= halfH_screen3) {
                                     colors3[screen3Index * 3] = newColors[particleIndex * 3];
                                     colors3[screen3Index * 3 + 1] = newColors[particleIndex * 3 + 1];
@@ -7125,11 +7138,11 @@
                                         const oldDepth = geom3.attributes.initialZ.array[screen3Index];
                                         const newDepth = newDepths[particleIndex];
                                         const depthDelta = Math.abs(newDepth - oldDepth);
-
-                                        // Apply smoothing: only update if change exceeds threshold
                                         if (depthSmoothing === 0 || depthDelta > depthSmoothing) {
                                             geom3.attributes.initialZ.array[screen3Index] = newDepth;
                                         }
+                                        // VOLUMETRY: Update position.z
+                                        positions3[screen3Index * 3 + 2] = geom3.attributes.initialZ.array[screen3Index];
                                     }
                                     screen3Index++;
                                 }
@@ -7138,6 +7151,7 @@
                         }
                     }
                     geom3.attributes.color.needsUpdate = true;
+                    geom3.attributes.position.needsUpdate = true;
                     if (geom3.attributes.initialZ) {
                         geom3.attributes.initialZ.needsUpdate = true;
                     }
