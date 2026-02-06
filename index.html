@@ -2567,18 +2567,32 @@
         }
 
         function setupSliderListeners() {
+            // GPU uniform params: update shader uniforms instantly, no regeneration
+            const gpuUniformParams = ['size', 'depth', 'brightness', 'contrast', 'saturation', 'glow', 'blackThreshold', 'depthCullPower'];
+
             Object.keys(paramConfigs).forEach(param => {
                 const slider = document.getElementById(param);
                 slider.addEventListener('input', function() {
                     updateValueDisplay(param);
+                    const val = parseFloat(slider.value);
 
-                    // Flow is real-time, glow needs regeneration
                     if (param === 'flow') {
-                        flowIntensity = parseFloat(slider.value);
-                    } else if (param === 'glow') {
-                        glowIntensity = parseFloat(slider.value);
-                        scheduleRegenerate();
+                        flowIntensity = val;
+                    } else if (param === 'breath') {
+                        breathSpeed = val;
+                    } else if (gpuUniformParams.includes(param)) {
+                        // Update JS variable + GPU uniforms (no regeneration needed)
+                        if (param === 'size') pointSize = val;
+                        else if (param === 'depth') depthMultiplier = val;
+                        else if (param === 'brightness') brightness = val;
+                        else if (param === 'contrast') contrast = val;
+                        else if (param === 'saturation') saturation = val;
+                        else if (param === 'glow') glowIntensity = val;
+                        else if (param === 'blackThreshold') blackThreshold = val;
+                        else if (param === 'depthCullPower') depthCullPower = val;
+                        updateGPUVolumeUniforms();
                     } else {
+                        // density, smoothing, bgThreshold: need full regeneration
                         scheduleRegenerate();
                     }
                 });
@@ -4793,6 +4807,188 @@
             return { step, TARGET_WIDTH, TARGET_HEIGHT };
         }
 
+        // ═══════════════════════════════════════════════════════
+        // GPU VOLUMETRIC PIPELINE - Shaders + Material
+        // Eliminates ALL per-frame CPU video analysis (getImageData)
+        // Video texture is read directly on GPU by vertex/fragment shaders
+        // ═══════════════════════════════════════════════════════
+
+        const GPU_VOLUME_VERTEX_SHADER = `
+            attribute vec2 particleUV;
+
+            uniform sampler2D videoTexture;
+            uniform float uDepthSpread;
+            uniform float uPointSize;
+
+            varying vec2 vUV;
+
+            void main() {
+                vUV = particleUV;
+
+                // Read video pixel at this particle's UV
+                vec4 texColor = texture2D(videoTexture, vUV);
+                float luminance = (texColor.r + texColor.g + texColor.b) / 3.0;
+
+                // Depth displacement: luminance -> z
+                float depth = luminance * uDepthSpread;
+
+                #ifdef USE_INSTANCING
+                    // InstancedMesh: XY from instanceMatrix, Z from shader
+                    vec4 instancePos = instanceMatrix * vec4(position, 1.0);
+                    instancePos.z += depth;
+                    vec4 mvPosition = modelViewMatrix * instancePos;
+                #else
+                    // Points: XY from position attribute, Z computed by shader
+                    vec3 displaced = vec3(position.xy, depth);
+                    vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
+                #endif
+
+                gl_Position = projectionMatrix * mvPosition;
+
+                #ifndef USE_INSTANCING
+                    gl_PointSize = uPointSize * (300.0 / max(1.0, -mvPosition.z));
+                #endif
+            }
+        `;
+
+        const GPU_VOLUME_FRAGMENT_SHADER = `
+            uniform sampler2D videoTexture;
+            uniform float uBrightness;
+            uniform float uContrast;
+            uniform float uSaturation;
+            uniform float uGlowIntensity;
+            uniform float uBlackThreshold;
+            uniform float uDepthCullPower;
+
+            #ifdef USE_MAP
+                uniform sampler2D map;
+            #endif
+
+            varying vec2 vUV;
+
+            void main() {
+                vec4 texColor = texture2D(videoTexture, vUV);
+                vec3 color = texColor.rgb;
+
+                // Hide black pixels
+                float maxChannel = max(color.r, max(color.g, color.b));
+                if (maxChannel < uBlackThreshold) {
+                    discard;
+                }
+
+                // Depth culling (approximate GPU version)
+                if (uDepthCullPower > 0.0) {
+                    float luminance = (color.r + color.g + color.b) / 3.0;
+                    if (luminance < uDepthCullPower) {
+                        discard;
+                    }
+                }
+
+                // Apply contrast
+                if (uContrast != 1.0) {
+                    color = clamp((color - 0.5) * uContrast + 0.5, 0.0, 1.0);
+                }
+
+                // Apply saturation
+                if (uSaturation != 1.0) {
+                    float gray = dot(color, vec3(0.299, 0.587, 0.114));
+                    color = clamp(mix(vec3(gray), color, uSaturation), 0.0, 1.0);
+                }
+
+                // Apply brightness
+                color *= uBrightness;
+
+                // Glow effect
+                if (uGlowIntensity > 0.0) {
+                    float lum = dot(color, vec3(0.299, 0.587, 0.114));
+                    float emissive = pow(lum, 2.0) * uGlowIntensity;
+                    color += emissive * color;
+                }
+
+                color = clamp(color, 0.0, 1.0);
+
+                #ifdef USE_MAP
+                    vec4 mapTexel = texture2D(map, gl_PointCoord);
+                    if (mapTexel.a < 0.1) discard;
+                    gl_FragColor = vec4(color, mapTexel.a);
+                #else
+                    gl_FragColor = vec4(color, 1.0);
+                #endif
+            }
+        `;
+
+        // Global reference to GPU materials for uniform updates
+        let gpuVolumeMaterials = [];
+        let gpuVideoTexture = null;
+
+        // Create GPU volumetric ShaderMaterial
+        function createGPUVolumeMaterial(videoTexture, portionOffset, portionWidth, options) {
+            options = options || {};
+            const depthSpread = (options.depthSpread !== undefined) ? options.depthSpread : 0;
+            const shapeTexture = options.shapeTexture || null;
+
+            // Adjust vertex shader for panoramic portion
+            const vertexShader = GPU_VOLUME_VERTEX_SHADER.replace(
+                'vec4 texColor = texture2D(videoTexture, vUV);',
+                `vec2 videoUV = vec2(vUV.x * ${portionWidth.toFixed(6)} + ${portionOffset.toFixed(6)}, vUV.y);
+                vec4 texColor = texture2D(videoTexture, videoUV);`
+            );
+
+            const fragmentShader = GPU_VOLUME_FRAGMENT_SHADER.replace(
+                'vec4 texColor = texture2D(videoTexture, vUV);',
+                `vec2 videoUV = vec2(vUV.x * ${portionWidth.toFixed(6)} + ${portionOffset.toFixed(6)}, vUV.y);
+                vec4 texColor = texture2D(videoTexture, videoUV);`
+            );
+
+            const defines = {};
+            if (shapeTexture) defines.USE_MAP = '';
+
+            const uniforms = {
+                videoTexture: { value: videoTexture },
+                uDepthSpread: { value: depthSpread },
+                uPointSize: { value: pointSize },
+                uBrightness: { value: brightness },
+                uContrast: { value: contrast },
+                uSaturation: { value: saturation },
+                uGlowIntensity: { value: glowIntensity },
+                uBlackThreshold: { value: hideBlack ? blackThreshold / 255.0 : 0.0 },
+                uDepthCullPower: { value: enableDepthCull ? depthCullPower : 0.0 }
+            };
+
+            if (shapeTexture) {
+                uniforms.map = { value: shapeTexture };
+            }
+
+            const mat = new THREE.ShaderMaterial({
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                uniforms: uniforms,
+                defines: defines,
+                transparent: true,
+                depthWrite: true,
+                depthTest: true
+            });
+
+            // Store reference for uniform updates
+            gpuVolumeMaterials.push(mat);
+            return mat;
+        }
+
+        // Update all GPU volume materials when sliders change
+        function updateGPUVolumeUniforms() {
+            const depthSpread = videoSamplingData ? videoSamplingData.TARGET_HEIGHT * videoSamplingData.scaleFactor * depthMultiplier : 0;
+            for (const mat of gpuVolumeMaterials) {
+                mat.uniforms.uDepthSpread.value = depthSpread;
+                mat.uniforms.uPointSize.value = pointSize;
+                mat.uniforms.uBrightness.value = brightness;
+                mat.uniforms.uContrast.value = contrast;
+                mat.uniforms.uSaturation.value = saturation;
+                mat.uniforms.uGlowIntensity.value = glowIntensity;
+                mat.uniforms.uBlackThreshold.value = hideBlack ? blackThreshold / 255.0 : 0.0;
+                mat.uniforms.uDepthCullPower.value = enableDepthCull ? depthCullPower : 0.0;
+            }
+        }
+
         // Helper function: Extract particle data from video for multi-video system
         function createParticleDataFromVideo(video) {
             const { step, TARGET_WIDTH, TARGET_HEIGHT } = calculateDensityParams(particleDensity);
@@ -4830,6 +5026,7 @@
             const positions = [];
             const colors = [];
             const initialZ = [];
+            const uvs = []; // GPU pipeline: UV coordinates for each particle
             const scaleFactor = 0.5;
             const halfWidth = TARGET_WIDTH / 2;
             const halfHeight = TARGET_HEIGHT / 2;
@@ -4893,6 +5090,7 @@
 
                         positions.push(px, py, pz);
                         initialZ.push(pz);
+                        uvs.push(x / TARGET_WIDTH, y / TARGET_HEIGHT);
                         particleCount++;
 
                         let rNorm = r * 0.00392156862745098;
@@ -4948,7 +5146,7 @@
                 }
             }
 
-            return { positions, colors, initialZ, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor };
+            return { positions, colors, initialZ, uvs, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor };
         }
 
         // === PANORAMIC VIDEO SYSTEM ===
@@ -4990,6 +5188,7 @@
             const positions = [];
             const colors = [];
             const initialZ = [];
+            const uvs = []; // GPU pipeline: UV coordinates for each particle
             const scaleFactor = 0.5;
             const halfWidth = TARGET_WIDTH / 2;
             const halfHeight = TARGET_HEIGHT / 2;
@@ -5053,6 +5252,7 @@
 
                         positions.push(px, py, pz);
                         initialZ.push(pz);
+                        uvs.push(x / TARGET_WIDTH, y / TARGET_HEIGHT);
                         particleCount++;
 
                         let rNorm = r * 0.00392156862745098;
@@ -5109,7 +5309,7 @@
             }
 
             console.log(`🎬 Panorama portion ${portionIndex + 1}/${totalPortions}: ${particleCount.toLocaleString()} particules`);
-            return { positions, colors, initialZ, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor };
+            return { positions, colors, initialZ, uvs, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor };
         }
 
         function generate(video) {
@@ -5218,6 +5418,7 @@
             // Create particle for each pixel (1 pixel = 1 particle)
             let positions = [];
             let colors = [];
+            let uvs = []; // GPU pipeline: UV coordinates
             let initialZ = [];
             let scaleFactor = 0.5;
 
@@ -5228,6 +5429,7 @@
                 positions = screen1Data.positions;
                 colors = screen1Data.colors;
                 initialZ = screen1Data.initialZ;
+                uvs = screen1Data.uvs;
                 scaleFactor = screen1Data.scaleFactor;
                 console.log(`   ✅ ${(positions.length / 3).toLocaleString()} particules générées`);
             } else {
@@ -5380,6 +5582,7 @@
 
                         positions.push(px, py, pz);
                         initialZ.push(pz);
+                        uvs.push(x / TARGET_WIDTH, y / TARGET_HEIGHT);
                         pixelsAdded++;
 
                         // v1.3.1 — Apply contrast and saturation effects (Optimized)
@@ -5497,11 +5700,24 @@
             console.log(`🎨 Mode de rendu: ${is3DMode ? '3D (InstancedMesh)' : '2D (Points)'}`);
             console.log(`📊 Nombre de particules: ${positions.length / 3}`);
 
+            // ═══ GPU VOLUMETRIC PIPELINE ═══
+            // Create VideoTexture from panoramic or main video (auto-updates on GPU)
+            gpuVolumeMaterials = []; // Reset material references
+            if (!gpuVideoTexture || gpuVideoTexture.image !== video) {
+                gpuVideoTexture = new THREE.VideoTexture(video);
+                gpuVideoTexture.minFilter = THREE.LinearFilter;
+                gpuVideoTexture.magFilter = THREE.LinearFilter;
+                gpuVideoTexture.format = THREE.RGBFormat;
+            }
+
+            const depthSpreadForShader = TARGET_HEIGHT * scaleFactor * depthMultiplier;
+            // Screen 1: portion 0/5 in panoramic mode, full video otherwise
+            const screen1PortionOffset = isPanoramicMode ? 0.0 : 0.0;
+            const screen1PortionWidth = isPanoramicMode ? 0.2 : 1.0;
+
             if (is3DMode) {
-                console.log('🔷 Création des particules en mode 3D...');
-                // 3D Mode: Use InstancedMesh with real 3D geometries
+                console.log('🔷 Création des particules en mode 3D (GPU pipeline)...');
                 const count = positions.length / 3;
-                console.log(`   Count: ${count}`);
                 let baseGeometry;
                 const size = pointSize * 3;
 
@@ -5522,71 +5738,54 @@
                         baseGeometry = new THREE.SphereGeometry(size * 0.5, 8, 6);
                 }
 
-                material = new THREE.MeshStandardMaterial({
-                    color: 0xffffff,
-                    flatShading: true,
-                    roughness: 0.7,
-                    metalness: 0.3,
-                    emissive: 0xffffff, // Couleur émissive = blanc pour prendre la couleur des particules
-                    emissiveIntensity: glowIntensity // Intensité contrôlée par le slider
+                // GPU ShaderMaterial for screen 1
+                material = createGPUVolumeMaterial(gpuVideoTexture, screen1PortionOffset, screen1PortionWidth, {
+                    depthSpread: depthSpreadForShader
                 });
 
                 particles = new THREE.InstancedMesh(baseGeometry, material, count);
                 particles.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-                console.log('✅ InstancedMesh créé:', particles);
 
-                const instanceColors = new Float32Array(count * 3);
-                for (let i = 0; i < count; i++) {
-                    instanceColors[i * 3] = colors[i * 3];
-                    instanceColors[i * 3 + 1] = colors[i * 3 + 1];
-                    instanceColors[i * 3 + 2] = colors[i * 3 + 2];
-                }
-                particles.instanceColor = new THREE.InstancedBufferAttribute(instanceColors, 3);
+                // Add instanced UV attribute for GPU shader
+                const instanceUVs = new Float32Array(uvs);
+                baseGeometry.setAttribute('particleUV', new THREE.InstancedBufferAttribute(instanceUVs, 2));
 
-                // Optimization: reuse matrix and color objects
+                // Set instance matrices (XY only, Z=0 — shader computes depth)
                 for (let i = 0; i < count; i++) {
                     reusableMatrix.setPosition(
                         positions[i * 3],
                         positions[i * 3 + 1],
-                        positions[i * 3 + 2]
+                        0 // Z set to 0, GPU shader computes depth from video luminance
                     );
                     particles.setMatrixAt(i, reusableMatrix);
-                    reusableColor.setRGB(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
-                    particles.setColorAt(i, reusableColor);
                 }
-
                 particles.instanceMatrix.needsUpdate = true;
 
                 particles.userData.initialZ = initialZ;
                 particles.userData.positions = positions;
+                particles.userData.uvs = uvs;
                 particles.userData.is3D = true;
 
             } else {
-                // 2D Mode: Use Points with VIDEO texture
+                // 2D Mode: Points with GPU ShaderMaterial
                 geometry = new THREE.BufferGeometry();
                 geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
                 geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
                 geometry.setAttribute('initialZ', new THREE.Float32BufferAttribute(initialZ, 1));
-
-                // Create video texture
-                videoTexture = new THREE.VideoTexture(video);
-                videoTexture.minFilter = THREE.LinearFilter;
-                videoTexture.magFilter = THREE.LinearFilter;
+                // GPU pipeline: add UV attribute
+                geometry.setAttribute('particleUV', new THREE.Float32BufferAttribute(uvs, 2));
 
                 const shapeTexture = getShapeTexture(currentShape);
 
-                console.log('🔸 Création des particules en mode 2D...');
-                material = new THREE.PointsMaterial({
-                    size: pointSize,
-                    vertexColors: true,
-                    transparent: true,
-                    opacity: 1.0,
-                    sizeAttenuation: true,
-                    map: shapeTexture
+                console.log('🔸 Création des particules en mode 2D (GPU pipeline)...');
+                material = createGPUVolumeMaterial(gpuVideoTexture, screen1PortionOffset, screen1PortionWidth, {
+                    depthSpread: depthSpreadForShader,
+                    shapeTexture: shapeTexture
                 });
 
                 particles = new THREE.Points(geometry, material);
-                console.log('✅ Points créés:', particles);
+                particles.userData.uvs = uvs;
+                console.log('✅ Points GPU créés');
             }
 
             // Volumétrie unilatérale : les particules sombres restent à z=0 (point fixe)
@@ -5620,51 +5819,35 @@
             }
 
             if (screen2Data) {
+                // GPU material for screen 2 (panorama portion 1/5)
+                const screen2Material = createGPUVolumeMaterial(gpuVideoTexture,
+                    isPanoramicMode ? 0.2 : 0.0, isPanoramicMode ? 0.2 : 1.0,
+                    { depthSpread: depthSpreadForShader, shapeTexture: is3DMode ? null : getShapeTexture(currentShape) });
 
                 if (is3DMode) {
                     const count2 = screen2Data.positions.length / 3;
                     let baseGeometry2;
                     const size = pointSize * 3;
-
                     switch(currentShape) {
-                        case 'square':
-                            baseGeometry2 = new THREE.BoxGeometry(size, size, size);
-                            break;
-                        case 'circle':
-                            baseGeometry2 = new THREE.SphereGeometry(size * 0.5, 8, 6);
-                            break;
-                        case 'diamond':
-                            baseGeometry2 = new THREE.OctahedronGeometry(size * 0.5);
-                            break;
-                        case 'star':
-                            baseGeometry2 = new THREE.TetrahedronGeometry(size * 0.6);
-                            break;
-                        default:
-                            baseGeometry2 = new THREE.SphereGeometry(size * 0.5, 8, 6);
+                        case 'square': baseGeometry2 = new THREE.BoxGeometry(size, size, size); break;
+                        case 'circle': baseGeometry2 = new THREE.SphereGeometry(size * 0.5, 8, 6); break;
+                        case 'diamond': baseGeometry2 = new THREE.OctahedronGeometry(size * 0.5); break;
+                        case 'star': baseGeometry2 = new THREE.TetrahedronGeometry(size * 0.6); break;
+                        default: baseGeometry2 = new THREE.SphereGeometry(size * 0.5, 8, 6);
                     }
 
-                    particlesRight = new THREE.InstancedMesh(baseGeometry2, material, count2);
+                    particlesRight = new THREE.InstancedMesh(baseGeometry2, screen2Material, count2);
                     particlesRight.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
-                    const instanceColors2 = new Float32Array(count2 * 3);
-                    for (let i = 0; i < count2; i++) {
-                        instanceColors2[i * 3] = screen2Data.colors[i * 3];
-                        instanceColors2[i * 3 + 1] = screen2Data.colors[i * 3 + 1];
-                        instanceColors2[i * 3 + 2] = screen2Data.colors[i * 3 + 2];
+                    // GPU: Add instanced UV attribute
+                    if (screen2Data.uvs) {
+                        baseGeometry2.setAttribute('particleUV', new THREE.InstancedBufferAttribute(new Float32Array(screen2Data.uvs), 2));
                     }
-                    particlesRight.instanceColor = new THREE.InstancedBufferAttribute(instanceColors2, 3);
 
                     for (let i = 0; i < count2; i++) {
-                        reusableMatrix.setPosition(
-                            screen2Data.positions[i * 3],
-                            screen2Data.positions[i * 3 + 1],
-                            screen2Data.positions[i * 3 + 2]
-                        );
+                        reusableMatrix.setPosition(screen2Data.positions[i * 3], screen2Data.positions[i * 3 + 1], 0);
                         particlesRight.setMatrixAt(i, reusableMatrix);
-                        reusableColor.setRGB(screen2Data.colors[i * 3], screen2Data.colors[i * 3 + 1], screen2Data.colors[i * 3 + 2]);
-                        particlesRight.setColorAt(i, reusableColor);
                     }
-
                     particlesRight.instanceMatrix.needsUpdate = true;
                     particlesRight.userData.initialZ = screen2Data.initialZ;
                     particlesRight.userData.positions = screen2Data.positions;
@@ -5674,8 +5857,9 @@
                     geometry2.setAttribute('position', new THREE.Float32BufferAttribute(screen2Data.positions, 3));
                     geometry2.setAttribute('color', new THREE.Float32BufferAttribute(screen2Data.colors, 3));
                     geometry2.setAttribute('initialZ', new THREE.Float32BufferAttribute(screen2Data.initialZ, 1));
+                    if (screen2Data.uvs) geometry2.setAttribute('particleUV', new THREE.Float32BufferAttribute(screen2Data.uvs, 2));
 
-                    particlesRight = new THREE.Points(geometry2, material);
+                    particlesRight = new THREE.Points(geometry2, screen2Material);
                 }
             } else {
                 // Fallback: Clone screen 1 if no video available
@@ -5697,17 +5881,19 @@
             let screen3Positions = [];
             let screen3Colors = [];
             let screen3InitialZ = [];
+            let screen3Uvs = [];
 
             if (floorVideo && floorVideo.videoWidth > 0) {
                 // Utiliser la vidéo du sol
                 console.log('🏠 Génération écran 6 (sol) depuis ecran_sol.webm');
                 const floorData = createParticleDataFromVideo(floorVideo);
                 if (floorData) {
-                    // Multiplier X et Y par 2 pour surface doublée
+                    // Multiplier X et Y par 2 pour surface doublée (UVs stay unchanged — they map to texture)
                     for (let i = 0; i < floorData.positions.length / 3; i++) {
                         screen3Positions.push(floorData.positions[i * 3] * 2, floorData.positions[i * 3 + 1] * 2, floorData.positions[i * 3 + 2]);
                         screen3Colors.push(floorData.colors[i * 3], floorData.colors[i * 3 + 1], floorData.colors[i * 3 + 2]);
                         screen3InitialZ.push(floorData.initialZ[i]);
+                        if (floorData.uvs) screen3Uvs.push(floorData.uvs[i * 2], floorData.uvs[i * 2 + 1]);
                     }
                 }
             } else {
@@ -5719,15 +5905,20 @@
                 for (let i = 0; i < positions.length / 3; i++) {
                     const x = positions[i * 3];
                     const y = positions[i * 3 + 1];
-                    const z = positions[i * 3 + 2];
 
                     if (y >= -halfH_screen3 && y <= halfH_screen3) {
-                        screen3Positions.push(x * 2, y * 2, z);
+                        screen3Positions.push(x * 2, y * 2, 0);
                         screen3Colors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
                         screen3InitialZ.push(initialZ[i]);
+                        if (uvs.length > 0) screen3Uvs.push(uvs[i * 2], uvs[i * 2 + 1]);
                     }
                 }
             }
+
+            // GPU material for screen 6 (sol) — uses screen 1's panoramic portion
+            const screen6SolMaterial = createGPUVolumeMaterial(gpuVideoTexture,
+                screen1PortionOffset, screen1PortionWidth,
+                { depthSpread: depthSpreadForShader, shapeTexture: is3DMode ? null : getShapeTexture(currentShape) });
 
             let screen3;
             if (is3DMode) {
@@ -5753,26 +5944,21 @@
                         baseGeometry3 = new THREE.SphereGeometry(size * 0.5, 8, 6);
                 }
 
-                screen3 = new THREE.InstancedMesh(baseGeometry3, material, count3);
+                screen3 = new THREE.InstancedMesh(baseGeometry3, screen6SolMaterial, count3);
                 screen3.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
-                const instanceColors3 = new Float32Array(count3 * 3);
-                for (let i = 0; i < count3; i++) {
-                    instanceColors3[i * 3] = screen3Colors[i * 3];
-                    instanceColors3[i * 3 + 1] = screen3Colors[i * 3 + 1];
-                    instanceColors3[i * 3 + 2] = screen3Colors[i * 3 + 2];
+                // GPU: Add instanced UV attribute
+                if (screen3Uvs.length > 0) {
+                    baseGeometry3.setAttribute('particleUV', new THREE.InstancedBufferAttribute(new Float32Array(screen3Uvs), 2));
                 }
-                screen3.instanceColor = new THREE.InstancedBufferAttribute(instanceColors3, 3);
 
                 for (let i = 0; i < count3; i++) {
                     reusableMatrix.setPosition(
                         screen3Positions[i * 3],
                         screen3Positions[i * 3 + 1],
-                        screen3Positions[i * 3 + 2]
+                        0 // Z=0, GPU shader computes depth from video luminance
                     );
                     screen3.setMatrixAt(i, reusableMatrix);
-                    reusableColor.setRGB(screen3Colors[i * 3], screen3Colors[i * 3 + 1], screen3Colors[i * 3 + 2]);
-                    screen3.setColorAt(i, reusableColor);
                 }
 
                 screen3.instanceMatrix.needsUpdate = true;
@@ -5787,8 +5973,9 @@
                 geometry3.setAttribute('position', new THREE.Float32BufferAttribute(screen3Positions, 3));
                 geometry3.setAttribute('color', new THREE.Float32BufferAttribute(screen3Colors, 3));
                 geometry3.setAttribute('initialZ', new THREE.Float32BufferAttribute(screen3InitialZ, 1));
+                if (screen3Uvs.length > 0) geometry3.setAttribute('particleUV', new THREE.Float32BufferAttribute(screen3Uvs, 2));
 
-                screen3 = new THREE.Points(geometry3, material);
+                screen3 = new THREE.Points(geometry3, screen6SolMaterial);
                 screen3.userData.screenNumber = 6; // Sol - anciennement 5 → 6
             }
 
@@ -5813,6 +6000,10 @@
             }
 
             if (screen5Data) {
+                // GPU material for screen 5 (panorama portion 4/5)
+                const screen5Material = createGPUVolumeMaterial(gpuVideoTexture,
+                    isPanoramicMode ? 0.8 : 0.0, isPanoramicMode ? 0.2 : 1.0,
+                    { depthSpread: depthSpreadForShader, shapeTexture: is3DMode ? null : getShapeTexture(currentShape) });
 
                 if (is3DMode) {
                     const count5 = screen5Data.positions.length / 3;
@@ -5836,26 +6027,17 @@
                             baseGeometry5 = new THREE.SphereGeometry(size * 0.5, 8, 6);
                     }
 
-                    wallOppA = new THREE.InstancedMesh(baseGeometry5, material, count5);
+                    wallOppA = new THREE.InstancedMesh(baseGeometry5, screen5Material, count5);
                     wallOppA.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
-                    const instanceColors5 = new Float32Array(count5 * 3);
-                    for (let i = 0; i < count5; i++) {
-                        instanceColors5[i * 3] = screen5Data.colors[i * 3];
-                        instanceColors5[i * 3 + 1] = screen5Data.colors[i * 3 + 1];
-                        instanceColors5[i * 3 + 2] = screen5Data.colors[i * 3 + 2];
+                    // GPU: Add instanced UV attribute
+                    if (screen5Data.uvs) {
+                        baseGeometry5.setAttribute('particleUV', new THREE.InstancedBufferAttribute(new Float32Array(screen5Data.uvs), 2));
                     }
-                    wallOppA.instanceColor = new THREE.InstancedBufferAttribute(instanceColors5, 3);
 
                     for (let i = 0; i < count5; i++) {
-                        reusableMatrix.setPosition(
-                            screen5Data.positions[i * 3],
-                            screen5Data.positions[i * 3 + 1],
-                            screen5Data.positions[i * 3 + 2]
-                        );
+                        reusableMatrix.setPosition(screen5Data.positions[i * 3], screen5Data.positions[i * 3 + 1], 0);
                         wallOppA.setMatrixAt(i, reusableMatrix);
-                        reusableColor.setRGB(screen5Data.colors[i * 3], screen5Data.colors[i * 3 + 1], screen5Data.colors[i * 3 + 2]);
-                        wallOppA.setColorAt(i, reusableColor);
                     }
 
                     wallOppA.instanceMatrix.needsUpdate = true;
@@ -5868,8 +6050,9 @@
                     geometry5.setAttribute('position', new THREE.Float32BufferAttribute(screen5Data.positions, 3));
                     geometry5.setAttribute('color', new THREE.Float32BufferAttribute(screen5Data.colors, 3));
                     geometry5.setAttribute('initialZ', new THREE.Float32BufferAttribute(screen5Data.initialZ, 1));
+                    if (screen5Data.uvs) geometry5.setAttribute('particleUV', new THREE.Float32BufferAttribute(screen5Data.uvs, 2));
 
-                    wallOppA = new THREE.Points(geometry5, material);
+                    wallOppA = new THREE.Points(geometry5, screen5Material);
                 }
             } else {
                 // Fallback: Clone screen 1 if no video available
@@ -5898,6 +6081,10 @@
             }
 
             if (screen6Data) {
+                // GPU material for screen 4 (panorama portion 3/5)
+                const screen4Material = createGPUVolumeMaterial(gpuVideoTexture,
+                    isPanoramicMode ? 0.6 : 0.0, isPanoramicMode ? 0.2 : 1.0,
+                    { depthSpread: depthSpreadForShader, shapeTexture: is3DMode ? null : getShapeTexture(currentShape) });
 
                 if (is3DMode) {
                     const count6 = screen6Data.positions.length / 3;
@@ -5921,26 +6108,17 @@
                             baseGeometry6 = new THREE.SphereGeometry(size * 0.5, 8, 6);
                     }
 
-                    wallOppB = new THREE.InstancedMesh(baseGeometry6, material, count6);
+                    wallOppB = new THREE.InstancedMesh(baseGeometry6, screen4Material, count6);
                     wallOppB.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
-                    const instanceColors6 = new Float32Array(count6 * 3);
-                    for (let i = 0; i < count6; i++) {
-                        instanceColors6[i * 3] = screen6Data.colors[i * 3];
-                        instanceColors6[i * 3 + 1] = screen6Data.colors[i * 3 + 1];
-                        instanceColors6[i * 3 + 2] = screen6Data.colors[i * 3 + 2];
+                    // GPU: Add instanced UV attribute
+                    if (screen6Data.uvs) {
+                        baseGeometry6.setAttribute('particleUV', new THREE.InstancedBufferAttribute(new Float32Array(screen6Data.uvs), 2));
                     }
-                    wallOppB.instanceColor = new THREE.InstancedBufferAttribute(instanceColors6, 3);
 
                     for (let i = 0; i < count6; i++) {
-                        reusableMatrix.setPosition(
-                            screen6Data.positions[i * 3],
-                            screen6Data.positions[i * 3 + 1],
-                            screen6Data.positions[i * 3 + 2]
-                        );
+                        reusableMatrix.setPosition(screen6Data.positions[i * 3], screen6Data.positions[i * 3 + 1], 0);
                         wallOppB.setMatrixAt(i, reusableMatrix);
-                        reusableColor.setRGB(screen6Data.colors[i * 3], screen6Data.colors[i * 3 + 1], screen6Data.colors[i * 3 + 2]);
-                        wallOppB.setColorAt(i, reusableColor);
                     }
 
                     wallOppB.instanceMatrix.needsUpdate = true;
@@ -5953,8 +6131,9 @@
                     geometry6.setAttribute('position', new THREE.Float32BufferAttribute(screen6Data.positions, 3));
                     geometry6.setAttribute('color', new THREE.Float32BufferAttribute(screen6Data.colors, 3));
                     geometry6.setAttribute('initialZ', new THREE.Float32BufferAttribute(screen6Data.initialZ, 1));
+                    if (screen6Data.uvs) geometry6.setAttribute('particleUV', new THREE.Float32BufferAttribute(screen6Data.uvs, 2));
 
-                    wallOppB = new THREE.Points(geometry6, material);
+                    wallOppB = new THREE.Points(geometry6, screen4Material);
                 }
             } else {
                 // Fallback: Clone screen 2 if no video available
@@ -5972,7 +6151,7 @@
             screensGroup.add(wallOppB);
 
             // === ÉCRAN 7 (allScreens[3]): Generate from panorama portion 2 or video_07.mp4 ===
-            let screen7Positions, screen7Colors, screen7InitialZ;
+            let screen7Positions, screen7Colors, screen7InitialZ, screen7Uvs;
             let useVideo7 = false;
 
             if (isPanoramicMode) {
@@ -5982,6 +6161,7 @@
                 screen7Positions = screen7Data.positions;
                 screen7Colors = screen7Data.colors;
                 screen7InitialZ = screen7Data.initialZ;
+                screen7Uvs = screen7Data.uvs || null;
                 useVideo7 = true;
             } else if (screenVideos[3]) {
                 // Use ecran3.mp4
@@ -5990,6 +6170,7 @@
                 screen7Positions = screen7Data.positions;
                 screen7Colors = screen7Data.colors;
                 screen7InitialZ = screen7Data.initialZ;
+                screen7Uvs = screen7Data.uvs || null;
                 useVideo7 = true;
             } else {
                 // Fallback: Filter from screen 1 video to create square
@@ -6013,6 +6194,11 @@
                     }
                 }
             }
+
+            // GPU material for screen 3 (panorama portion 2/5)
+            const screen3Material = createGPUVolumeMaterial(gpuVideoTexture,
+                isPanoramicMode ? 0.4 : 0.0, isPanoramicMode ? 0.2 : 1.0,
+                { depthSpread: depthSpreadForShader, shapeTexture: is3DMode ? null : getShapeTexture(currentShape) });
 
             let screen7;
             if (is3DMode) {
@@ -6038,26 +6224,17 @@
                         baseGeometry7 = new THREE.SphereGeometry(size * 0.5, 8, 6);
                 }
 
-                screen7 = new THREE.InstancedMesh(baseGeometry7, material, count7);
+                screen7 = new THREE.InstancedMesh(baseGeometry7, screen3Material, count7);
                 screen7.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
-                const instanceColors7 = new Float32Array(count7 * 3);
-                for (let i = 0; i < count7; i++) {
-                    instanceColors7[i * 3] = screen7Colors[i * 3];
-                    instanceColors7[i * 3 + 1] = screen7Colors[i * 3 + 1];
-                    instanceColors7[i * 3 + 2] = screen7Colors[i * 3 + 2];
+                // GPU: Add instanced UV attribute
+                if (screen7Uvs) {
+                    baseGeometry7.setAttribute('particleUV', new THREE.InstancedBufferAttribute(new Float32Array(screen7Uvs), 2));
                 }
-                screen7.instanceColor = new THREE.InstancedBufferAttribute(instanceColors7, 3);
 
                 for (let i = 0; i < count7; i++) {
-                    reusableMatrix.setPosition(
-                        screen7Positions[i * 3],
-                        screen7Positions[i * 3 + 1],
-                        screen7Positions[i * 3 + 2]
-                    );
+                    reusableMatrix.setPosition(screen7Positions[i * 3], screen7Positions[i * 3 + 1], 0);
                     screen7.setMatrixAt(i, reusableMatrix);
-                    reusableColor.setRGB(screen7Colors[i * 3], screen7Colors[i * 3 + 1], screen7Colors[i * 3 + 2]);
-                    screen7.setColorAt(i, reusableColor);
                 }
 
                 screen7.instanceMatrix.needsUpdate = true;
@@ -6072,8 +6249,9 @@
                 geometry7.setAttribute('position', new THREE.Float32BufferAttribute(screen7Positions, 3));
                 geometry7.setAttribute('color', new THREE.Float32BufferAttribute(screen7Colors, 3));
                 geometry7.setAttribute('initialZ', new THREE.Float32BufferAttribute(screen7InitialZ, 1));
+                if (screen7Uvs) geometry7.setAttribute('particleUV', new THREE.Float32BufferAttribute(screen7Uvs, 2));
 
-                screen7 = new THREE.Points(geometry7, material);
+                screen7 = new THREE.Points(geometry7, screen3Material);
             }
 
             // Position et orientation de base (coordonnées ajustées par l'utilisateur)
@@ -7528,17 +7706,11 @@
                 }
             }
 
-            // Update particle colors from current video frame (both 2D and 3D modes)
-            if (currentVideo) {
-                updateColorsFromVideo();
-            }
-
-            // Update colors for screens 2-5 from their respective videos
-            updateMultiScreenColors();
-
-            // Update video texture
-            if (videoTexture && currentVideo) {
-                videoTexture.needsUpdate = true;
+            // GPU PIPELINE: VideoTexture auto-updates on GPU each frame
+            // Color + depth are computed by shaders — no CPU loops needed
+            // updateColorsFromVideo() and updateMultiScreenColors() are ELIMINATED
+            if (gpuVideoTexture) {
+                gpuVideoTexture.needsUpdate = true;
             }
 
             // PERFORMANCE: Skip particle animation loop entirely if no breathing and no flow
@@ -7556,7 +7728,8 @@
 
                         for (let i = 0; i < initialZs.length; i++) {
                             const breathOffset = Math.sin(time + i * 0.01) * epsilon;
-                            const newZ = initialZs[i] + breathOffset;
+                            // GPU pipeline: Z=breathOffset only (shader adds depth from luminance)
+                            const newZ = breathOffset;
 
                             // Flow movement - circular organic motion
                             let flowX = 0, flowY = 0;
@@ -7580,15 +7753,14 @@
                     // SKIP if multi-video system has a dedicated video for this screen
                     if (allScreens[3] && allScreens[3].userData && allScreens[3].userData.is3D && !screenVideos[3]) {
                         const screen7 = allScreens[3];
-                        const initialZs7 = screen7.userData.initialZ;
                         const positions7 = screen7.userData.positions;
 
-                        if (initialZs7 && positions7 && initialZs7.length > 0) {
+                        if (positions7 && positions7.length > 0) {
                             const epsilon = 0.3 * breathSpeed;
+                            const count7 = positions7.length / 3;
 
-                            for (let i = 0; i < initialZs7.length; i++) {
+                            for (let i = 0; i < count7; i++) {
                                 const breathOffset = Math.sin(time + i * 0.01) * epsilon;
-                                const newZ = initialZs7[i] + breathOffset;
 
                                 // Flow movement - circular organic motion
                                 let flowX = 0, flowY = 0;
@@ -7601,7 +7773,7 @@
                                 reusableMatrix.setPosition(
                                     positions7[i * 3] + flowX,
                                     positions7[i * 3 + 1] + flowY,
-                                    newZ
+                                    breathOffset // GPU pipeline: shader adds depth
                                 );
                                 screen7.setMatrixAt(i, reusableMatrix);
                             }
@@ -7609,18 +7781,17 @@
                         }
                     }
 
-                    // CRITICAL: Also update screen 3 if it has its own geometry (3D mode) - now at position 5
+                    // CRITICAL: Also update screen 6 (floor) if it has its own geometry (3D mode)
                     if (allScreens[6] && allScreens[6].userData && allScreens[6].userData.is3D) {
                         const screen3 = allScreens[6];
-                        const initialZs3 = screen3.userData.initialZ;
                         const positions3 = screen3.userData.positions;
 
-                        if (initialZs3 && positions3 && initialZs3.length > 0) {
+                        if (positions3 && positions3.length > 0) {
                             const epsilon = 0.3 * breathSpeed;
+                            const count3 = positions3.length / 3;
 
-                            for (let i = 0; i < initialZs3.length; i++) {
+                            for (let i = 0; i < count3; i++) {
                                 const breathOffset = Math.sin(time + i * 0.01) * epsilon;
-                                const newZ = initialZs3[i] + breathOffset;
 
                                 // Flow movement - circular organic motion
                                 let flowX = 0, flowY = 0;
@@ -7633,7 +7804,7 @@
                                 reusableMatrix.setPosition(
                                     positions3[i * 3] + flowX,
                                     positions3[i * 3 + 1] + flowY,
-                                    newZ
+                                    breathOffset // GPU pipeline: shader adds depth
                                 );
                                 screen3.setMatrixAt(i, reusableMatrix);
                             }
@@ -7670,7 +7841,8 @@
 
                         positions[i * 3] = initialPositions[i * 3] + flowX;
                         positions[i * 3 + 1] = initialPositions[i * 3 + 1] + flowY;
-                        positions[i * 3 + 2] = initialZs[i] + breathOffset;
+                        // GPU pipeline: Z=breathOffset only (shader adds depth from luminance)
+                        positions[i * 3 + 2] = breathOffset;
                     }
 
                     geometry.attributes.position.needsUpdate = true;
@@ -7681,7 +7853,6 @@
                         const screen7 = allScreens[3];
                         const geom7 = screen7.geometry;
                         const positions7 = geom7.attributes.position.array;
-                        const initialZs7 = geom7.attributes.initialZ.array;
 
                         // Store initial positions if not already stored
                         if (!geom7.userData.initialPositions) {
@@ -7707,18 +7878,17 @@
 
                             positions7[i * 3] = initialPositions7[i * 3] + flowX;
                             positions7[i * 3 + 1] = initialPositions7[i * 3 + 1] + flowY;
-                            positions7[i * 3 + 2] = initialZs7[i] + breathOffset;
+                            positions7[i * 3 + 2] = breathOffset; // GPU pipeline: shader adds depth
                         }
 
                         geom7.attributes.position.needsUpdate = true;
                     }
 
-                    // CRITICAL: Also update screen 3 if it has its own geometry (2D mode) - now at position 5
+                    // CRITICAL: Also update screen 6 (floor) if it has its own geometry (2D mode)
                     if (allScreens[6] && allScreens[6].geometry && allScreens[6].geometry.attributes.position) {
                         const screen3 = allScreens[6];
                         const geom3 = screen3.geometry;
                         const positions3 = geom3.attributes.position.array;
-                        const initialZs3 = geom3.attributes.initialZ.array;
 
                         // Store initial positions if not already stored
                         if (!geom3.userData.initialPositions) {
@@ -7744,7 +7914,7 @@
 
                             positions3[i * 3] = initialPositions3[i * 3] + flowX;
                             positions3[i * 3 + 1] = initialPositions3[i * 3 + 1] + flowY;
-                            positions3[i * 3 + 2] = initialZs3[i] + breathOffset;
+                            positions3[i * 3 + 2] = breathOffset; // GPU pipeline: shader adds depth
                         }
 
                         geom3.attributes.position.needsUpdate = true;
@@ -8025,18 +8195,19 @@
             // Hide black checkbox
             document.getElementById('hide-black').addEventListener('change', function() {
                 hideBlack = this.checked;
-                scheduleRegenerate();
+                updateGPUVolumeUniforms();
             });
 
             // Depth culling checkbox
             document.getElementById('enable-depth-cull').addEventListener('change', function() {
                 enableDepthCull = this.checked;
-                if (currentVideo) generate(currentVideo);
+                updateGPUVolumeUniforms();
             });
 
             // Hide background checkbox
             document.getElementById('hide-background').addEventListener('change', function() {
                 hideBackground = this.checked;
+                // hideBackground is not a GPU uniform — needs regeneration if used
                 scheduleRegenerate();
             });
 
