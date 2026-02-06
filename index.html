@@ -5708,6 +5708,7 @@
                 gpuVideoTexture.minFilter = THREE.LinearFilter;
                 gpuVideoTexture.magFilter = THREE.LinearFilter;
                 gpuVideoTexture.format = THREE.RGBFormat;
+                gpuVideoTexture.flipY = false; // UVs are computed top-down (y/H), matching video pixel order
             }
 
             const depthSpreadForShader = TARGET_HEIGHT * scaleFactor * depthMultiplier;
