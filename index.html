@@ -2351,9 +2351,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <script>
-        console.log('═══════════════════════════════════════════════════════');
-        console.log('🚀 SCRIPT DÉMARRÉ - Début du chargement');
-        console.log('═══════════════════════════════════════════════════════');
+        // ═══════════════════════════════════════════════════════════════
+        // PERFORMANCE: Debug flag - mettre a false en production
+        // ═══════════════════════════════════════════════════════════════
+        const DEBUG_MODE = false;
+        const dbg = DEBUG_MODE ? console.log.bind(console) : () => {};
+
+        dbg('═══════════════════════════════════════════════════════════════');
+        dbg('🚀 SCRIPT DÉMARRÉ - Début du chargement');
+        dbg('═══════════════════════════════════════════════════════════════');
 
         let scene, camera, renderer, particles;
         let geometry, material;
@@ -2415,14 +2421,23 @@
         let fpsUpdateInterval = 500; // Update FPS display every 500ms
 
         // Cache DOM elements for FPS counter to avoid repeated queries
+        // PERFORMANCE: DOM cache pour eviter les requetes dans animate()
         let fpsDOMCache = {
             counter: null,
-            value: null
+            value: null,
+            gameInstructions: null,
+            videoPausedIndicator: null
         };
 
         // CubeCamera optimization: throttle updates
         let cubeCameraUpdateCounter = 0;
         const CUBE_CAMERA_UPDATE_INTERVAL = 3; // Update every 3 frames
+
+        // PERFORMANCE: Raycast throttle et cache des sols
+        let raycastCounter = 0;
+        const RAYCAST_INTERVAL = 2; // Raycast every 2 frames
+        let cachedFloorScreens = null;
+        let lastGroundY = null; // Cache du dernier Y sol detecte
 
         // Flow movement data - stores random offsets for each particle
         let flowOffsets = null;
@@ -2776,14 +2791,14 @@
 
             // Debug: log all Ctrl key combinations
             if (e.ctrlKey) {
-                console.log('🎹 Touche Ctrl détectée:', e.code, 'ctrlKey:', e.ctrlKey, 'shiftKey:', e.shiftKey);
+                dbg('🎹 Touche Ctrl détectée:', e.code, 'ctrlKey:', e.ctrlKey, 'shiftKey:', e.shiftKey);
             }
 
             // Ctrl+Z: Undo (PRIORITY - check first!)
             if (e.code === 'KeyZ' && e.ctrlKey && !e.shiftKey) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🔄 Ctrl+Z détecté - Exécution undo()');
+                dbg('🔄 Ctrl+Z détecté - Exécution undo()');
                 undo();
                 return; // Stop here
             }
@@ -2792,7 +2807,7 @@
             if ((e.code === 'KeyZ' && e.ctrlKey && e.shiftKey) || (e.code === 'KeyY' && e.ctrlKey)) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🔄 Ctrl+Shift+Z ou Ctrl+Y détecté - Exécution redo()');
+                dbg('🔄 Ctrl+Shift+Z ou Ctrl+Y détecté - Exécution redo()');
                 redo();
                 return; // Stop here
             }
@@ -2801,7 +2816,7 @@
             if (e.code === 'KeyS' && e.ctrlKey) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('💾 Ctrl+S détecté - Sauvegarde positions');
+                dbg('💾 Ctrl+S détecté - Sauvegarde positions');
                 savePositionsToFile();
                 return; // Stop here
             }
@@ -2810,7 +2825,7 @@
             if (e.code === 'KeyC' && e.ctrlKey) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('📋 Ctrl+C détecté - Copie écran');
+                dbg('📋 Ctrl+C détecté - Copie écran');
                 copyScreen();
                 return; // Stop here
             }
@@ -2819,7 +2834,7 @@
             if (e.code === 'KeyV' && e.ctrlKey) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('📄 Ctrl+V détecté - Collage écran');
+                dbg('📄 Ctrl+V détecté - Collage écran');
                 pasteScreen();
                 return; // Stop here
             }
@@ -2875,14 +2890,14 @@
             if (e.code === 'KeyG' && selectedScreen) {
                 e.preventDefault();
                 transformControls.setMode('translate');
-                console.log('Mode: TRANSLATE (déplacement XYZ)');
+                dbg('Mode: TRANSLATE (déplacement XYZ)');
             }
 
             // R: Rotate mode
             if (e.code === 'KeyR' && selectedScreen) {
                 e.preventDefault();
                 transformControls.setMode('rotate');
-                console.log('Mode: ROTATE (rotation XYZ)');
+                dbg('Mode: ROTATE (rotation XYZ)');
             }
 
             // E: Scale mode
@@ -2893,11 +2908,11 @@
                     // First press: activate scale mode
                     transformControls.setMode('scale');
                     scaleMode = 'free';
-                    console.log('Mode: SCALE LIBRE (axe individuel) - Re-appuyez sur E pour mode uniforme');
+                    dbg('Mode: SCALE LIBRE (axe individuel) - Re-appuyez sur E pour mode uniforme');
                 } else {
                     // Subsequent presses: toggle between free and uniform
                     scaleMode = scaleMode === 'free' ? 'uniform' : 'free';
-                    console.log(`Mode: SCALE ${scaleMode === 'uniform' ? 'UNIFORME (proportionnel)' : 'LIBRE (axe individuel)'}`);
+                    dbg(`Mode: SCALE ${scaleMode === 'uniform' ? 'UNIFORME (proportionnel)' : 'LIBRE (axe individuel)'}`);
                 }
             }
 
@@ -2908,11 +2923,11 @@
                     // Activate SIZE mode (geometry resize)
                     transformControls.setMode('scale');
                     scaleMode = 'resize'; // Special mode for geometry resizing
-                    console.log('=== MODE: REDIMENSIONNEMENT (S) ===');
-                    console.log('Modifie les positions des particules directement');
-                    console.log('→ Surface change SANS affecter depth spread');
-                    console.log('→ Idéal pour harmoniser les écrans volumétriques');
-                    console.log('Drag les handles pour redimensionner');
+                    dbg('=== MODE: REDIMENSIONNEMENT (S) ===');
+                    dbg('Modifie les positions des particules directement');
+                    dbg('→ Surface change SANS affecter depth spread');
+                    dbg('→ Idéal pour harmoniser les écrans volumétriques');
+                    dbg('Drag les handles pour redimensionner');
                 } else {
                     saveAllPositions();
                 }
@@ -2962,12 +2977,12 @@
 
                 // Increment counter
                 bPressCount++;
-                console.log(`🅱️ B appuyé ${bPressCount}/5 fois`);
+                dbg(`🅱️ B appuyé ${bPressCount}/5 fois`);
 
                 // Reset counter after 2 seconds of inactivity
                 bPressTimeout = setTimeout(() => {
                     bPressCount = 0;
-                    console.log('⏱️ Compteur B réinitialisé (timeout)');
+                    dbg('⏱️ Compteur B réinitialisé (timeout)');
                 }, 2000);
 
                 // Only toggle mode after 5 presses
@@ -2981,13 +2996,13 @@
                 fpsMode = !fpsMode;
                 if (fpsMode) {
                     // ENTERING SPECTATOR MODE: Hide all interfaces
-                    console.log('🎮 MODE SPECTATEUR (FPS) ACTIVÉ');
-                    console.log('   - Cliquez sur le canvas pour activer PointerLock');
-                    console.log('   - WASD pour se déplacer');
-                    console.log('   - Shift pour sprinter');
-                    console.log('   - ESC pour sortir du PointerLock');
-                    console.log('   - B pour passer en mode ADMIN');
-                    console.log('   - Interfaces désactivées en mode Spectateur');
+                    dbg('🎮 MODE SPECTATEUR (FPS) ACTIVÉ');
+                    dbg('   - Cliquez sur le canvas pour activer PointerLock');
+                    dbg('   - WASD pour se déplacer');
+                    dbg('   - Shift pour sprinter');
+                    dbg('   - ESC pour sortir du PointerLock');
+                    dbg('   - B pour passer en mode ADMIN');
+                    dbg('   - Interfaces désactivées en mode Spectateur');
 
                     // Hide all UI elements in Spectator mode
                     document.getElementById('ui')?.classList.add('hidden');
@@ -3006,17 +3021,17 @@
                     playAudio();
                 } else {
                     // ENTERING ADMIN MODE: Show all interfaces
-                    console.log('🖱️ MODE ADMIN ACTIVÉ');
+                    dbg('🖱️ MODE ADMIN ACTIVÉ');
 
                     // Show screen labels in Admin mode
                     updateScreenLabels();
 
                     // Pause music in Admin mode
                     pauseAudio();
-                    console.log('   - N pour afficher/cacher les interfaces');
-                    console.log('   - B pour passer en mode SPECTATEUR');
-                    console.log('   - F pour FPS Settings');
-                    console.log('   - Toutes les touches actives');
+                    dbg('   - N pour afficher/cacher les interfaces');
+                    dbg('   - B pour passer en mode SPECTATEUR');
+                    dbg('   - F pour FPS Settings');
+                    dbg('   - Toutes les touches actives');
 
                     // Release pointer lock if active
                     if (document.exitPointerLock) {
@@ -3045,9 +3060,9 @@
                 e.preventDefault();
                 showHitbox = !showHitbox;
                 if (showHitbox) {
-                    console.log('👁️ HITBOX VISIBLE');
+                    dbg('👁️ HITBOX VISIBLE');
                 } else {
-                    console.log('🚫 HITBOX MASQUÉE');
+                    dbg('🚫 HITBOX MASQUÉE');
                     // Remove hitbox helper if exists and dispose properly to prevent memory leak
                     if (hitboxHelper) {
                         scene.remove(hitboxHelper);
@@ -3065,7 +3080,7 @@
                     e.preventDefault();
                     const ui = document.getElementById('ui');
                     ui?.classList.toggle('hidden');
-                    console.log(`🎥 Interface vidéo: ${ui?.classList.contains('hidden') ? 'cachée' : 'visible'}`);
+                    dbg(`🎥 Interface vidéo: ${ui?.classList.contains('hidden') ? 'cachée' : 'visible'}`);
                 }
 
                 // é (Digit2): Toggle screen manager
@@ -3073,7 +3088,7 @@
                     e.preventDefault();
                     const screenManager = document.getElementById('screen-manager-panel');
                     screenManager?.classList.toggle('hidden');
-                    console.log(`📺 Gestionnaire écrans: ${screenManager?.classList.contains('hidden') ? 'caché' : 'visible'}`);
+                    dbg(`📺 Gestionnaire écrans: ${screenManager?.classList.contains('hidden') ? 'caché' : 'visible'}`);
                 }
 
                 // " (Digit3): Toggle shape selector
@@ -3081,7 +3096,7 @@
                     e.preventDefault();
                     const shapeSelector = document.getElementById('shape-selector');
                     shapeSelector?.classList.toggle('hidden');
-                    console.log(`🔷 Sélecteur formes: ${shapeSelector?.classList.contains('hidden') ? 'caché' : 'visible'}`);
+                    dbg(`🔷 Sélecteur formes: ${shapeSelector?.classList.contains('hidden') ? 'caché' : 'visible'}`);
                 }
 
                 // ' (Digit4): Toggle FPS settings (replaces F key)
@@ -3089,7 +3104,7 @@
                     e.preventDefault();
                     const fpsSettings = document.getElementById('fps-settings-panel');
                     fpsSettings?.classList.toggle('hidden');
-                    console.log(`⚙️ Paramètres FPS: ${fpsSettings?.classList.contains('hidden') ? 'cachés' : 'visibles'}`);
+                    dbg(`⚙️ Paramètres FPS: ${fpsSettings?.classList.contains('hidden') ? 'cachés' : 'visibles'}`);
                 }
 
                 // ( (Digit5): Toggle FPS counter
@@ -3097,7 +3112,7 @@
                     e.preventDefault();
                     const fpsCounter = document.getElementById('fps-counter');
                     fpsCounter?.classList.toggle('hidden');
-                    console.log(`📊 Compteur FPS: ${fpsCounter?.classList.contains('hidden') ? 'caché' : 'visible'}`);
+                    dbg(`📊 Compteur FPS: ${fpsCounter?.classList.contains('hidden') ? 'caché' : 'visible'}`);
                 }
 
                 // - (Digit6 or Minus): Toggle controls (protocol settings)
@@ -3105,7 +3120,7 @@
                     e.preventDefault();
                     const controls = document.getElementById('controls');
                     controls?.classList.toggle('hidden');
-                    console.log(`🎛️ Réglages protocole: ${controls?.classList.contains('hidden') ? 'cachés' : 'visibles'}`);
+                    dbg(`🎛️ Réglages protocole: ${controls?.classList.contains('hidden') ? 'cachés' : 'visibles'}`);
                 }
             }
         });
@@ -3151,7 +3166,7 @@
         // Transform control functions
         function selectScreen(num) {
             if (!allScreens[num]) {
-                console.log(`Écran ${num} n'existe pas`);
+                dbg(`Écran ${num} n'existe pas`);
                 return;
             }
 
@@ -3162,22 +3177,22 @@
             document.addEventListener('keydown', onShiftChange);
             document.addEventListener('keyup', onShiftChange);
 
-            console.log(`=== ÉCRAN ${num} SÉLECTIONNÉ ===`);
-            console.log('Commandes:');
-            console.log('  G = Mode Translation');
-            console.log('  R = Mode Rotation');
-            console.log('  E = Mode Scale (classique, affecte depth spread)');
-            console.log('  S = Mode Redimensionnement (modifie positions, préserve depth)');
-            console.log('  Maj enfoncé = rotation 15°, translation 1000');
-            console.log('  Échap = Désélectionner');
-            console.log('  Ctrl+C = Copier | Ctrl+V = Coller (dupliquer)');
-            console.log('  Ctrl+Z = Annuler | Ctrl+Shift+Z = Refaire');
-            console.log('  Magnétisme auto : 0/90/180/270°');
+            dbg(`=== ÉCRAN ${num} SÉLECTIONNÉ ===`);
+            dbg('Commandes:');
+            dbg('  G = Mode Translation');
+            dbg('  R = Mode Rotation');
+            dbg('  E = Mode Scale (classique, affecte depth spread)');
+            dbg('  S = Mode Redimensionnement (modifie positions, préserve depth)');
+            dbg('  Maj enfoncé = rotation 15°, translation 1000');
+            dbg('  Échap = Désélectionner');
+            dbg('  Ctrl+C = Copier | Ctrl+V = Coller (dupliquer)');
+            dbg('  Ctrl+Z = Annuler | Ctrl+Shift+Z = Refaire');
+            dbg('  Magnétisme auto : 0/90/180/270°');
         }
 
         function deselectScreen() {
             if (selectedScreen) {
-                console.log(`Écran ${selectedScreen} désélectionné`);
+                dbg(`Écran ${selectedScreen} désélectionné`);
                 transformControls.detach();
                 selectedScreen = null;
 
@@ -3190,7 +3205,7 @@
         function toggleAllInterfaces() {
             // CRITICAL: Only allow in Admin mode (not FPS/Spectator mode)
             if (fpsMode) {
-                console.log('⚠️ Interfaces disponibles uniquement en mode Admin (appuyez sur B)');
+                dbg('⚠️ Interfaces disponibles uniquement en mode Admin (appuyez sur B)');
                 return;
             }
 
@@ -3215,7 +3230,7 @@
                 shapeSelector.classList.add('hidden');
                 fpsSettings.classList.add('hidden');
                 fpsCounter.classList.add('hidden');
-                console.log('🙈 Interfaces cachées (N pour afficher)');
+                dbg('🙈 Interfaces cachées (N pour afficher)');
             } else {
                 ui.classList.remove('hidden');
                 screenManager.classList.remove('hidden');
@@ -3226,7 +3241,7 @@
                 if (currentVideo) {
                     document.getElementById('controls')?.classList.remove('hidden');
                 }
-                console.log('👁️ Interfaces affichées (N pour cacher)');
+                dbg('👁️ Interfaces affichées (N pour cacher)');
             }
         }
 
@@ -3267,7 +3282,7 @@
             // Remove from allScreens
             delete allScreens[num];
 
-            console.log(`=== ÉCRAN ${num} SUPPRIMÉ ===`);
+            dbg(`=== ÉCRAN ${num} SUPPRIMÉ ===`);
 
             // Update UI
             updateScreenList();
@@ -3393,7 +3408,7 @@
         }
 
         function addNewScreen() {
-            console.log('🆕 addNewScreen() appelé - allScreens actuels:', Object.keys(allScreens));
+            dbg('🆕 addNewScreen() appelé - allScreens actuels:', Object.keys(allScreens));
             console.trace('Stack trace:'); // Pour voir qui appelle cette fonction
 
             // Find next available screen number
@@ -3401,7 +3416,7 @@
             while (allScreens[newNum]) {
                 newNum++;
             }
-            console.log('🆕 Nouveau numéro trouvé:', newNum);
+            dbg('🆕 Nouveau numéro trouvé:', newNum);
 
             // Save state for undo
             saveState();
@@ -3429,10 +3444,10 @@
             screensGroup.add(screen);
             allScreens[newNum] = screen;
 
-            console.log(`=== ÉCRAN ${newNum} CRÉÉ ===`);
-            console.log(`Position: (${offset}, 0, 0)`);
-            console.log(`Dimensions: ${width} x ${height}`);
-            console.log(`Type: Surface couleur unie (gris)`);
+            dbg(`=== ÉCRAN ${newNum} CRÉÉ ===`);
+            dbg(`Position: (${offset}, 0, 0)`);
+            dbg(`Dimensions: ${width} x ${height}`);
+            dbg(`Type: Surface couleur unie (gris)`);
 
             // Update UI
             updateScreenList();
@@ -3441,13 +3456,13 @@
         // Copy selected screen to clipboard
         function copyScreen() {
             if (!selectedScreen) {
-                console.log('❌ Aucun écran sélectionné pour copier');
+                dbg('❌ Aucun écran sélectionné pour copier');
                 return;
             }
 
             const screen = allScreens[selectedScreen];
             if (!screen) {
-                console.log('❌ Écran non trouvé');
+                dbg('❌ Écran non trouvé');
                 return;
             }
 
@@ -3485,15 +3500,15 @@
                 }
             }
 
-            console.log(`📋 Écran ${selectedScreen} copié dans le presse-papiers`);
-            console.log('   Dimensions:', clipboardScreen.dimensions);
-            console.log('   Position:', clipboardScreen.position);
+            dbg(`📋 Écran ${selectedScreen} copié dans le presse-papiers`);
+            dbg('   Dimensions:', clipboardScreen.dimensions);
+            dbg('   Position:', clipboardScreen.position);
         }
 
         // Paste screen from clipboard (create duplicate)
         function pasteScreen() {
             if (!clipboardScreen) {
-                console.log('❌ Presse-papiers vide - copiez d\'abord un écran (Ctrl+C)');
+                dbg('❌ Presse-papiers vide - copiez d\'abord un écran (Ctrl+C)');
                 return;
             }
 
@@ -3546,9 +3561,9 @@
             screensGroup.add(screen);
             allScreens[newNum] = screen;
 
-            console.log(`✅ Écran ${newNum} créé par collage (duplicata)`);
-            console.log(`   Position: (${screen.position.x.toFixed(3)}, ${screen.position.y.toFixed(3)}, ${screen.position.z.toFixed(3)})`);
-            console.log(`   Dimensions: ${width} x ${height}`);
+            dbg(`✅ Écran ${newNum} créé par collage (duplicata)`);
+            dbg(`   Position: (${screen.position.x.toFixed(3)}, ${screen.position.y.toFixed(3)}, ${screen.position.z.toFixed(3)})`);
+            dbg(`   Dimensions: ${width} x ${height}`);
 
             // Update UI and select new screen
             updateScreenList();
@@ -3914,7 +3929,7 @@
             }
 
             updateScreenList();
-            console.log(`Écran ${num}: Type changé en ${isColorSurface ? 'Couleur' : 'Vidéo'}`);
+            dbg(`Écran ${num}: Type changé en ${isColorSurface ? 'Couleur' : 'Vidéo'}`);
         }
 
         function setScreenColor(num, colorValue) {
@@ -3934,7 +3949,7 @@
             }
 
             updateScreenList();
-            console.log(`Écran ${num}: Couleur changée → #${colorValue.toString(16).padStart(6, '0')}`);
+            dbg(`Écran ${num}: Couleur changée → #${colorValue.toString(16).padStart(6, '0')}`);
         }
 
         function onShiftChange(e) {
@@ -3990,7 +4005,7 @@
             });
 
             undoHistory.push(state);
-            console.log('💾 saveState() - État sauvegardé, écrans:', Object.keys(state.screens), 'historique:', undoHistory.length);
+            dbg('💾 saveState() - État sauvegardé, écrans:', Object.keys(state.screens), 'historique:', undoHistory.length);
             if (undoHistory.length > MAX_HISTORY) {
                 undoHistory.shift();
             }
@@ -4000,10 +4015,10 @@
         }
 
         function undo() {
-            console.log('🔄 undo() appelé - undoHistory.length:', undoHistory.length);
+            dbg('🔄 undo() appelé - undoHistory.length:', undoHistory.length);
 
             if (undoHistory.length === 0) {
-                console.log('❌ Rien à annuler (historique vide)');
+                dbg('❌ Rien à annuler (historique vide)');
                 return;
             }
 
@@ -4025,7 +4040,7 @@
                     color: screen.userData.color || 0x808080
                 };
             });
-            console.log('💾 État actuel sauvegardé dans redo, écrans:', Object.keys(currentState.screens));
+            dbg('💾 État actuel sauvegardé dans redo, écrans:', Object.keys(currentState.screens));
             redoHistory.push(currentState);
             if (redoHistory.length > MAX_HISTORY) {
                 redoHistory.shift();
@@ -4033,7 +4048,7 @@
 
             // Restore previous state
             const previousState = undoHistory.pop();
-            console.log('⏮️ Restauration état précédent, écrans:', Object.keys(previousState.screens));
+            dbg('⏮️ Restauration état précédent, écrans:', Object.keys(previousState.screens));
 
             // Restore all screens from previous state
             Object.keys(previousState.screens).forEach(num => {
@@ -4061,12 +4076,12 @@
             }
 
             updateScreenList();
-            console.log('✅ Annulé (Ctrl+Z)');
+            dbg('✅ Annulé (Ctrl+Z)');
         }
 
         function redo() {
             if (redoHistory.length === 0) {
-                console.log('❌ Rien à refaire');
+                dbg('❌ Rien à refaire');
                 return;
             }
 
@@ -4122,15 +4137,15 @@
             }
 
             updateScreenList();
-            console.log('✅ Refait (Ctrl+Shift+Z)');
+            dbg('✅ Refait (Ctrl+Shift+Z)');
         }
 
         function saveAllPositions() {
-            console.log('');
-            console.log('='.repeat(60));
-            console.log('SAUVEGARDE DES POSITIONS - COPIER-COLLER DANS LE CODE');
-            console.log('='.repeat(60));
-            console.log('');
+            dbg('');
+            dbg('='.repeat(60));
+            dbg('SAUVEGARDE DES POSITIONS - COPIER-COLLER DANS LE CODE');
+            dbg('='.repeat(60));
+            dbg('');
 
             Object.keys(allScreens).sort().forEach(num => {
                 const screen = allScreens[num];
@@ -4138,16 +4153,16 @@
                 const rot = screen.rotation;
                 const scale = screen.scale;
 
-                console.log(`// Écran ${num}`);
-                console.log(`screen${num}.position.set(${pos.x.toFixed(3)}, ${pos.y.toFixed(3)}, ${pos.z.toFixed(3)});`);
-                console.log(`screen${num}.rotation.set(${rot.x.toFixed(6)}, ${rot.y.toFixed(6)}, ${rot.z.toFixed(6)});`);
+                dbg(`// Écran ${num}`);
+                dbg(`screen${num}.position.set(${pos.x.toFixed(3)}, ${pos.y.toFixed(3)}, ${pos.z.toFixed(3)});`);
+                dbg(`screen${num}.rotation.set(${rot.x.toFixed(6)}, ${rot.y.toFixed(6)}, ${rot.z.toFixed(6)});`);
                 if (scale.x !== 1 || scale.y !== 1 || scale.z !== 1) {
-                    console.log(`screen${num}.scale.set(${scale.x.toFixed(3)}, ${scale.y.toFixed(3)}, ${scale.z.toFixed(3)});`);
+                    dbg(`screen${num}.scale.set(${scale.x.toFixed(3)}, ${scale.y.toFixed(3)}, ${scale.z.toFixed(3)});`);
                 }
-                console.log('');
+                dbg('');
             });
 
-            console.log('='.repeat(60));
+            dbg('='.repeat(60));
         }
 
         // Save positions to JSON file (Ctrl+S)
@@ -4208,8 +4223,8 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            console.log('✅ Positions complètes (avec dimensions) sauvegardées dans le fichier JSON téléchargé');
-            console.log(`📦 ${Object.keys(allScreens).length} écrans exportés`);
+            dbg('✅ Positions complètes (avec dimensions) sauvegardées dans le fichier JSON téléchargé');
+            dbg(`📦 ${Object.keys(allScreens).length} écrans exportés`);
         }
 
         // Shape texture generators
@@ -4302,92 +4317,93 @@
 
         // Init Three.js
         function init() {
-            console.log('═══════════════════════════════════════════════════════');
-            console.log('🔧 INIT() - Début de l\'initialisation');
-            console.log('═══════════════════════════════════════════════════════');
+            dbg('═══════════════════════════════════════════════════════');
+            dbg('🔧 INIT() - Début de l\'initialisation');
+            dbg('═══════════════════════════════════════════════════════');
 
-            console.log('📦 Vérification THREE.js...');
+            dbg('📦 Vérification THREE.js...');
             if (typeof THREE === 'undefined') {
                 console.error('❌ THREE.js not loaded!');
                 alert('THREE.js failed to load.');
                 return;
             }
-            console.log('✅ THREE.js chargé:', THREE.REVISION);
+            dbg('✅ THREE.js chargé:', THREE.REVISION);
 
-            console.log('🌍 Création de la scène...');
+            dbg('🌍 Création de la scène...');
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000);
-            console.log('✅ Scène créée');
+            dbg('✅ Scène créée');
 
-            console.log('📦 Création du groupe d\'écrans...');
+            dbg('📦 Création du groupe d\'écrans...');
             // Create group to contain screens for common rotation
             screensGroup = new THREE.Group();
             scene.add(screensGroup);
-            console.log('✅ Groupe d\'écrans créé et ajouté à la scène');
+            dbg('✅ Groupe d\'écrans créé et ajouté à la scène');
 
             // Utiliser la taille complète de la fenêtre (pas de ratio forcé)
             const canvasWidth = window.innerWidth;
             const canvasHeight = window.innerHeight;
             const aspectRatio = canvasWidth / canvasHeight;
-            console.log(`📐 Dimensions: ${canvasWidth}x${canvasHeight} (ratio: ${aspectRatio.toFixed(2)})`);
+            dbg(`📐 Dimensions: ${canvasWidth}x${canvasHeight} (ratio: ${aspectRatio.toFixed(2)})`);
 
-            console.log('📷 Création de la caméra...');
+            dbg('📷 Création de la caméra...');
             camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 10000);
             // Position de spawn au centre de la forme 11, à quelques unités au-dessus du sol
             // Sol de la forme 11: y = -111.773, on spawn à fpsCameraHeight
             camera.position.set(-274.876, fpsSettings.fpsCameraHeight, 112.79);
-            console.log(`📍 Position caméra: (${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)})`);
+            dbg(`📍 Position caméra: (${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)})`);
 
             // Orienter la caméra vers l'écran 7 puis tourner d'un quart de tour supplémentaire
             const lookAtTarget = new THREE.Vector3(599.938, fpsSettings.fpsCameraHeight, 112.546);
             camera.lookAt(lookAtTarget);
-            console.log(`👀 Caméra regarde vers: (${lookAtTarget.x.toFixed(1)}, ${lookAtTarget.y.toFixed(1)}, ${lookAtTarget.z.toFixed(1)})`);
+            dbg(`👀 Caméra regarde vers: (${lookAtTarget.x.toFixed(1)}, ${lookAtTarget.y.toFixed(1)}, ${lookAtTarget.z.toFixed(1)})`);
 
             // Calculer yaw et pitch initiaux basés sur l'orientation
             const direction = new THREE.Vector3();
             direction.subVectors(lookAtTarget, camera.position).normalize();
             cameraYaw = Math.atan2(direction.x, direction.z) + Math.PI; // +180° (quart de tour supplémentaire)
             cameraPitch = 0; // Vision horizontale
-            console.log(`🎯 Orientation: yaw=${cameraYaw.toFixed(2)}, pitch=${cameraPitch.toFixed(2)}`);
-            console.log('✅ Caméra configurée');
+            dbg(`🎯 Orientation: yaw=${cameraYaw.toFixed(2)}, pitch=${cameraPitch.toFixed(2)}`);
+            dbg('✅ Caméra configurée');
 
-            console.log('🖼️ Création du renderer...');
+            dbg('🖼️ Création du renderer...');
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
                 alpha: true,
                 powerPreference: 'high-performance'
             });
             renderer.setSize(canvasWidth, canvasHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            // PERFORMANCE: Shadows desactives (tres couteux, pas necessaire pour particules)
+            renderer.shadowMap.enabled = false;
+            // renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 1.2;
-            console.log('✅ Renderer créé et configuré');
+            dbg('✅ Renderer créé et configuré');
 
-            console.log('📎 Ajout du canvas au DOM...');
+            dbg('📎 Ajout du canvas au DOM...');
             const canvasContainer = document.getElementById('canvas');
             if (!canvasContainer) {
                 console.error('❌ Element #canvas introuvable dans le DOM!');
                 return;
             }
             canvasContainer.appendChild(renderer.domElement);
-            console.log('✅ Canvas ajouté au DOM');
+            dbg('✅ Canvas ajouté au DOM');
 
-            console.log('💡 Ajout des lumières...');
+            dbg('💡 Ajout des lumières...');
             // Lumière ambiante
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
             scene.add(ambientLight);
-            console.log('✅ Lumière ambiante ajoutée');
+            dbg('✅ Lumière ambiante ajoutée');
 
             // FREE CAMERA: Pas d'OrbitControls, caméra complètement libre
             // Rotation avec clic droit + drag, mouvement avec flèches
 
-            console.log('🎮 Configuration des TransformControls...');
+            dbg('🎮 Configuration des TransformControls...');
             // TransformControls for manipulating screens
             transformControls = new THREE.TransformControls(camera, renderer.domElement);
             transformControls.setSpace('world'); // Use world space to avoid X/Y inversion
             scene.add(transformControls);
-            console.log('✅ TransformControls configurés');
+            dbg('✅ TransformControls configurés');
 
             // When transforming, disable free camera
             transformControls.addEventListener('dragging-changed', function(event) {
@@ -4444,7 +4460,7 @@
                                 screen.scale.set(1, 1, 1);
                                 lastResizeScale = {x: 1, y: 1, z: 1};
 
-                                console.log(`Redimensionné: ${Math.round(newWidth)} x ${Math.round(newHeight)}`);
+                                dbg(`Redimensionné: ${Math.round(newWidth)} x ${Math.round(newHeight)}`);
                             }
                             // Volumetric screens (Points or InstancedMesh)
                             else if (screen.userData.positions || (screen.geometry && screen.geometry.attributes.position)) {
@@ -4486,7 +4502,7 @@
                                 screen.scale.set(1, 1, 1);
                                 lastResizeScale = {x: 1, y: 1, z: 1};
 
-                                console.log(`Redimensionné (volumétrique): x${deltaX.toFixed(2)}, y${deltaY.toFixed(2)}, z${deltaZ.toFixed(2)}`);
+                                dbg(`Redimensionné (volumétrique): x${deltaX.toFixed(2)}, y${deltaY.toFixed(2)}, z${deltaZ.toFixed(2)}`);
                             }
                         }
                     }
@@ -4561,15 +4577,15 @@
                     document.mozPointerLockElement === renderer.domElement ||
                     document.webkitPointerLockElement === renderer.domElement) {
                     isMouseLocked = true;
-                    console.log('🔒 PointerLock activé (ESC pour quitter)');
+                    dbg('🔒 PointerLock activé (ESC pour quitter)');
                 } else {
                     isMouseLocked = false;
-                    console.log('🔓 PointerLock désactivé');
+                    dbg('🔓 PointerLock désactivé');
 
                     // CRITICAL FIX: When pointer lock is released in Spectator mode, show pause screen
                     // This ensures ESC directly shows pause screen instead of requiring two presses
                     if (fpsMode && !isPaused) {
-                        console.log('▶️ ESC détecté: Affichage du mode pause');
+                        dbg('▶️ ESC détecté: Affichage du mode pause');
                         showPauseScreen();
                     }
                 }
@@ -4601,48 +4617,51 @@
             setupArrowButtons();
 
             // Display controls in console
-            console.log('═══════════════════════════════════════════════════════');
-            console.log('🏛️  SIMULATION MUSÉE - CONTRÔLES');
-            console.log('═══════════════════════════════════════════════════════');
-            console.log('');
-            console.log('🔄 BASCULER ENTRE MODES:');
-            console.log('   B            - Basculer MODE FPS ↔ MODE NORMAL');
-            console.log('   N            - Afficher/Cacher interfaces (cachées par défaut)');
-            console.log('   F            - Afficher/Cacher FPS Settings (bas gauche)');
-            console.log('   Ctrl+S       - Exporter paramètres FPS dans console');
-            console.log('');
-            console.log('📍 MODE NORMAL (par défaut - ADMIN):');
-            console.log('   Flèches/WASD - Déplacement horizontal');
-            console.log('   O/L          - Monter/Descendre librement');
-            console.log('   Clic gauche  - Rotation caméra');
-            console.log('   Molette      - Zoom');
-            console.log('');
-            console.log('🎮 MODE FPS (touche B - SPECTATEUR):');
-            console.log('   WASD/Flèches - Se déplacer');
-            console.log('   Shift        - Sprint (x2.5)');
-            console.log('   Clic canvas  - PointerLock (ESC pour quitter)');
-            console.log('   Gravité      - Marche sur sols (écrans 6, 10, 11)');
-            console.log('   Collisions   - Activées avec murs');
-            console.log('   H            - Afficher/Masquer hitbox (debug)');
-            console.log('');
-            console.log('📍 Spawn: Centre forme 11, quelques unités au-dessus');
-            console.log('🙈 Interfaces cachées - Appuyez sur N pour afficher');
-            console.log('');
-            console.log('🖱️ MODE NORMAL ACTIVÉ - Caméra libre');
-            console.log('   Appuyez sur B pour activer le mode FPS/Spectateur');
-            console.log('═══════════════════════════════════════════════════════');
+            dbg('═══════════════════════════════════════════════════════');
+            dbg('🏛️  SIMULATION MUSÉE - CONTRÔLES');
+            dbg('═══════════════════════════════════════════════════════');
+            dbg('');
+            dbg('🔄 BASCULER ENTRE MODES:');
+            dbg('   B            - Basculer MODE FPS ↔ MODE NORMAL');
+            dbg('   N            - Afficher/Cacher interfaces (cachées par défaut)');
+            dbg('   F            - Afficher/Cacher FPS Settings (bas gauche)');
+            dbg('   Ctrl+S       - Exporter paramètres FPS dans console');
+            dbg('');
+            dbg('📍 MODE NORMAL (par défaut - ADMIN):');
+            dbg('   Flèches/WASD - Déplacement horizontal');
+            dbg('   O/L          - Monter/Descendre librement');
+            dbg('   Clic gauche  - Rotation caméra');
+            dbg('   Molette      - Zoom');
+            dbg('');
+            dbg('🎮 MODE FPS (touche B - SPECTATEUR):');
+            dbg('   WASD/Flèches - Se déplacer');
+            dbg('   Shift        - Sprint (x2.5)');
+            dbg('   Clic canvas  - PointerLock (ESC pour quitter)');
+            dbg('   Gravité      - Marche sur sols (écrans 6, 10, 11)');
+            dbg('   Collisions   - Activées avec murs');
+            dbg('   H            - Afficher/Masquer hitbox (debug)');
+            dbg('');
+            dbg('📍 Spawn: Centre forme 11, quelques unités au-dessus');
+            dbg('🙈 Interfaces cachées - Appuyez sur N pour afficher');
+            dbg('');
+            dbg('🖱️ MODE NORMAL ACTIVÉ - Caméra libre');
+            dbg('   Appuyez sur B pour activer le mode FPS/Spectateur');
+            dbg('═══════════════════════════════════════════════════════');
 
-            console.log('');
-            console.log('🚀 Démarrage de la boucle d\'animation...');
+            dbg('');
+            dbg('🚀 Démarrage de la boucle d\'animation...');
             animate();
 
             // Initialize FPS counter DOM cache
+            // PERFORMANCE: Cache tous les elements DOM utilises dans animate()
             fpsDOMCache.counter = document.getElementById('fps-counter');
-            fpsDOMCache.value = fpsDOMCache.counter.querySelector('.fps-value');
+            fpsDOMCache.value = fpsDOMCache.counter?.querySelector('.fps-value');
+            fpsDOMCache.gameInstructions = document.getElementById('game-instructions');
+            fpsDOMCache.videoPausedIndicator = document.getElementById('video-paused-indicator');
 
-            console.log('═══════════════════════════════════════════════════════');
-            console.log('✅ INIT() TERMINÉ AVEC SUCCÈS');
-            console.log('═══════════════════════════════════════════════════════');
+            dbg('═══════════════════════════════════════════════════════');
+            dbg('✅ INIT() TERMINÉ AVEC SUCCÈS');
+            dbg('═══════════════════════════════════════════════════════');
         }
 
         // Load video function
@@ -4697,12 +4716,12 @@
                 videoElement.play();
 
                 // Apply automatiquement (générer les particules)
-                console.log('🎬 Apply automatique après chargement vidéo...');
+                dbg('🎬 Apply automatique après chargement vidéo...');
                 generate(videoElement); // updateScreenList() is called at the end of this function
 
                 // Double-check: réappliquer après un court délai pour être sûr
                 setTimeout(() => {
-                    console.log('🎬 Apply automatique (2ème passe)...');
+                    dbg('🎬 Apply automatique (2ème passe)...');
                     generate(videoElement);
                 }, 100);
 
@@ -5104,26 +5123,26 @@
                 }
             }
 
-            console.log(`🎬 Panorama portion ${portionIndex + 1}/${totalPortions}: ${particleCount.toLocaleString()} particules`);
+            dbg(`🎬 Panorama portion ${portionIndex + 1}/${totalPortions}: ${particleCount.toLocaleString()} particules`);
             return { positions, colors, initialZ, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor };
         }
 
         function generate(video) {
-            console.log('═══════════════════════════════════════════════════════');
-            console.log('🎬 GENERATE() APPELÉ');
-            console.log('═══════════════════════════════════════════════════════');
-            console.log('📦 allScreens avant:', Object.keys(allScreens || {}));
-            console.log('🎥 Vidéo:', video ? `${video.videoWidth}x${video.videoHeight}` : 'null');
+            dbg('═══════════════════════════════════════════════════════');
+            dbg('🎬 GENERATE() APPELÉ');
+            dbg('═══════════════════════════════════════════════════════');
+            dbg('📦 allScreens avant:', Object.keys(allScreens || {}));
+            dbg('🎥 Vidéo:', video ? `${video.videoWidth}x${video.videoHeight}` : 'null');
 
             // PANORAMIC MODE: Check if panoramic video is available
             const isPanoramicMode = panoramicVideo !== null;
             if (isPanoramicMode) {
-                console.log('🌅 MODE PANORAMIQUE ACTIVÉ');
-                console.log(`   Vidéo: ${panoramicVideo.videoWidth}x${panoramicVideo.videoHeight}`);
-                console.log(`   5 écrans × 1920px chacun = 9600px total`);
+                dbg('🌅 MODE PANORAMIQUE ACTIVÉ');
+                dbg(`   Vidéo: ${panoramicVideo.videoWidth}x${panoramicVideo.videoHeight}`);
+                dbg(`   5 écrans × 1920px chacun = 9600px total`);
                 video = panoramicVideo; // Use panoramic video as base
             } else if (screenVideos[1]) {
-                console.log('🎬 Multi-video mode: Utilisation de video_01.mp4 pour génération');
+                dbg('🎬 Multi-video mode: Utilisation de video_01.mp4 pour génération');
                 video = screenVideos[1];
             }
 
@@ -5132,9 +5151,9 @@
                 alert('THREE.js not loaded.');
                 return;
             }
-            console.log('✅ THREE.js disponible');
+            dbg('✅ THREE.js disponible');
 
-            console.log('⚙️ Lecture des paramètres des sliders...');
+            dbg('⚙️ Lecture des paramètres des sliders...');
             // Read parameters from sliders
             pointSize = parseFloat(document.getElementById('size').value);
             particleDensity = parseInt(document.getElementById('density').value);
@@ -5219,13 +5238,13 @@
 
             // === PANORAMIC MODE: Use portion-based generation for screen 1 ===
             if (isPanoramicMode) {
-                console.log('🌅 Génération écran 1 depuis portion 0 (gauche) du panorama');
+                dbg('🌅 Génération écran 1 depuis portion 0 (gauche) du panorama');
                 const screen1Data = createParticleDataFromVideoPortion(panoramicVideo, 0, 5);
                 positions = screen1Data.positions;
                 colors = screen1Data.colors;
                 initialZ = screen1Data.initialZ;
                 scaleFactor = screen1Data.scaleFactor;
-                console.log(`   ✅ ${(positions.length / 3).toLocaleString()} particules générées`);
+                dbg(`   ✅ ${(positions.length / 3).toLocaleString()} particules générées`);
             } else {
             // === STANDARD MODE: Inline generation ===
 
@@ -5313,14 +5332,14 @@
             // If no particles found, set minLuminance to 0
             if (minLuminance === Infinity) minLuminance = 0;
 
-            console.log('🔍 Analyse de création des particules:');
-            console.log(`   🎚️ DENSITÉ demandée: ${particleDensity}X`);
-            console.log(`   📏 step: ${step}, TARGET: ${TARGET_WIDTH}x${TARGET_HEIGHT}`);
-            console.log(`   🔢 Pixels à scanner: ~${Math.floor((TARGET_WIDTH / step) * (TARGET_HEIGHT / step))}`);
-            console.log(`   🛡️ Cap MAX_PARTICLES: ${MAX_PARTICLES.toLocaleString()}`);
-            console.log(`   🎨 hideBlack: ${hideBlack}, blackThreshold: ${blackThreshold}`);
-            console.log(`   🖼️ hideBackground: ${hideBackground}, bgThreshold: ${bgThreshold || 'N/A'}`);
-            console.log(`   💡 minLuminance trouvée: ${minLuminance.toFixed(3)}`);
+            dbg('🔍 Analyse de création des particules:');
+            dbg(`   🎚️ DENSITÉ demandée: ${particleDensity}X`);
+            dbg(`   📏 step: ${step}, TARGET: ${TARGET_WIDTH}x${TARGET_HEIGHT}`);
+            dbg(`   🔢 Pixels à scanner: ~${Math.floor((TARGET_WIDTH / step) * (TARGET_HEIGHT / step))}`);
+            dbg(`   🛡️ Cap MAX_PARTICLES: ${MAX_PARTICLES.toLocaleString()}`);
+            dbg(`   🎨 hideBlack: ${hideBlack}, blackThreshold: ${blackThreshold}`);
+            dbg(`   🖼️ hideBackground: ${hideBackground}, bgThreshold: ${bgThreshold || 'N/A'}`);
+            dbg(`   💡 minLuminance trouvée: ${minLuminance.toFixed(3)}`);
 
             let totalPixelsScanned = 0;
             let pixelsWithAlpha = 0;
@@ -5414,13 +5433,13 @@
                 }
             }
 
-            console.log('📊 Résultats de la génération:');
-            console.log(`   📏 Pixels scannés: ${totalPixelsScanned}`);
-            console.log(`   ✅ Pixels avec alpha > 30: ${pixelsWithAlpha}`);
-            console.log(`   ⚫ Filtrés par hideBlack: ${pixelsFilteredByBlack}`);
-            console.log(`   🖼️ Filtrés par hideBackground: ${pixelsFilteredByBackground}`);
-            console.log(`   ✨ Particules AJOUTÉES: ${pixelsAdded.toLocaleString()}`);
-            console.log(`   📦 positions.length: ${positions.length} (${(positions.length / 3).toLocaleString()} particules)`);
+            dbg('📊 Résultats de la génération:');
+            dbg(`   📏 Pixels scannés: ${totalPixelsScanned}`);
+            dbg(`   ✅ Pixels avec alpha > 30: ${pixelsWithAlpha}`);
+            dbg(`   ⚫ Filtrés par hideBlack: ${pixelsFilteredByBlack}`);
+            dbg(`   🖼️ Filtrés par hideBackground: ${pixelsFilteredByBackground}`);
+            dbg(`   ✨ Particules AJOUTÉES: ${pixelsAdded.toLocaleString()}`);
+            dbg(`   📦 positions.length: ${positions.length} (${(positions.length / 3).toLocaleString()} particules)`);
             if (capReached) {
                 console.warn(`   ⚠️ CAP ATTEINT! Limite MAX_PARTICLES (${MAX_PARTICLES.toLocaleString()}) appliquée pour éviter lag.`);
             }
@@ -5477,7 +5496,7 @@
                     }
                 });
             }
-            console.log('💾 Formes personnalisées préservées (>23):', Object.keys(customShapesToPreserve));
+            dbg('💾 Formes personnalisées préservées (>23):', Object.keys(customShapesToPreserve));
 
             // CRITICAL: Detach transform controls before clearing to avoid "object must be part of scene graph" error
             const wasScreenSelected = selectedScreen;
@@ -5485,19 +5504,19 @@
                 transformControls.detach();
             }
 
-            console.log('🧹 Nettoyage du groupe d\'écrans...');
+            dbg('🧹 Nettoyage du groupe d\'écrans...');
             // Clear group before adding new screens (only default screens 1-7 now)
             screensGroup.clear();
-            console.log('✅ Groupe nettoyé');
+            dbg('✅ Groupe nettoyé');
 
-            console.log(`🎨 Mode de rendu: ${is3DMode ? '3D (InstancedMesh)' : '2D (Points)'}`);
-            console.log(`📊 Nombre de particules: ${positions.length / 3}`);
+            dbg(`🎨 Mode de rendu: ${is3DMode ? '3D (InstancedMesh)' : '2D (Points)'}`);
+            dbg(`📊 Nombre de particules: ${positions.length / 3}`);
 
             if (is3DMode) {
-                console.log('🔷 Création des particules en mode 3D...');
+                dbg('🔷 Création des particules en mode 3D...');
                 // 3D Mode: Use InstancedMesh with real 3D geometries
                 const count = positions.length / 3;
-                console.log(`   Count: ${count}`);
+                dbg(`   Count: ${count}`);
                 let baseGeometry;
                 const size = pointSize * 3;
 
@@ -5529,7 +5548,7 @@
 
                 particles = new THREE.InstancedMesh(baseGeometry, material, count);
                 particles.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-                console.log('✅ InstancedMesh créé:', particles);
+                dbg('✅ InstancedMesh créé:', particles);
 
                 const instanceColors = new Float32Array(count * 3);
                 for (let i = 0; i < count; i++) {
@@ -5571,7 +5590,7 @@
 
                 const shapeTexture = getShapeTexture(currentShape);
 
-                console.log('🔸 Création des particules en mode 2D...');
+                dbg('🔸 Création des particules en mode 2D...');
                 material = new THREE.PointsMaterial({
                     size: pointSize,
                     vertexColors: true,
@@ -5582,7 +5601,7 @@
                 });
 
                 particles = new THREE.Points(geometry, material);
-                console.log('✅ Points créés:', particles);
+                dbg('✅ Points créés:', particles);
             }
 
             // Volumétrie unilatérale : les particules sombres restent à z=0 (point fixe)
@@ -5594,9 +5613,9 @@
             particles.rotation.set(0, 0, 0);
 
             // Add first screen to group
-            console.log('➕ Ajout des particules au screensGroup...');
+            dbg('➕ Ajout des particules au screensGroup...');
             screensGroup.add(particles);
-            console.log('✅ Particules ajoutées au groupe');
+            dbg('✅ Particules ajoutées au groupe');
 
             // Calculate screen dimensions from 16:9 grid (invariant to depth spread)
             const screenW = TARGET_WIDTH * scaleFactor;
@@ -5607,10 +5626,10 @@
             let particlesRight;
             let screen2Data = null;
             if (isPanoramicMode) {
-                console.log('🌅 Génération écran 2 depuis portion 1 du panorama');
+                dbg('🌅 Génération écran 2 depuis portion 1 du panorama');
                 screen2Data = createParticleDataFromVideoPortion(panoramicVideo, 1, 5);
             } else if (screenVideos[2] && screenVideos[2] !== video) {
-                console.log('🎬 Génération écran 2 depuis video_02.mp4');
+                dbg('🎬 Génération écran 2 depuis video_02.mp4');
                 screen2Data = createParticleDataFromVideo(screenVideos[2]);
             }
 
@@ -5674,7 +5693,7 @@
                 }
             } else {
                 // Fallback: Clone screen 1 if no video available
-                console.log('🎬 Écran 2: Clonage de l\'écran 1 (fallback)');
+                dbg('🎬 Écran 2: Clonage de l\'écran 1 (fallback)');
                 particlesRight = particles.clone();
                 particlesRight.geometry = particles.geometry;
                 particlesRight.material = particles.material;
@@ -5694,7 +5713,7 @@
 
             if (floorVideo && floorVideo.videoWidth > 0) {
                 // Utiliser la vidéo du sol
-                console.log('🏠 Génération écran 6 (sol) depuis ecran_sol.webm');
+                dbg('🏠 Génération écran 6 (sol) depuis ecran_sol.webm');
                 const floorData = createParticleDataFromVideo(floorVideo);
                 if (floorData) {
                     // Multiplier X et Y par 2 pour surface doublée
@@ -5706,7 +5725,7 @@
                 }
             } else {
                 // Fallback: Filtrer les particules de l'écran 1
-                console.log('🏠 Génération écran 6 (sol) depuis écran 1 (fallback)');
+                dbg('🏠 Génération écran 6 (sol) depuis écran 1 (fallback)');
                 const halfH = screenH / 2;
                 const halfH_screen3 = halfH / 2;
 
@@ -5799,10 +5818,10 @@
             let wallOppA;
             let screen5Data = null;
             if (isPanoramicMode) {
-                console.log('🌅 Génération écran 5 depuis portion 4 (droite) du panorama');
+                dbg('🌅 Génération écran 5 depuis portion 4 (droite) du panorama');
                 screen5Data = createParticleDataFromVideoPortion(panoramicVideo, 4, 5);
             } else if (screenVideos[5]) {
-                console.log('🎬 Génération écran 5 depuis video_05.mp4');
+                dbg('🎬 Génération écran 5 depuis video_05.mp4');
                 screen5Data = createParticleDataFromVideo(screenVideos[5]);
             }
 
@@ -5867,7 +5886,7 @@
                 }
             } else {
                 // Fallback: Clone screen 1 if no video available
-                console.log('🎬 Écran 5: Clonage de l\'écran 1 (fallback)');
+                dbg('🎬 Écran 5: Clonage de l\'écran 1 (fallback)');
                 wallOppA = particles.clone();
                 wallOppA.geometry = particles.geometry;
                 wallOppA.material = particles.material;
@@ -5884,10 +5903,10 @@
             let wallOppB;
             let screen6Data = null;
             if (isPanoramicMode) {
-                console.log('🌅 Génération écran 4 depuis portion 3 du panorama');
+                dbg('🌅 Génération écran 4 depuis portion 3 du panorama');
                 screen6Data = createParticleDataFromVideoPortion(panoramicVideo, 3, 5);
             } else if (screenVideos[4]) {
-                console.log('🎬 Génération écran 4 depuis ecran4.mp4');
+                dbg('🎬 Génération écran 4 depuis ecran4.mp4');
                 screen6Data = createParticleDataFromVideo(screenVideos[4]);
             }
 
@@ -5952,7 +5971,7 @@
                 }
             } else {
                 // Fallback: Clone screen 2 if no video available
-                console.log('🎬 Écran 4: Clonage de l\'écran 2 (fallback)');
+                dbg('🎬 Écran 4: Clonage de l\'écran 2 (fallback)');
                 wallOppB = particlesRight.clone();
                 wallOppB.geometry = particles.geometry;
                 wallOppB.material = particles.material;
@@ -5971,7 +5990,7 @@
 
             if (isPanoramicMode) {
                 // Use panorama portion 2 (middle)
-                console.log('🌅 Génération écran 3 depuis portion 2 (centre) du panorama');
+                dbg('🌅 Génération écran 3 depuis portion 2 (centre) du panorama');
                 const screen7Data = createParticleDataFromVideoPortion(panoramicVideo, 2, 5);
                 screen7Positions = screen7Data.positions;
                 screen7Colors = screen7Data.colors;
@@ -5979,7 +5998,7 @@
                 useVideo7 = true;
             } else if (screenVideos[3]) {
                 // Use ecran3.mp4
-                console.log('🎬 Génération écran 3 depuis ecran3.mp4');
+                dbg('🎬 Génération écran 3 depuis ecran3.mp4');
                 const screen7Data = createParticleDataFromVideo(screenVideos[3]);
                 screen7Positions = screen7Data.positions;
                 screen7Colors = screen7Data.colors;
@@ -5987,7 +6006,7 @@
                 useVideo7 = true;
             } else {
                 // Fallback: Filter from screen 1 video to create square
-                console.log('🎬 Écran 3: Filtrage depuis l\'écran 1 (fallback)');
+                dbg('🎬 Écran 3: Filtrage depuis l\'écran 1 (fallback)');
                 screen7Positions = [];
                 screen7Colors = [];
                 screen7InitialZ = [];
@@ -6485,12 +6504,12 @@
             screensGroup.add(screen23);
 
             // Restore custom shapes (>23) - both in allScreens and screensGroup
-            console.log('🔄 Restauration des formes personnalisées (>23):', Object.keys(customShapesToPreserve));
+            dbg('🔄 Restauration des formes personnalisées (>23):', Object.keys(customShapesToPreserve));
             Object.keys(customShapesToPreserve).forEach(key => {
                 const shape = customShapesToPreserve[key];
                 screensGroup.add(shape); // Re-add to scene
                 allScreens[key] = shape; // CRITICAL: Re-add to allScreens to prevent orphaning
-                console.log(`  ✓ Forme #${key} réajoutée à la scène et à allScreens`);
+                dbg(`  ✓ Forme #${key} réajoutée à la scène et à allScreens`);
             });
 
             // Update volumetric screens & shapes - RENUMÉROTÉS (1-23)
@@ -6521,15 +6540,15 @@
                 23: screen23,           // FORME: Dark panel front
                 ...customShapesToPreserve // Restore custom shapes (>23)
             };
-            console.log('✅ Tous les écrans (1-23 + custom):', Object.keys(allScreens));
+            dbg('✅ Tous les écrans (1-23 + custom):', Object.keys(allScreens));
 
             // CRITICAL: Update screen list UI immediately after allScreens is populated
             updateScreenList();
-            console.log('🎨 Interface de gestion des écrans mise à jour');
+            dbg('🎨 Interface de gestion des écrans mise à jour');
 
             // Update screen number labels for volumetric screens (Admin mode only)
             updateScreenLabels();
-            console.log('🔢 Numéros des écrans volumétriques mis à jour');
+            dbg('🔢 Numéros des écrans volumétriques mis à jour');
 
             // CRITICAL: Reattach transform controls to the same screen after regeneration
             if (transformControls && wasScreenSelected && allScreens[wasScreenSelected]) {
@@ -6537,18 +6556,18 @@
                 transformControls.attach(allScreens[wasScreenSelected]);
             }
 
-            console.log('');
-            console.log('=== CONTRÔLES 3D DISPONIBLES ===');
-            console.log('Touches 1-9 : Sélectionner un écran/forme');
-            console.log('G : Mode Translation');
-            console.log('R : Mode Rotation');
-            console.log('E : Mode Scale');
-            console.log('Maj enfoncé : rotation 15°, translation 1000');
-            console.log('Échap : Désélectionner');
-            console.log('Ctrl+Z : Annuler | Ctrl+Shift+Z : Refaire');
-            console.log('S : Sauvegarder positions');
-            console.log('Magnétisme auto à 0/90/180/270°');
-            console.log('================================');
+            dbg('');
+            dbg('=== CONTRÔLES 3D DISPONIBLES ===');
+            dbg('Touches 1-9 : Sélectionner un écran/forme');
+            dbg('G : Mode Translation');
+            dbg('R : Mode Rotation');
+            dbg('E : Mode Scale');
+            dbg('Maj enfoncé : rotation 15°, translation 1000');
+            dbg('Échap : Désélectionner');
+            dbg('Ctrl+Z : Annuler | Ctrl+Shift+Z : Refaire');
+            dbg('S : Sauvegarder positions');
+            dbg('Magnétisme auto à 0/90/180/270°');
+            dbg('================================');
 
             // Initialize flow offsets - random circular movement for each particle
             const particleCount = positions.length / 3;
@@ -6564,7 +6583,7 @@
                 });
             }
 
-            console.log('🏁 generate() terminé - allScreens final:', Object.keys(allScreens));
+            dbg('🏁 generate() terminé - allScreens final:', Object.keys(allScreens));
         }
 
         function applySettings() {
@@ -6643,8 +6662,8 @@
             lastVideoUpdateTime = now;
 
             // Optimization: Skip if video is paused (no need to update)
-            // Show visual indicator to user
-            const pausedIndicator = document.getElementById('video-paused-indicator');
+            // PERFORMANCE: Utilise le cache DOM
+            const pausedIndicator = fpsDOMCache.videoPausedIndicator;
             if (currentVideo.paused) {
                 if (pausedIndicator && !pausedIndicator.classList.contains('visible')) {
                     pausedIndicator.classList.add('visible');
@@ -7470,9 +7489,9 @@
 
             animateFrameCount++;
             if (animateFrameCount === 1) {
-                console.log('🎬 ANIMATE() - Première frame');
+                dbg('🎬 ANIMATE() - Première frame');
             } else if (animateFrameCount % 60 === 0) {
-                console.log(`🎬 ANIMATE() - Frame ${animateFrameCount} (${(animateFrameCount/60).toFixed(0)}s)`);
+                dbg(`🎬 ANIMATE() - Frame ${animateFrameCount} (${(animateFrameCount/60).toFixed(0)}s)`);
             }
 
             time += 0.001 * breathSpeed;
@@ -7518,20 +7537,25 @@
             // Update colors for screens 2-5 from their respective videos
             updateMultiScreenColors();
 
-            // Update video texture
-            if (videoTexture && currentVideo) {
-                videoTexture.needsUpdate = true;
+            // PERFORMANCE: Update video texture seulement si la video a change de frame
+            if (videoTexture && currentVideo && !currentVideo.paused) {
+                // Verifier si la frame a change (throttle implicite)
+                if (currentVideo.readyState >= 2) {
+                    videoTexture.needsUpdate = true;
+                }
             }
 
             if (particles && flowOffsets) {
+                // PERFORMANCE: Pre-calculer epsilon une seule fois pour tous les ecrans
+                const epsilon = 0.3 * breathSpeed;
+                const flowActive = flowIntensity > 0;
+
                 if (particles.userData && particles.userData.is3D) {
                     // 3D Mode: Update instance matrices for breathing and flow animation
                     const initialZs = particles.userData.initialZ;
                     const positions = particles.userData.positions;
 
                     if (initialZs && positions && initialZs.length > 0) {
-                        // Optimization: reuse matrix object instead of creating new one
-                        const epsilon = 0.3 * breathSpeed;
 
                         for (let i = 0; i < initialZs.length; i++) {
                             const breathOffset = Math.sin(time + i * 0.01) * epsilon;
@@ -7539,7 +7563,7 @@
 
                             // Flow movement - circular organic motion
                             let flowX = 0, flowY = 0;
-                            if (flowIntensity > 0 && flowOffsets[i]) {
+                            if (flowActive && flowOffsets[i]) {
                                 const offset = flowOffsets[i];
                                 flowX = Math.sin(time * offset.speedX + offset.phaseX) * offset.radiusX * flowIntensity;
                                 flowY = Math.cos(time * offset.speedY + offset.phaseY) * offset.radiusY * flowIntensity;
@@ -7563,15 +7587,13 @@
                         const positions7 = screen7.userData.positions;
 
                         if (initialZs7 && positions7 && initialZs7.length > 0) {
-                            const epsilon = 0.3 * breathSpeed;
-
                             for (let i = 0; i < initialZs7.length; i++) {
                                 const breathOffset = Math.sin(time + i * 0.01) * epsilon;
                                 const newZ = initialZs7[i] + breathOffset;
 
                                 // Flow movement - circular organic motion
                                 let flowX = 0, flowY = 0;
-                                if (flowIntensity > 0 && flowOffsets[i]) {
+                                if (flowActive && flowOffsets[i]) {
                                     const offset = flowOffsets[i];
                                     flowX = Math.sin(time * offset.speedX + offset.phaseX) * offset.radiusX * flowIntensity;
                                     flowY = Math.cos(time * offset.speedY + offset.phaseY) * offset.radiusY * flowIntensity;
@@ -7595,15 +7617,13 @@
                         const positions3 = screen3.userData.positions;
 
                         if (initialZs3 && positions3 && initialZs3.length > 0) {
-                            const epsilon = 0.3 * breathSpeed;
-
                             for (let i = 0; i < initialZs3.length; i++) {
                                 const breathOffset = Math.sin(time + i * 0.01) * epsilon;
                                 const newZ = initialZs3[i] + breathOffset;
 
                                 // Flow movement - circular organic motion
                                 let flowX = 0, flowY = 0;
-                                if (flowIntensity > 0 && flowOffsets[i]) {
+                                if (flowActive && flowOffsets[i]) {
                                     const offset = flowOffsets[i];
                                     flowX = Math.sin(time * offset.speedX + offset.phaseX) * offset.radiusX * flowIntensity;
                                     flowY = Math.cos(time * offset.speedY + offset.phaseY) * offset.radiusY * flowIntensity;
@@ -7813,18 +7833,34 @@
                 if (fpsMode) {
                     // ===== MODE FPS: Gravité et marche sur le sol =====
 
-                    // OPTIMIZED: Reuse global raycaster instead of creating new one
-                    reusableRaycaster.set(camera.position, downVector);
+                    // PERFORMANCE: Throttle raycasting (tous les 2 frames)
+                    raycastCounter++;
+                    let groundY = lastGroundY;
 
-                    const floorScreens = [];
-                    if (allScreens[6]) floorScreens.push(allScreens[6]); // screen3 (floor) is now at position 6
-                    if (allScreens[10]) floorScreens.push(allScreens[10]);
-                    if (allScreens[11]) floorScreens.push(allScreens[11]);
+                    if (raycastCounter >= RAYCAST_INTERVAL) {
+                        raycastCounter = 0;
 
-                    const intersects = reusableRaycaster.intersectObjects(floorScreens, false);
+                        // PERFORMANCE: Cache le tableau des sols
+                        if (!cachedFloorScreens) {
+                            cachedFloorScreens = [];
+                            if (allScreens[6]) cachedFloorScreens.push(allScreens[6]);
+                            if (allScreens[10]) cachedFloorScreens.push(allScreens[10]);
+                            if (allScreens[11]) cachedFloorScreens.push(allScreens[11]);
+                        }
 
-                    if (intersects.length > 0) {
-                        const groundY = intersects[0].point.y + fpsSettings.fpsPlayerHeight;
+                        reusableRaycaster.set(camera.position, downVector);
+                        const intersects = reusableRaycaster.intersectObjects(cachedFloorScreens, false);
+
+                        if (intersects.length > 0) {
+                            groundY = intersects[0].point.y + fpsSettings.fpsPlayerHeight;
+                            lastGroundY = groundY;
+                        } else {
+                            groundY = null;
+                            lastGroundY = null;
+                        }
+                    }
+
+                    if (groundY !== null) {
                         const distanceToGround = camera.position.y - groundY;
 
                         if (distanceToGround <= 1) {
@@ -7923,8 +7959,9 @@
 
             // Update game instructions visibility based on Y position
             // Floor 11 is at Y=-111.773, with eye height 25, camera should be at Y≈-86.773
-            const instructionsElement = document.getElementById('game-instructions');
-            if (instructionsElement) {
+            // PERFORMANCE: Utilise le cache DOM au lieu de getElementById
+            if (fpsDOMCache.gameInstructions) {
+                const instructionsElement = fpsDOMCache.gameInstructions;
                 // Show instructions ONLY in FPS mode when on floor 11
                 if (fpsMode && !isPaused) {
                     const FLOOR_11_Y = -111.773;
@@ -7946,7 +7983,7 @@
             }
 
             if (animateFrameCount === 1) {
-                console.log('🖼️ RENDER() - Premier rendu de la scène');
+                dbg('🖼️ RENDER() - Premier rendu de la scène');
             }
             renderer.render(scene, camera);
         }
@@ -8058,7 +8095,7 @@
                 mat.roughness = fpsSettings.glassRoughness;
                 mat.opacity = fpsSettings.glassOpacity;
                 mat.needsUpdate = true;
-                console.log('🔄 Matériau verre mis à jour:', {
+                dbg('🔄 Matériau verre mis à jour:', {
                     opacity: fpsSettings.glassOpacity,
                     metalness: fpsSettings.glassMetalness,
                     roughness: fpsSettings.glassRoughness
@@ -8108,7 +8145,7 @@
                     const displayValue = value.toFixed(config.decimals);
                     document.getElementById(config.display).textContent = displayValue;
 
-                    console.log(`✅ ${config.var} = ${displayValue}`);
+                    dbg(`✅ ${config.var} = ${displayValue}`);
 
                     // Call callback if provided
                     if (config.callback) {
@@ -8117,7 +8154,7 @@
 
                     // Log hitbox changes specifically
                     if (config.var === 'fpsHitboxWidth' || config.var === 'fpsHitboxHeight') {
-                        console.log('🎯 Hitbox mise à jour:', {
+                        dbg('🎯 Hitbox mise à jour:', {
                             largeur: fpsSettings.fpsHitboxWidth,
                             hauteur: fpsSettings.fpsHitboxHeight
                         });
@@ -8139,26 +8176,26 @@
 
         function exportFPSSettings() {
             console.clear();
-            console.log('═════════════════════════════════════════════');
-            console.log('📋 PARAMÈTRES FPS - EXPORT');
-            console.log('═════════════════════════════════════════════');
-            console.log('');
-            console.log('Copie ces valeurs pour intégration:');
-            console.log('');
-            console.log('fpsMaxSpeed = ' + fpsSettings.fpsMaxSpeed + ';');
-            console.log('fpsScrollSpeed = ' + fpsSettings.fpsScrollSpeed + ';');
-            console.log('fpsAcceleration = ' + fpsSettings.fpsAcceleration + ';');
-            console.log('fpsDeceleration = ' + fpsSettings.fpsDeceleration + ';');
-            console.log('fpsCameraHeight = ' + fpsSettings.fpsCameraHeight + ';');
-            console.log('fpsCollisionRadius = ' + fpsSettings.fpsCollisionRadius + ';');
-            console.log('fpsGravity = ' + fpsSettings.fpsGravity + ';');
-            console.log('fpsPlayerHeight = ' + fpsSettings.fpsPlayerHeight + ';');
-            console.log('fpsMouseSensitivity = ' + fpsSettings.fpsMouseSensitivity + ';');
-            console.log('');
-            console.log('═════════════════════════════════════════════');
-            console.log('✅ Paramètres exportés dans la console!');
-            console.log('   Appuie sur Ctrl+S pour ré-exporter');
-            console.log('═════════════════════════════════════════════');
+            dbg('═════════════════════════════════════════════');
+            dbg('📋 PARAMÈTRES FPS - EXPORT');
+            dbg('═════════════════════════════════════════════');
+            dbg('');
+            dbg('Copie ces valeurs pour intégration:');
+            dbg('');
+            dbg('fpsMaxSpeed = ' + fpsSettings.fpsMaxSpeed + ';');
+            dbg('fpsScrollSpeed = ' + fpsSettings.fpsScrollSpeed + ';');
+            dbg('fpsAcceleration = ' + fpsSettings.fpsAcceleration + ';');
+            dbg('fpsDeceleration = ' + fpsSettings.fpsDeceleration + ';');
+            dbg('fpsCameraHeight = ' + fpsSettings.fpsCameraHeight + ';');
+            dbg('fpsCollisionRadius = ' + fpsSettings.fpsCollisionRadius + ';');
+            dbg('fpsGravity = ' + fpsSettings.fpsGravity + ';');
+            dbg('fpsPlayerHeight = ' + fpsSettings.fpsPlayerHeight + ';');
+            dbg('fpsMouseSensitivity = ' + fpsSettings.fpsMouseSensitivity + ';');
+            dbg('');
+            dbg('═════════════════════════════════════════════');
+            dbg('✅ Paramètres exportés dans la console!');
+            dbg('   Appuie sur Ctrl+S pour ré-exporter');
+            dbg('═════════════════════════════════════════════');
 
             // Also copy to clipboard
             const exportText = Object.entries(fpsSettings)
@@ -8166,7 +8203,7 @@
                 .join('\n');
 
             navigator.clipboard.writeText(exportText).then(() => {
-                console.log('📋 Copié dans le presse-papier!');
+                dbg('📋 Copié dans le presse-papier!');
             }).catch(err => {
                 console.warn('Impossible de copier dans le presse-papier:', err);
             });
@@ -8177,7 +8214,7 @@
             if (e.code === 'KeyF' && !e.ctrlKey && !e.shiftKey && !e.altKey && !fpsMode) {
                 const panel = document.getElementById('fps-settings-panel');
                 panel.classList.toggle('hidden');
-                console.log(panel.classList.contains('hidden') ? '🔧 FPS Settings cachés (F pour afficher)' : '🔧 FPS Settings affichés (F pour cacher)');
+                dbg(panel.classList.contains('hidden') ? '🔧 FPS Settings cachés (F pour afficher)' : '🔧 FPS Settings affichés (F pour cacher)');
             }
         });
 
@@ -8313,7 +8350,7 @@
                     console.warn('Web Audio API not supported');
                 }
 
-                console.log('🔊 AudioManager initialized');
+                dbg('🔊 AudioManager initialized');
             },
 
             // Play background music
@@ -8542,7 +8579,7 @@
             // Debounce: évite la double action ESC
             const now = performance.now();
             if (now - lastPauseToggleTime < PAUSE_DEBOUNCE_MS) {
-                console.log('⏳ showPauseScreen ignoré (debounce)');
+                dbg('⏳ showPauseScreen ignoré (debounce)');
                 return;
             }
             lastPauseToggleTime = now;
@@ -8574,10 +8611,10 @@
         window.onload = function() {
             // Don't auto-start - wait for user interaction on welcome screen
             initAudio();
-            console.log('═══════════════════════════════════════════════════════');
-            console.log('📦 WINDOW.ONLOAD - Page chargée');
-            console.log('💡 Cliquez sur PLAY pour démarrer');
-            console.log('═══════════════════════════════════════════════════════');
+            dbg('═══════════════════════════════════════════════════════');
+            dbg('📦 WINDOW.ONLOAD - Page chargée');
+            dbg('💡 Cliquez sur PLAY pour démarrer');
+            dbg('═══════════════════════════════════════════════════════');
 
             // Remove initial black loader
             const initialLoader = document.getElementById('initial-loader');
@@ -8593,11 +8630,11 @@
             if (welcomeVideo) {
                 welcomeVideo.addEventListener('canplaythrough', function() {
                     welcomeVideo.classList.add('loaded');
-                    console.log('✅ Vidéo d\'arrière-plan chargée');
+                    dbg('✅ Vidéo d\'arrière-plan chargée');
                 });
 
                 welcomeVideo.addEventListener('error', function() {
-                    console.log('⚠️ Vidéo d\'arrière-plan non disponible - fond noir utilisé');
+                    dbg('⚠️ Vidéo d\'arrière-plan non disponible - fond noir utilisé');
                     welcomeVideo.style.display = 'none';
                 });
             }
@@ -8609,7 +8646,7 @@
 
             try {
                 // Step 1: Load videos for all volumetric screens
-                console.log('🎬 AUTO-LOAD: Chargement des vidéos multi-écrans...');
+                dbg('🎬 AUTO-LOAD: Chargement des vidéos multi-écrans...');
                 await loadVolumetricScreenVideos();
 
                 // Fallback: also load default video for backward compatibility
@@ -8617,7 +8654,7 @@
                 await sleep(500);
 
                 // Step 2: Activate FPS mode (Spectator mode)
-                console.log('🎮 AUTO-LOAD: Activation du mode SPECTATEUR...');
+                dbg('🎮 AUTO-LOAD: Activation du mode SPECTATEUR...');
                 fpsMode = true;
 
                 // Hide all interfaces in Spectator mode
@@ -8632,17 +8669,17 @@
                 await sleep(300);
 
                 // Step 3: Apply settings
-                console.log('⚙️ AUTO-LOAD: Application des paramètres...');
+                dbg('⚙️ AUTO-LOAD: Application des paramètres...');
                 applySettings();
                 await sleep(500);
 
                 // Step 4: Synchroniser et lancer toutes les vidéos ensemble
-                console.log('🔄 AUTO-LOAD: Synchronisation des vidéos...');
+                dbg('🔄 AUTO-LOAD: Synchronisation des vidéos...');
                 syncStartAllVideos();
                 await sleep(200);
 
                 // Step 5: Hide loading screen
-                console.log('✅ AUTO-LOAD: Séquence terminée!');
+                dbg('✅ AUTO-LOAD: Séquence terminée!');
                 await sleep(500);
 
                 loadingScreen.classList.add('hidden');
@@ -8656,7 +8693,7 @@
                 // Wait a bit for the loading screen to disappear, then request pointer lock
                 setTimeout(() => {
                     if (fpsMode && renderer && renderer.domElement) {
-                        console.log('🔒 Demande de pointer lock automatique...');
+                        dbg('🔒 Demande de pointer lock automatique...');
                         renderer.domElement.requestPointerLock();
                     }
                 }, 800);
@@ -8679,7 +8716,7 @@
             return new Promise((resolve, reject) => {
                 // If multi-video system loaded ecran1.mp4, use it instead of test_01.mp4
                 if (screenVideos[1] && screenVideos[1].videoWidth > 0) {
-                    console.log('✅ Utilisation de ecran1.mp4 comme vidéo principale');
+                    dbg('✅ Utilisation de ecran1.mp4 comme vidéo principale');
                     currentVideo = screenVideos[1];
 
                     // Show preview
@@ -8690,11 +8727,11 @@
                     if (previewVideo) previewVideo.play();
 
                     // Auto-apply
-                    console.log('🎬 Apply automatique après chargement vidéo multi-écrans...');
+                    dbg('🎬 Apply automatique après chargement vidéo multi-écrans...');
                     applySettings();
 
                     setTimeout(() => {
-                        console.log('🎬 Apply automatique (2ème passe)...');
+                        dbg('🎬 Apply automatique (2ème passe)...');
                         applySettings();
                         resolve();
                     }, 100);
@@ -8709,7 +8746,7 @@
                 videoElement.load();
 
                 videoElement.onloadeddata = function() {
-                    console.log('✅ Vidéo fallback chargée:', videoPath);
+                    dbg('✅ Vidéo fallback chargée:', videoPath);
                     currentVideo = videoElement;
 
                     // CRITICAL: Start playing the source video
@@ -8726,12 +8763,12 @@
                     if (previewVideo) previewVideo.play();
 
                     // Auto-apply after loading
-                    console.log('🎬 Apply automatique après chargement vidéo...');
+                    dbg('🎬 Apply automatique après chargement vidéo...');
                     applySettings();
 
                     // Second apply pass (like in original code)
                     setTimeout(() => {
-                        console.log('🎬 Apply automatique (2ème passe)...');
+                        dbg('🎬 Apply automatique (2ème passe)...');
                         applySettings();
                         resolve();
                     }, 100);
@@ -8773,8 +8810,8 @@
                     videoReady = true;
                     videoElement.oncanplaythrough = null;
 
-                    console.log(`✅ Vidéo sol chargée: ${videoPath}`);
-                    console.log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+                    dbg(`✅ Vidéo sol chargée: ${videoPath}`);
+                    dbg(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
 
                     floorVideo = videoElement;
                     screenVideos[6] = videoElement;
@@ -8783,7 +8820,7 @@
                     videoElement.play().then(() => {
                         setTimeout(() => {
                             videoElement.pause();
-                            console.log('🏠 Vidéo sol prête');
+                            dbg('🏠 Vidéo sol prête');
                             resolve(true);
                         }, 100);
                     }).catch(() => {
@@ -8804,7 +8841,7 @@
 
         // PANORAMIC VIDEO SYSTEM: Load single panorama_opti.webm for all screens
         async function loadVolumetricScreenVideos() {
-            console.log('🎬 Tentative de chargement de la vidéo panoramique (panorama_opti.webm)...');
+            dbg('🎬 Tentative de chargement de la vidéo panoramique (panorama_opti.webm)...');
 
             // Charger aussi la vidéo du sol en parallèle
             loadFloorVideo();
@@ -8830,9 +8867,9 @@
                     videoReady = true;
                     videoElement.oncanplaythrough = null; // Supprimer le handler
 
-                    console.log(`✅ Vidéo panoramique chargée: ${videoPath}`);
-                    console.log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
-                    console.log(`   Attendu: ${PANORAMIC_WIDTH}x${PANORAMIC_HEIGHT}`);
+                    dbg(`✅ Vidéo panoramique chargée: ${videoPath}`);
+                    dbg(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+                    dbg(`   Attendu: ${PANORAMIC_WIDTH}x${PANORAMIC_HEIGHT}`);
 
                     // Store as the panoramic video
                     panoramicVideo = videoElement;
@@ -8845,11 +8882,11 @@
                     videoElement.play().then(() => {
                         setTimeout(() => {
                             videoElement.pause();
-                            console.log('🌅 MODE PANORAMIQUE ACTIVÉ - Pixels prêts');
+                            dbg('🌅 MODE PANORAMIQUE ACTIVÉ - Pixels prêts');
                             resolve(true);
                         }, 100);
                     }).catch(() => {
-                        console.log('🌅 MODE PANORAMIQUE ACTIVÉ');
+                        dbg('🌅 MODE PANORAMIQUE ACTIVÉ');
                         resolve(true);
                     });
                 };
@@ -8873,7 +8910,7 @@
 
         // Synchroniser et lancer toutes les vidéos en même temps
         function syncStartAllVideos() {
-            console.log('🔄 Synchronisation et lancement de toutes les vidéos...');
+            dbg('🔄 Synchronisation et lancement de toutes les vidéos...');
 
             // Lancer la vidéo du sol si disponible
             if (floorVideo) {
@@ -8881,7 +8918,7 @@
                 floorVideo.play().catch(err => {
                     console.warn('⚠️ Erreur play sol:', err);
                 });
-                console.log('✅ Vidéo sol lancée');
+                dbg('✅ Vidéo sol lancée');
             }
 
             // Mode panoramique: vidéo principale
@@ -8890,7 +8927,7 @@
                 panoramicVideo.play().catch(err => {
                     console.warn('⚠️ Erreur play panorama:', err);
                 });
-                console.log('✅ Vidéo panoramique lancée');
+                dbg('✅ Vidéo panoramique lancée');
                 return;
             }
 
@@ -8914,7 +8951,7 @@
                         console.warn('⚠️ Erreur play:', err);
                     });
                 });
-                console.log(`✅ ${videos.length} vidéos lancées en synchronisation`);
+                dbg(`✅ ${videos.length} vidéos lancées en synchronisation`);
             }, 50);
         }
 
@@ -9124,7 +9161,7 @@
 
             window.addEventListener('deviceorientation', handleDeviceOrientation, true);
             gyroEnabled = true;
-            console.log('📱 Gyroscope activé');
+            dbg('📱 Gyroscope activé');
         }
 
         function handleDeviceOrientation(event) {
@@ -9343,12 +9380,12 @@
                 toggleBtn.classList.add('touch-mode');
                 // Reinitialiser la reference gyroscope pour quand on reactivera
                 resetGyroReference();
-                console.log('Mode tactile active');
+                dbg('Mode tactile active');
             } else {
                 // Mode gyroscope active
                 toggleBtn.classList.remove('touch-mode');
                 resetGyroReference();
-                console.log('Mode gyroscope active');
+                dbg('Mode gyroscope active');
             }
         }
 
@@ -9462,11 +9499,11 @@
         // ═══════════════════════════════════════════════════════════════
         function initMobile() {
             if (!isMobile) {
-                console.log('💻 Mode desktop détecté');
+                dbg('💻 Mode desktop détecté');
                 return;
             }
 
-            console.log('📱 Mode mobile détecté');
+            dbg('📱 Mode mobile détecté');
 
             // Initialiser les contrôles
             initPullToRefresh();
