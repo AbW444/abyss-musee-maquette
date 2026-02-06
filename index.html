@@ -2385,16 +2385,6 @@
         let screenVideos = {}; // {1: video_element, 2: video_element, 5: video_element, ...}
         let videoTextures = {}; // {1: texture, 2: texture, 5: texture, ...}
 
-        // Mapping between visual screen numbers (allScreens) and screenVideos indices
-        // SIMPLIFIED: Écran N → screenVideos[N] → ecranN.mp4
-        const SCREEN_TO_VIDEO_MAP = {
-            1: 1,  // Écran 1 → ecran1.mp4
-            2: 2,  // Écran 2 → ecran2.mp4
-            3: 3,  // Écran 3 → ecran3.mp4
-            4: 4,  // Écran 4 → ecran4.mp4
-            5: 5   // Écran 5 → ecran5.mp4
-        };
-
         // Sampling canvases for each screen (for continuous video updates)
         let screenSamplingCanvases = {};  // {screenNum: {canvas, ctx, data}}
 
@@ -6934,7 +6924,7 @@
                 // CRITICAL: Also update screen 7 if it exists (3D mode) - now at position 3
                 // SKIP if multi-video system has a dedicated video for this screen
                 // SKIP in panoramic mode (updateMultiScreenColors handles it with the correct portion)
-                if (allScreens[3] && allScreens[3].instanceColor && !screenVideos[SCREEN_TO_VIDEO_MAP[3]] && !panoramicVideo) {
+                if (allScreens[3] && allScreens[3].instanceColor && !screenVideos[3] && !panoramicVideo) {
                     const screen7 = allScreens[3];
                     const colors7 = screen7.instanceColor.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2; // Same as screenH / 2
@@ -7053,7 +7043,7 @@
                 // CRITICAL: Also update screen 7 if it exists (2D mode) - now at position 3
                 // SKIP if multi-video system has a dedicated video for this screen
                 // SKIP in panoramic mode (updateMultiScreenColors handles it with the correct portion)
-                if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.color && !screenVideos[SCREEN_TO_VIDEO_MAP[3]] && !panoramicVideo) {
+                if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.color && !screenVideos[3] && !panoramicVideo) {
                     const screen7 = allScreens[3];
                     const geom7 = screen7.geometry;
                     const colors7 = geom7.attributes.color.array;
@@ -7574,7 +7564,7 @@
 
                     // CRITICAL: Also update screen 7 if it has its own geometry (3D mode) - now at position 3
                     // SKIP if multi-video system has a dedicated video for this screen
-                    if (allScreens[3] && allScreens[3].userData && allScreens[3].userData.is3D && !screenVideos[SCREEN_TO_VIDEO_MAP[3]]) {
+                    if (allScreens[3] && allScreens[3].userData && allScreens[3].userData.is3D && !screenVideos[3]) {
                         const screen7 = allScreens[3];
                         const initialZs7 = screen7.userData.initialZ;
                         const positions7 = screen7.userData.positions;
@@ -7673,7 +7663,7 @@
 
                     // CRITICAL: Also update screen 7 if it has its own geometry (2D mode) - now at position 3
                     // SKIP if multi-video system has a dedicated video for this screen
-                    if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.position && !screenVideos[SCREEN_TO_VIDEO_MAP[3]]) {
+                    if (allScreens[3] && allScreens[3].geometry && allScreens[3].geometry.attributes.position && !screenVideos[3]) {
                         const screen7 = allScreens[3];
                         const geom7 = screen7.geometry;
                         const positions7 = geom7.attributes.position.array;
@@ -8693,16 +8683,16 @@
             }
         }
 
-        // Helper function to load default video (uses ecran1.mp4 if available, fallback to test_01.mp4)
+        // Helper function to load default video (uses panoramic video if available, fallback to test_01.mp4)
         function loadDefaultVideo() {
             return new Promise((resolve, reject) => {
-                // If multi-video system loaded ecran1.mp4, use it instead of test_01.mp4
+                // If panoramic video loaded, use it as main video
                 if (screenVideos[1] && screenVideos[1].videoWidth > 0) {
-                    console.log('✅ Utilisation de ecran1.mp4 comme vidéo principale');
+                    console.log('✅ Utilisation de la vidéo panoramique comme vidéo principale');
                     currentVideo = screenVideos[1];
 
                     // Show preview
-                    const previewSrc = screenVideos[1].src || 'videos/ecran1.mp4';
+                    const previewSrc = screenVideos[1].src || 'videos/panorama_opti.webm';
                     document.getElementById('preview').innerHTML = '<video src="' + previewSrc + '" muted loop playsinline style="max-width:100%;max-height:100%;"></video>';
                     document.getElementById('preview').classList.add('loaded');
                     const previewVideo = document.getElementById('preview').querySelector('video');
