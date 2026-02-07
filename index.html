@@ -6466,14 +6466,160 @@
                 });
             }
 
-            // SCREEN 4: Custom shape (color surface) - FORME 7 (couleur unie)
-            // ======================
+            // SCREEN 4: Custom shape (color surface) - FORME 7
+            // ═══════════════════════════════════════════════════════
+            // LIGHTING MUSÉAL — Surface organique semi-minérale
+            // Fresnel spectral + fake SSS + micro-grain + absorption
+            // environnementale + respiration lumineuse + stratification
+            // ═══════════════════════════════════════════════════════
             const width4 = 964.573;
             const height4 = 228.534;
-            const geometry4 = new THREE.PlaneGeometry(width4, height4);
+            const geometry4 = new THREE.PlaneGeometry(width4, height4, 64, 16);
 
-            const material4 = new THREE.MeshBasicMaterial({ color: 0x070707, side: THREE.DoubleSide });
-            const screen4 = new THREE.Mesh(geometry4, material4);
+            const forme7Material = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0.0 },
+                    baseColor: { value: new THREE.Color(0x070707) },
+                    ambientTint: { value: new THREE.Color(0x000000) },
+                    ambientStrength: { value: 0.35 },
+                    fresnelPower: { value: 4.0 },
+                    sssStrength: { value: 0.12 },
+                    noiseScale: { value: 8.0 },
+                    breathSpeed: { value: 0.15 },
+                    breathAmplitude: { value: 0.06 },
+                    cameraWorldPos: { value: new THREE.Vector3() },
+                    proximityRadius: { value: 600.0 },
+                    proximityBoost: { value: 0.4 }
+                },
+                vertexShader: `
+                    varying vec3 vWorldPosition;
+                    varying vec3 vNormal;
+                    varying vec2 vUv;
+                    varying vec3 vViewDir;
+
+                    uniform vec3 cameraWorldPos;
+
+                    void main() {
+                        vUv = uv;
+                        vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                        vWorldPosition = worldPos.xyz;
+                        vNormal = normalize(normalMatrix * normal);
+                        vViewDir = normalize(cameraWorldPos - worldPos.xyz);
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float time;
+                    uniform vec3 baseColor;
+                    uniform vec3 ambientTint;
+                    uniform float ambientStrength;
+                    uniform float fresnelPower;
+                    uniform float sssStrength;
+                    uniform float noiseScale;
+                    uniform float breathSpeed;
+                    uniform float breathAmplitude;
+                    uniform vec3 cameraWorldPos;
+                    uniform float proximityRadius;
+                    uniform float proximityBoost;
+
+                    varying vec3 vWorldPosition;
+                    varying vec3 vNormal;
+                    varying vec2 vUv;
+                    varying vec3 vViewDir;
+
+                    // Hash pour bruit procédural
+                    float hash(vec2 p) {
+                        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+                    }
+
+                    // Noise 2D value-based
+                    float noise(vec2 p) {
+                        vec2 i = floor(p);
+                        vec2 f = fract(p);
+                        f = f * f * (3.0 - 2.0 * f);
+                        float a = hash(i);
+                        float b = hash(i + vec2(1.0, 0.0));
+                        float c = hash(i + vec2(0.0, 1.0));
+                        float d = hash(i + vec2(1.0, 1.0));
+                        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+                    }
+
+                    // Fractal Brownian Motion — grain organique multi-échelle
+                    float fbm(vec2 p) {
+                        float value = 0.0;
+                        float amp = 0.5;
+                        float freq = 1.0;
+                        for (int i = 0; i < 4; i++) {
+                            value += amp * noise(p * freq);
+                            freq *= 2.17;
+                            amp *= 0.48;
+                        }
+                        return value;
+                    }
+
+                    void main() {
+                        // ─── GRAIN MATIÈRE (micro-variations organiques) ───
+                        float grain = fbm(vUv * noiseScale + time * 0.008);
+                        float fineGrain = fbm(vUv * noiseScale * 5.0 - time * 0.004);
+                        float materialVar = mix(grain, fineGrain, 0.3) * 0.012;
+
+                        // ─── FRESNEL SPECTRAL (physically-based) ───
+                        // Shift chromatique : centre chaud, bords froids (Rayleigh)
+                        float NdotV = max(dot(normalize(vNormal), normalize(vViewDir)), 0.0);
+                        float fresnel = pow(1.0 - NdotV, fresnelPower);
+                        vec3 fresnelWarm = vec3(0.025, 0.018, 0.012);
+                        vec3 fresnelCool = vec3(0.010, 0.020, 0.038);
+                        vec3 fresnelColor = mix(fresnelWarm, fresnelCool, fresnel);
+
+                        // ─── FAKE SUBSURFACE SCATTERING ───
+                        // Lumière qui semble traverser la matière aux bords
+                        float sss = pow(1.0 - NdotV, 3.5) * sssStrength;
+                        vec3 sssColor = ambientTint * sss;
+
+                        // ─── RESPIRATION LUMINEUSE (ultra-lente) ───
+                        float breath1 = sin(time * breathSpeed) * 0.5 + 0.5;
+                        float breath2 = sin(time * breathSpeed * 0.7 + 1.3) * 0.5 + 0.5;
+                        float breath = mix(breath1, breath2, 0.4);
+                        breath = breath * breath; // Ease-in
+                        float breathEffect = 1.0 + breath * breathAmplitude;
+
+                        // ─── ABSORPTION ENVIRONNEMENTALE ───
+                        // La surface capte les couleurs des écrans voisins
+                        // Plus forte aux bords (Fresnel) = physiquement correct
+                        vec3 absorbed = ambientTint * ambientStrength * (fresnel * 0.7 + 0.3);
+
+                        // ─── STRATIFICATION ZONALE ───
+                        // Certaines zones plus réactives (comme des veines minérales)
+                        float zone = fbm(vUv * 2.5 + vec2(0.0, time * 0.003));
+                        zone = smoothstep(0.3, 0.7, zone);
+
+                        // ─── PROXIMITÉ VISITEUR ───
+                        float dist = distance(cameraWorldPos, vWorldPosition);
+                        float proximity = 1.0 - smoothstep(0.0, proximityRadius, dist);
+                        proximity = proximity * proximity; // Falloff quadratique
+                        float proxEffect = 1.0 + proximity * proximityBoost;
+
+                        // ─── COMPOSITION FINALE ───
+                        vec3 color = baseColor;
+                        color += vec3(materialVar);
+                        color += fresnelColor * fresnel * 0.4;
+                        color += sssColor * zone * 0.5;
+                        color += absorbed * zone;
+                        color *= breathEffect;
+                        color *= proxEffect;
+
+                        // Dithering anti-banding (critique dans les noirs)
+                        float dither = (hash(gl_FragCoord.xy + vec2(time * 100.0, 0.0)) - 0.5) * 0.004;
+                        color += vec3(dither);
+
+                        color = clamp(color, 0.0, 1.0);
+                        gl_FragColor = vec4(color, 1.0);
+                    }
+                `,
+                side: THREE.DoubleSide
+            });
+
+            const screen4 = new THREE.Mesh(geometry4, forme7Material);
 
             // Position et orientation (from user JSON)
             screen4.position.set(132.131, 109.022, 112.031);
@@ -6481,9 +6627,10 @@
             screen4.scale.set(1, 1, 1);
 
             // Mark as color surface
-            screen4.userData.screenNumber = 7; // Renuméroté: 4 → 7
+            screen4.userData.screenNumber = 7;
             screen4.userData.isColorSurface = true;
             screen4.userData.color = 0x070707;
+            screen4.userData.forme7Material = forme7Material; // Référence pour animation
 
             screensGroup.add(screen4);
 
