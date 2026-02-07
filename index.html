@@ -4545,7 +4545,15 @@
             // Lumière ambiante
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
             scene.add(ambientLight);
-            console.log('✅ Lumière ambiante ajoutée');
+
+            // HemisphereLight — température couleur naturelle (ciel froid / sol chaud)
+            const hemiLight = new THREE.HemisphereLight(
+                0x1a1a2e,  // Sky: bleu-nuit très sombre
+                0x0d0800,  // Ground: brun-noir chaud
+                0.25       // Intensité subtile
+            );
+            scene.add(hemiLight);
+            console.log('✅ Lumières ajoutées (ambient + hemisphere)');
 
             // FREE CAMERA: Pas d'OrbitControls, caméra complètement libre
             // Rotation avec clic droit + drag, mouvement avec flèches
@@ -8446,6 +8454,79 @@
                 } else {
                     // Hide instructions in admin mode or when paused
                     instructionsElement.classList.add('hidden');
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════
+            // FORME 7 — Mise à jour uniforms du shader muséal
+            // ═══════════════════════════════════════════════════════
+            if (allScreens && camera) {
+                // Trouver le matériau Forme 7
+                let forme7Mat = null;
+                for (const key in allScreens) {
+                    const s = allScreens[key];
+                    if (s && s.userData && s.userData.screenNumber === 7 && s.userData.forme7Material) {
+                        forme7Mat = s.userData.forme7Material;
+                        break;
+                    }
+                }
+                // Fallback: chercher dans screensGroup
+                if (!forme7Mat && screensGroup) {
+                    screensGroup.traverse(child => {
+                        if (child.userData && child.userData.screenNumber === 7 && child.userData.forme7Material) {
+                            forme7Mat = child.userData.forme7Material;
+                        }
+                    });
+                }
+
+                if (forme7Mat) {
+                    // Time (en secondes)
+                    forme7Mat.uniforms.time.value = performance.now() * 0.001;
+
+                    // Position caméra (pour Fresnel et proximité)
+                    forme7Mat.uniforms.cameraWorldPos.value.copy(camera.position);
+
+                    // Échantillonnage couleur des écrans voisins (1 frame sur 30)
+                    if (animateFrameCount % 30 === 0) {
+                        let avgR = 0, avgG = 0, avgB = 0, samples = 0;
+
+                        // Sampler les vidéos des écrans pour extraire la teinte dominante
+                        for (const vidKey in screenVideos) {
+                            const vid = screenVideos[vidKey];
+                            if (vid && vid.readyState >= 2 && vid.videoWidth > 0) {
+                                try {
+                                    // Canvas temporaire 1x1 pour échantillonner le centre
+                                    const sampleCanvas = document.createElement('canvas');
+                                    sampleCanvas.width = 4;
+                                    sampleCanvas.height = 4;
+                                    const ctx = sampleCanvas.getContext('2d');
+                                    const cx = vid.videoWidth / 2 - 2;
+                                    const cy = vid.videoHeight / 2 - 2;
+                                    ctx.drawImage(vid, cx, cy, 4, 4, 0, 0, 4, 4);
+                                    const data = ctx.getImageData(0, 0, 4, 4).data;
+                                    for (let px = 0; px < data.length; px += 4) {
+                                        avgR += data[px];
+                                        avgG += data[px + 1];
+                                        avgB += data[px + 2];
+                                        samples++;
+                                    }
+                                } catch(e) { /* cross-origin ou pas prêt */ }
+                            }
+                        }
+
+                        if (samples > 0) {
+                            avgR = (avgR / samples) / 255.0;
+                            avgG = (avgG / samples) / 255.0;
+                            avgB = (avgB / samples) / 255.0;
+
+                            // Transition lente organique (lerp très doux)
+                            const tint = forme7Mat.uniforms.ambientTint.value;
+                            const lerpFactor = 0.05;
+                            tint.r += (avgR - tint.r) * lerpFactor;
+                            tint.g += (avgG - tint.g) * lerpFactor;
+                            tint.b += (avgB - tint.b) * lerpFactor;
+                        }
+                    }
                 }
             }
 
