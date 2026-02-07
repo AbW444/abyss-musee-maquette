@@ -604,12 +604,9 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 55%;
+            width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.50);
-            -webkit-backdrop-filter: blur(50px) saturate(1.2);
-            backdrop-filter: blur(50px) saturate(1.2);
-            border-radius: 0 28px 28px 0;
+            background: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 60%, transparent 100%);
             z-index: 1;
             pointer-events: none;
         }
@@ -1609,12 +1606,15 @@
                 height: 50%;
             }
 
-            /* Rectangle glassmorphisme adapté mobile - pleine largeur */
+            /* Gradient adapté mobile */
             #welcome-screen::before {
-                width: 100%;
-                height: 100%;
-                border-radius: 0;
-                background: rgba(0,0,0,0.55);
+                background: linear-gradient(to bottom,
+                    rgba(0,0,0,0.9) 0%,
+                    rgba(0,0,0,0.7) 20%,
+                    rgba(0,0,0,0.4) 50%,
+                    rgba(0,0,0,0.7) 80%,
+                    rgba(0,0,0,0.95) 100%
+                );
             }
 
             /* Afficher UI mobile */
@@ -2481,9 +2481,9 @@
         let targetFOV = DEFAULT_FOV;
 
         // Camera smoothing (mouse look interpolation)
-        let smoothYaw = 0;
-        let smoothPitch = 0;
-        const MOUSE_SMOOTHING = 0.25; // Lerp factor per frame (lower = smoother)
+        let smoothYaw = null; // null = needs init from cameraYaw
+        let smoothPitch = null;
+        const MOUSE_SMOOTHING = 0.25;
 
         // Camera sway (strafe tilt)
         let cameraTilt = 0;
@@ -7944,6 +7944,7 @@
 
             // Free camera rotation (smoothed mouse look)
             if (freeCameraEnabled && camera) {
+                if (smoothYaw === null) { smoothYaw = cameraYaw; smoothPitch = cameraPitch; }
                 smoothYaw += (cameraYaw - smoothYaw) * MOUSE_SMOOTHING;
                 smoothPitch += (cameraPitch - smoothPitch) * MOUSE_SMOOTHING;
                 camera.rotation.order = 'YXZ';
