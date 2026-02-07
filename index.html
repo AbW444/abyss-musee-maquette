@@ -962,7 +962,7 @@
         }
         .mute-button {
             background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
+            border: none;
             color: #ffffff;
             padding: 14px;
             width: 60px;
@@ -1029,7 +1029,7 @@
             background: rgba(255,255,255,0.15);
             padding: 10px 14px;
             border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.6);
+            border: none;
             font-family: 'Courier New', monospace;
             font-size: 14px;
             color: rgba(255,255,255,1);
@@ -1103,7 +1103,7 @@
             background: rgba(255,255,255,0.15);
             padding: 10px 14px;
             border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.6);
+            border: none;
             font-family: 'Courier New', monospace;
             font-size: 14px;
             color: rgba(255,255,255,1);
@@ -2481,20 +2481,14 @@
         let targetFOV = DEFAULT_FOV;
 
         // Camera smoothing (mouse look interpolation)
-        let smoothYaw = null; // null = needs init from cameraYaw
+        let smoothYaw = null;
         let smoothPitch = null;
         const MOUSE_SMOOTHING = 0.25;
 
         // Camera sway (strafe tilt)
         let cameraTilt = 0;
-        const CAMERA_TILT_AMOUNT = 0.012; // Max roll in radians (~0.7°)
-        const CAMERA_TILT_SPEED = 0.08;   // Lerp speed
-
-        // Velocity-based movement (directional inertia)
-        let velocityX = 0;
-        let velocityZ = 0;
-        const MOVE_LERP = 0.12;      // Acceleration smoothing
-        const MOVE_FRICTION = 0.88;   // Deceleration per frame
+        const CAMERA_TILT_AMOUNT = 0.012;
+        const CAMERA_TILT_SPEED = 0.08;
 
         // FPS Physics (paramètres configurables via interface)
         let playerVelocityY = 0;
@@ -7967,27 +7961,15 @@
                 const isMoving = cameraKeys.forward || cameraKeys.backward || cameraKeys.left || cameraKeys.right;
 
                 if (fpsMode) {
-                    // ===== MODE FPS: Velocity-based movement with directional inertia =====
+                    // ===== MODE FPS: Vitesse graduée avec accélération =====
 
-                    const maxSpeed = cameraKeys.sprint ? fpsSettings.fpsMaxSpeed * 1.5 : fpsSettings.fpsMaxSpeed;
-
-                    // Target velocity based on input
-                    let targetVX = 0;
-                    let targetVZ = 0;
-                    if (cameraKeys.forward) { targetVX += reusableForward.x * maxSpeed; targetVZ += reusableForward.z * maxSpeed; }
-                    if (cameraKeys.backward) { targetVX -= reusableForward.x * maxSpeed; targetVZ -= reusableForward.z * maxSpeed; }
-                    if (cameraKeys.left) { targetVX -= reusableRight.x * maxSpeed; targetVZ -= reusableRight.z * maxSpeed; }
-                    if (cameraKeys.right) { targetVX += reusableRight.x * maxSpeed; targetVZ += reusableRight.z * maxSpeed; }
-
-                    // Smooth acceleration toward target, friction-based deceleration
                     if (isMoving) {
-                        velocityX += (targetVX - velocityX) * MOVE_LERP;
-                        velocityZ += (targetVZ - velocityZ) * MOVE_LERP;
+                        currentSpeed = Math.min(currentSpeed + fpsSettings.fpsAcceleration, fpsSettings.fpsMaxSpeed);
+                        if (cameraKeys.sprint) {
+                            currentSpeed = Math.min(currentSpeed, fpsSettings.fpsMaxSpeed * 1.5);
+                        }
                     } else {
-                        velocityX *= MOVE_FRICTION;
-                        velocityZ *= MOVE_FRICTION;
-                        if (Math.abs(velocityX) < 0.001) velocityX = 0;
-                        if (Math.abs(velocityZ) < 0.001) velocityZ = 0;
+                        currentSpeed = Math.max(currentSpeed - fpsSettings.fpsDeceleration, MIN_SPEED);
                     }
 
                     // Camera sway (tilt on strafe)
@@ -7996,16 +7978,26 @@
                     if (cameraKeys.right) targetTilt = -CAMERA_TILT_AMOUNT;
                     cameraTilt += (targetTilt - cameraTilt) * CAMERA_TILT_SPEED;
 
-                    // Apply velocity
+                    // OPTIMIZED: Reuse global Vector3 for previous position
                     reusablePrevPosition.copy(camera.position);
-                    camera.position.x += velocityX;
-                    camera.position.z += velocityZ;
+
+                    // Apply movement
+                    if (cameraKeys.forward) {
+                        camera.position.addScaledVector(reusableForward, currentSpeed);
+                    }
+                    if (cameraKeys.backward) {
+                        camera.position.addScaledVector(reusableForward, -currentSpeed);
+                    }
+                    if (cameraKeys.left) {
+                        camera.position.addScaledVector(reusableRight, -currentSpeed);
+                    }
+                    if (cameraKeys.right) {
+                        camera.position.addScaledVector(reusableRight, currentSpeed);
+                    }
 
                     // Check collisions
                     if (checkCollision(camera.position, reusablePrevPosition)) {
                         camera.position.copy(reusablePrevPosition);
-                        velocityX = 0;
-                        velocityZ = 0;
                     }
                 } else {
                     // ===== MODE NORMAL: Vitesse fixe, pas de collision =====
@@ -8063,10 +8055,10 @@
                         camera.position.y += playerVelocityY;
                     }
 
-                    // Head bobbing: dual-sine (vertical + lateral) — proportional to actual speed
-                    const actualSpeed = Math.sqrt(velocityX * velocityX + velocityZ * velocityZ);
-                    const speedRatio = Math.min(actualSpeed / fpsSettings.fpsMaxSpeed, 1);
-                    if (speedRatio > 0.05 && playerVelocityY === 0) {
+                    // Head bobbing: dual-sine (vertical + lateral)
+                    const isMovingBob = cameraKeys.forward || cameraKeys.backward || cameraKeys.left || cameraKeys.right;
+                    const speedRatio = Math.min(currentSpeed / fpsSettings.fpsMaxSpeed, 1);
+                    if (isMovingBob && playerVelocityY === 0) {
                         headBobTimer += HEAD_BOB_SPEED * (cameraKeys.sprint ? 1.4 : 1);
                         const bobY = Math.sin(headBobTimer) * HEAD_BOB_AMOUNT * speedRatio;
                         const bobX = Math.cos(headBobTimer * 0.5) * HEAD_BOB_SIDE_AMOUNT * speedRatio;
@@ -8686,25 +8678,28 @@
         window.handlePlayClick = function() {
             playClickSound(); // Click feedback
 
-            // Passer en état clickedPlay
+            // Phase 1: Fondu au noir (texte + bouton disparaissent)
             document.body.classList.remove('hoverPlay');
             document.body.classList.add('clickedPlay');
 
-            // Activer le logo animé et cacher le logo statique
-            const logoVideo = document.getElementById('welcome-logo-video');
-            const logoStatic = document.getElementById('welcome-logo');
-            if (logoStatic) {
-                logoStatic.style.opacity = '0';
-            }
-            if (logoVideo) {
-                logoVideo.classList.add('active');
-                logoVideo.play();
-            }
-
-            // Attendre la fin des animations avant de démarrer l'expérience
+            // Phase 2: Après le fondu (320ms), lancer l'animation icône
+            const fadeMs = 350; // Légèrement après --clickFadeMs (320ms)
             setTimeout(() => {
-                startExperience();
-            }, 600);
+                const logoVideo = document.getElementById('welcome-logo-video');
+                const logoStatic = document.getElementById('welcome-logo');
+                if (logoStatic) {
+                    logoStatic.style.opacity = '0';
+                }
+                if (logoVideo) {
+                    logoVideo.classList.add('active');
+                    logoVideo.play();
+                }
+
+                // Phase 3: Démarrer l'expérience après l'animation icône
+                setTimeout(() => {
+                    startExperience();
+                }, 600);
+            }, fadeMs);
         }
 
         // Gérer le hover sur le bouton play
