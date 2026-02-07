@@ -604,13 +604,12 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
+            width: 55%;
             height: 100%;
-            background: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 60%, transparent 100%);
+            background: rgba(0,0,0,0.50);
             -webkit-backdrop-filter: blur(50px) saturate(1.2);
             backdrop-filter: blur(50px) saturate(1.2);
-            -webkit-mask-image: linear-gradient(to right, black 0%, black 40%, transparent 65%);
-            mask-image: linear-gradient(to right, black 0%, black 40%, transparent 65%);
+            border-radius: 0 28px 28px 0;
             z-index: 1;
             pointer-events: none;
         }
@@ -771,9 +770,8 @@
         /* Logo container - PNG et WEBM */
         .welcome-logo-container {
             position: absolute;
-            left: calc(var(--textLeft) / 2);
-            top: 50%;
-            transform: translate(-50%, -50%);
+            left: calc(var(--textLeft) / 2 - var(--logoSize) / 2);
+            top: calc(50% - var(--logoSize) / 2);
             width: var(--logoSize);
             height: var(--logoSize);
             z-index: 2;
@@ -782,13 +780,13 @@
 
         /* Recentrage du logo lors du hover */
         body.hoverPlay .welcome-logo-container {
-            left: calc((var(--textLeft) + var(--hoverTextShift)) / 2);
+            left: calc((var(--textLeft) + var(--hoverTextShift)) / 2 - var(--logoSize) / 2);
         }
 
         /* Centrage final lors du click */
         body.clickedPlay .welcome-logo-container {
-            left: 50vw;
-            top: 50vh;
+            left: calc(50vw - var(--logoSize) / 2);
+            top: calc(50vh - var(--logoSize) / 2);
         }
 
         .welcome-logo,
@@ -799,9 +797,7 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-            image-rendering: auto;
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
+            will-change: opacity;
         }
 
         .welcome-logo {
@@ -839,11 +835,11 @@
         }
         .pause-content {
             max-width: 850px;
-            background: rgba(0,0,0,0.35);
+            background: rgba(0,0,0,0.50);
             -webkit-backdrop-filter: blur(50px) saturate(1.2);
             backdrop-filter: blur(50px) saturate(1.2);
             border: none;
-            border-radius: 20px;
+            border-radius: 28px;
             padding: 60px 70px;
             text-align: left;
             box-shadow: none;
@@ -1535,16 +1531,13 @@
             .welcome-logo-container {
                 left: 50% !important;
                 top: calc(60px + env(safe-area-inset-top)) !important;
-                transform: translate(-50%, 0) !important;
             }
             body.hoverPlay .welcome-logo-container {
-                left: 50% !important;
-                transform: translate(-50%, 0) !important;
+                left: calc(50% - var(--logoSize) / 2) !important;
             }
             body.clickedPlay .welcome-logo-container {
-                left: 50vw !important;
-                top: 50vh !important;
-                transform: translate(-50%, -50%) !important;
+                left: calc(50vw - var(--logoSize) / 2) !important;
+                top: calc(50vh - var(--logoSize) / 2) !important;
             }
 
             /* Texte mobile: centre, forme plus proche du desktop */
@@ -1616,15 +1609,12 @@
                 height: 50%;
             }
 
-            /* Gradient adapté mobile */
+            /* Rectangle glassmorphisme adapté mobile - pleine largeur */
             #welcome-screen::before {
-                background: linear-gradient(to bottom,
-                    rgba(0,0,0,0.9) 0%,
-                    rgba(0,0,0,0.7) 20%,
-                    rgba(0,0,0,0.4) 50%,
-                    rgba(0,0,0,0.7) 80%,
-                    rgba(0,0,0,0.95) 100%
-                );
+                width: 100%;
+                height: 100%;
+                border-radius: 0;
+                background: rgba(0,0,0,0.55);
             }
 
             /* Afficher UI mobile */
@@ -2482,12 +2472,29 @@
 
         // FPS visual effects
         let headBobTimer = 0;
-        const HEAD_BOB_SPEED = 0.15;
-        const HEAD_BOB_AMOUNT = 0.8;
+        const HEAD_BOB_SPEED = 0.12;
+        const HEAD_BOB_AMOUNT = 0.5;
+        const HEAD_BOB_SIDE_AMOUNT = 0.25;
         const DEFAULT_FOV = 75;
         const SPRINT_FOV_INCREASE = 5;
         let currentFOV = DEFAULT_FOV;
         let targetFOV = DEFAULT_FOV;
+
+        // Camera smoothing (mouse look interpolation)
+        let smoothYaw = 0;
+        let smoothPitch = 0;
+        const MOUSE_SMOOTHING = 0.25; // Lerp factor per frame (lower = smoother)
+
+        // Camera sway (strafe tilt)
+        let cameraTilt = 0;
+        const CAMERA_TILT_AMOUNT = 0.012; // Max roll in radians (~0.7°)
+        const CAMERA_TILT_SPEED = 0.08;   // Lerp speed
+
+        // Velocity-based movement (directional inertia)
+        let velocityX = 0;
+        let velocityZ = 0;
+        const MOVE_LERP = 0.12;      // Acceleration smoothing
+        const MOVE_FRICTION = 0.88;   // Deceleration per frame
 
         // FPS Physics (paramètres configurables via interface)
         let playerVelocityY = 0;
@@ -7935,11 +7942,14 @@
                 applyJoystickMovement();
             }
 
-            // Free camera rotation (apply yaw and pitch)
+            // Free camera rotation (smoothed mouse look)
             if (freeCameraEnabled && camera) {
+                smoothYaw += (cameraYaw - smoothYaw) * MOUSE_SMOOTHING;
+                smoothPitch += (cameraPitch - smoothPitch) * MOUSE_SMOOTHING;
                 camera.rotation.order = 'YXZ';
-                camera.rotation.y = cameraYaw;
-                camera.rotation.x = cameraPitch;
+                camera.rotation.y = smoothYaw;
+                camera.rotation.x = smoothPitch;
+                camera.rotation.z = cameraTilt;
             }
 
             // Camera movement (only when no screen selected and free camera enabled)
@@ -7956,39 +7966,45 @@
                 const isMoving = cameraKeys.forward || cameraKeys.backward || cameraKeys.left || cameraKeys.right;
 
                 if (fpsMode) {
-                    // ===== MODE FPS: Vitesse graduée avec accélération =====
+                    // ===== MODE FPS: Velocity-based movement with directional inertia =====
 
+                    const maxSpeed = cameraKeys.sprint ? fpsSettings.fpsMaxSpeed * 1.5 : fpsSettings.fpsMaxSpeed;
+
+                    // Target velocity based on input
+                    let targetVX = 0;
+                    let targetVZ = 0;
+                    if (cameraKeys.forward) { targetVX += reusableForward.x * maxSpeed; targetVZ += reusableForward.z * maxSpeed; }
+                    if (cameraKeys.backward) { targetVX -= reusableForward.x * maxSpeed; targetVZ -= reusableForward.z * maxSpeed; }
+                    if (cameraKeys.left) { targetVX -= reusableRight.x * maxSpeed; targetVZ -= reusableRight.z * maxSpeed; }
+                    if (cameraKeys.right) { targetVX += reusableRight.x * maxSpeed; targetVZ += reusableRight.z * maxSpeed; }
+
+                    // Smooth acceleration toward target, friction-based deceleration
                     if (isMoving) {
-                        // Accélération progressive
-                        currentSpeed = Math.min(currentSpeed + fpsSettings.fpsAcceleration, fpsSettings.fpsMaxSpeed);
-                        if (cameraKeys.sprint) {
-                            currentSpeed = Math.min(currentSpeed, fpsSettings.fpsMaxSpeed * 1.5); // Sprint limité
-                        }
+                        velocityX += (targetVX - velocityX) * MOVE_LERP;
+                        velocityZ += (targetVZ - velocityZ) * MOVE_LERP;
                     } else {
-                        // Décélération
-                        currentSpeed = Math.max(currentSpeed - fpsSettings.fpsDeceleration, MIN_SPEED);
+                        velocityX *= MOVE_FRICTION;
+                        velocityZ *= MOVE_FRICTION;
+                        if (Math.abs(velocityX) < 0.001) velocityX = 0;
+                        if (Math.abs(velocityZ) < 0.001) velocityZ = 0;
                     }
 
-                    // OPTIMIZED: Reuse global Vector3 for previous position
+                    // Camera sway (tilt on strafe)
+                    let targetTilt = 0;
+                    if (cameraKeys.left) targetTilt = CAMERA_TILT_AMOUNT;
+                    if (cameraKeys.right) targetTilt = -CAMERA_TILT_AMOUNT;
+                    cameraTilt += (targetTilt - cameraTilt) * CAMERA_TILT_SPEED;
+
+                    // Apply velocity
                     reusablePrevPosition.copy(camera.position);
-
-                    // Apply movement
-                    if (cameraKeys.forward) {
-                        camera.position.addScaledVector(reusableForward, currentSpeed);
-                    }
-                    if (cameraKeys.backward) {
-                        camera.position.addScaledVector(reusableForward, -currentSpeed);
-                    }
-                    if (cameraKeys.left) {
-                        camera.position.addScaledVector(reusableRight, -currentSpeed);
-                    }
-                    if (cameraKeys.right) {
-                        camera.position.addScaledVector(reusableRight, currentSpeed);
-                    }
+                    camera.position.x += velocityX;
+                    camera.position.z += velocityZ;
 
                     // Check collisions
                     if (checkCollision(camera.position, reusablePrevPosition)) {
                         camera.position.copy(reusablePrevPosition);
+                        velocityX = 0;
+                        velocityZ = 0;
                     }
                 } else {
                     // ===== MODE NORMAL: Vitesse fixe, pas de collision =====
@@ -8046,14 +8062,18 @@
                         camera.position.y += playerVelocityY;
                     }
 
-                    // Head bobbing effect when moving
-                    const isMoving = cameraKeys.forward || cameraKeys.backward || cameraKeys.left || cameraKeys.right;
-                    if (isMoving && playerVelocityY === 0) { // Only bob when on ground
-                        headBobTimer += HEAD_BOB_SPEED * (cameraKeys.sprint ? 1.5 : 1);
-                        const bobOffset = Math.sin(headBobTimer) * HEAD_BOB_AMOUNT;
-                        camera.position.y += bobOffset;
+                    // Head bobbing: dual-sine (vertical + lateral) — proportional to actual speed
+                    const actualSpeed = Math.sqrt(velocityX * velocityX + velocityZ * velocityZ);
+                    const speedRatio = Math.min(actualSpeed / fpsSettings.fpsMaxSpeed, 1);
+                    if (speedRatio > 0.05 && playerVelocityY === 0) {
+                        headBobTimer += HEAD_BOB_SPEED * (cameraKeys.sprint ? 1.4 : 1);
+                        const bobY = Math.sin(headBobTimer) * HEAD_BOB_AMOUNT * speedRatio;
+                        const bobX = Math.cos(headBobTimer * 0.5) * HEAD_BOB_SIDE_AMOUNT * speedRatio;
+                        camera.position.y += bobY;
+                        camera.position.x += reusableRight.x * bobX;
+                        camera.position.z += reusableRight.z * bobX;
                     } else {
-                        headBobTimer *= 0.9;
+                        headBobTimer *= 0.92;
                     }
 
                     // FOV kick during sprint
