@@ -787,7 +787,10 @@
             width: var(--logoSize);
             height: var(--logoSize);
             z-index: 10;
-            transition: all var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1);
+            /* Transitions explicites (pas 'all') pour éviter rasterisation GPU basse-res */
+            transition: left var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
+                        top var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
+                        opacity var(--logoMoveMs) ease;
         }
 
         /* Recentrage du logo lors du hover */
@@ -809,7 +812,7 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-            will-change: opacity;
+            /* Pas de will-change ici: évite rasterisation GPU basse résolution sur desktop */
         }
 
         .welcome-logo {
@@ -1031,7 +1034,8 @@
         }
         .pause-close-btn:hover {
             background: rgba(255,255,255,0.1);
-            transform: scale(1.05);
+            transform: scale(1.08);
+            transform-origin: center center;
         }
         .pause-close-btn:active {
             background: rgba(100,150,255,0.4);
@@ -1376,6 +1380,35 @@
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
         }
+        #mobile-pause-btn .btn-icon-info,
+        #mobile-pause-btn .btn-icon-close {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(0deg);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        #mobile-pause-btn .btn-icon-info {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-style: italic;
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1;
+            opacity: 1;
+        }
+        #mobile-pause-btn .btn-icon-close {
+            opacity: 0;
+            transform: translate(-50%, -50%) rotate(-90deg);
+        }
+        #mobile-pause-btn.active-infos .btn-icon-info {
+            opacity: 0;
+            transform: translate(-50%, -50%) rotate(90deg);
+        }
+        #mobile-pause-btn.active-infos .btn-icon-close {
+            opacity: 1;
+            transform: translate(-50%, -50%) rotate(0deg);
+        }
         #mobile-pause-btn:active {
             background: rgba(100,150,255,0.4);
             transform: scale(0.95);
@@ -1577,18 +1610,11 @@
                 --clickTextExitX: 100px;
             }
 
-            /* Welcome screen mobile - hauteur dynamique, sans scrollbar */
+            /* Welcome screen mobile - pas de scroll global, vidéo couvre tout */
             #welcome-screen {
                 height: 100dvh;
                 height: -webkit-fill-available;
-                overflow-y: auto;
-                overflow-x: hidden;
-                -webkit-overflow-scrolling: touch;
-                scrollbar-width: none; /* Firefox */
-                -ms-overflow-style: none; /* IE/Edge */
-            }
-            #welcome-screen::-webkit-scrollbar {
-                display: none; /* Chrome/Safari */
+                overflow: hidden;
             }
 
             /* Logo mobile: centré dans la zone entre le haut et le bloc texte */
@@ -1604,19 +1630,26 @@
                 top: calc(50vh - var(--logoSize) / 2) !important;
             }
 
-            /* Texte mobile: glassmorphisme style pause-content */
+            /* Texte mobile: glassmorphisme style pause-content, scroll interne */
             .welcome-content {
                 left: 50% !important;
                 top: calc(60px + env(safe-area-inset-top) + var(--logoSize)) !important;
                 transform: translateX(-50%) !important;
                 width: calc(100vw - 40px) !important;
                 max-width: 500px !important;
+                max-height: calc(100dvh - 70px - env(safe-area-inset-top) - var(--logoSize)) !important;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
                 padding: 22px 20px;
                 text-align: left;
                 background: rgba(0,0,0,0.50);
                 -webkit-backdrop-filter: blur(50px) saturate(1.2);
                 backdrop-filter: blur(50px) saturate(1.2);
                 border-radius: 28px;
+            }
+            .welcome-content::-webkit-scrollbar {
+                display: none;
             }
             body.hoverPlay .welcome-content {
                 transform: translateX(-50%) !important;
@@ -1687,13 +1720,6 @@
                     rgba(0,0,0,0.7) 80%,
                     rgba(0,0,0,0.95) 100%
                 );
-            }
-
-            /* Vidéo arrière-plan pleine hauteur mobile */
-            #welcome-video-bg {
-                height: 100dvh;
-                height: -webkit-fill-available;
-                min-height: 100%;
             }
 
             /* Afficher UI mobile */
@@ -1839,10 +1865,10 @@
 
     <!-- Mobile Info Button (ouvre le mode ESC/Infos) -->
     <button id="mobile-pause-btn" class="hidden" aria-label="Infos">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        <span class="btn-icon-info">i</span>
+        <svg class="btn-icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
     </button>
 
@@ -1984,7 +2010,7 @@
             </p>
 
             <p class="welcome-text">
-                Cette maquette s'inscrit dans une réflexion sur la médiation scientifique : comment exposer des formes de vie rarement observables sans les simplifier, sans les fictionnaliser, et sans prétendre les rendre totalement accessibles.
+                Cette maquette s'inscrit dans une réflexion sur la médiation scientifique&nbsp;: comment exposer des formes de vie rarement observables sans les simplifier, sans les fictionnaliser, et sans prétendre les rendre totalement accessibles.
             </p>
 
             <div class="welcome-context">
@@ -2011,7 +2037,7 @@
     <div id="pause-screen">
         <!-- Bouton fermer X (desktop) -->
         <button class="pause-close-btn" id="pause-close-btn" onclick="resumeExperience()">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -2057,7 +2083,7 @@
             </p>
 
             <div class="pause-conceptual-list">
-                <span class="list-intro">Le choix d'une maquette web répond à des contraintes de temps et de moyens. Il permet néanmoins d'explorer des questions essentielles :</span>
+                <span class="list-intro">Le choix d'une maquette web répond à des contraintes de temps et de moyens. Il permet néanmoins d'explorer des questions essentielles&nbsp;:</span>
                 <span class="list-item">— distance et proximité du regard</span>
                 <span class="list-item">— échelle et corporalité</span>
                 <span class="list-item">— temporalité de l'observation</span>
@@ -2080,7 +2106,7 @@
                     <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="30" oninput="updateVolume(this.value)">
                 </div>
                 <button class="mute-button" id="mute-button" onclick="toggleMute()" ontouchstart="showVolumeSlider()" onmouseenter="showVolumeSlider()">
-                <svg id="mute-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg id="mute-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
                     <path id="sound-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"></path>
                     <line id="mute-slash" x1="2" y1="2" x2="22" y2="22" style="display:none;"></line>
@@ -8885,11 +8911,12 @@
             isPaused = true;
             document.getElementById('pause-screen').classList.add('active');
 
-            // Cacher les contrôles mobiles en mode pause
+            // Mobile: cacher contrôles, transformer bouton info en croix
             if (isMobile) {
                 document.getElementById('gyro-toggle-btn')?.classList.add('hidden');
                 document.getElementById('mobile-joystick')?.classList.add('hidden');
                 document.getElementById('mobile-fullscreen-btn')?.classList.add('hidden');
+                document.getElementById('mobile-pause-btn')?.classList.add('active-infos');
             }
 
             // Volume constant - pas de fade
@@ -8905,8 +8932,9 @@
             isPaused = false;
             document.getElementById('pause-screen').classList.remove('active');
 
-            // Réafficher les contrôles mobiles
+            // Réafficher les contrôles mobiles, retransformer croix en info
             if (isMobile) {
+                document.getElementById('mobile-pause-btn')?.classList.remove('active-infos');
                 const gyroToggle = document.getElementById('gyro-toggle-btn');
                 if (gyroToggle) {
                     gyroToggle.classList.remove('hidden');
