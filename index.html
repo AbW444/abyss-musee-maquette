@@ -976,13 +976,14 @@
             border: none;
         }
         .mute-button {
-            background: rgba(255,255,255,0.1);
-            border: none;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
             color: #ffffff;
-            padding: 14px;
-            width: 60px;
-            height: 60px;
-            border-radius: 14px;
+            padding: 0;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -990,10 +991,13 @@
             transition: all 0.3s ease;
         }
         .mute-button:hover {
-            background: rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.1);
+        }
+        .mute-button:active {
+            background: rgba(100,150,255,0.4);
+            transform: scale(0.95);
         }
         .mute-button.muted {
-            background: rgba(255,100,100,0.2);
             border-color: rgba(255,100,100,0.4);
         }
         .pause-credits {
@@ -1006,6 +1010,34 @@
             font-style: italic;
         }
 
+        /* Bouton X fermer le mode pause (desktop, haut droite) */
+        .pause-close-btn {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 10001;
+            width: 50px;
+            height: 50px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .pause-close-btn:hover {
+            background: rgba(255,255,255,0.1);
+            transform: scale(1.05);
+        }
+        .pause-close-btn:active {
+            background: rgba(100,150,255,0.4);
+            transform: scale(0.95);
+        }
+
         /* Game Instructions (top-left) */
         .game-instructions {
             position: fixed;
@@ -1016,7 +1048,6 @@
             color: rgba(255,255,255,0.95);
             z-index: 100;
             opacity: 1;
-            transition: opacity 0.6s ease;
             pointer-events: none;
             font-weight: 400;
             letter-spacing: 0.4px;
@@ -1024,8 +1055,14 @@
             flex-direction: column;
             gap: 14px;
         }
-        .game-instructions.hidden {
+        .game-instructions .instruction-row {
+            transition: opacity 0.6s ease;
+        }
+        .game-instructions.hidden .instruction-row {
             opacity: 0;
+        }
+        .game-instructions.hidden .instruction-esc-infos {
+            opacity: 1;
         }
         .instruction-row {
             display: grid;
@@ -1041,7 +1078,7 @@
         }
         .game-instructions .key {
             display: inline-block;
-            background: rgba(255,255,255,0.15);
+            background: rgba(100,150,255,0.3);
             padding: 10px 14px;
             border-radius: 8px;
             border: none;
@@ -1115,7 +1152,7 @@
         }
         .pause-instructions .key {
             display: inline-block;
-            background: rgba(255,255,255,0.15);
+            background: rgba(100,150,255,0.3);
             padding: 10px 14px;
             border-radius: 8px;
             border: none;
@@ -1340,7 +1377,32 @@
             touch-action: manipulation;
         }
         #mobile-pause-btn:active {
-            background: rgba(255,255,255,0.2);
+            background: rgba(100,150,255,0.4);
+            transform: scale(0.95);
+        }
+
+        /* Mobile Fullscreen Button */
+        #mobile-fullscreen-btn {
+            display: none;
+            position: fixed;
+            top: calc(20px + env(safe-area-inset-top));
+            right: calc(20px + env(safe-area-inset-right));
+            z-index: 10000;
+            width: 44px;
+            height: 44px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            color: #fff;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #mobile-fullscreen-btn:active {
+            background: rgba(100,150,255,0.4);
             transform: scale(0.95);
         }
 
@@ -1403,12 +1465,8 @@
             transition: all 0.2s ease;
         }
         #gyro-toggle-btn:active {
-            background: rgba(255,255,255,0.2);
+            background: rgba(100,150,255,0.4);
             transform: scale(0.95);
-        }
-        #gyro-toggle-btn.touch-mode {
-            background: rgba(100,150,255,0.3);
-            border-color: rgba(100,150,255,0.5);
         }
         #gyro-toggle-btn .gyro-icon,
         #gyro-toggle-btn .touch-icon {
@@ -1584,11 +1642,13 @@
                 font-size: clamp(12px, 3vw, 14px);
                 line-height: 1.7;
                 margin-bottom: 16px;
+                text-align: left;
             }
             .welcome-text {
                 font-size: clamp(12px, 3vw, 14px);
                 line-height: 1.7;
                 margin-bottom: 16px;
+                text-align: left;
             }
             .welcome-context {
                 font-size: clamp(10px, 2.5vw, 12px);
@@ -1629,8 +1689,18 @@
                 );
             }
 
+            /* Vidéo arrière-plan pleine hauteur mobile */
+            #welcome-video-bg {
+                height: 100dvh;
+                height: -webkit-fill-available;
+                min-height: 100%;
+            }
+
             /* Afficher UI mobile */
             #mobile-pause-btn {
+                display: flex;
+            }
+            #mobile-fullscreen-btn {
                 display: flex;
             }
             #mobile-joystick {
@@ -1656,7 +1726,7 @@
                 width: auto;
                 padding: 22px 20px;
                 margin: 15px;
-                max-height: calc(100dvh - 200px);
+                max-height: calc(100dvh - 140px);
                 overflow-y: auto;
                 font-size: 13px;
             }
@@ -1685,8 +1755,11 @@
                 bottom: calc(60px + env(safe-area-inset-bottom));
                 right: calc(15px + env(safe-area-inset-right));
             }
-            /* Cacher le volume sur mobile */
+            /* Cacher le volume et le bouton fermer sur mobile */
             .volume-control {
+                display: none !important;
+            }
+            .pause-close-btn {
                 display: none !important;
             }
 
@@ -1764,11 +1837,28 @@
         <span class="ptr-text">Relâchez pour actualiser</span>
     </div>
 
-    <!-- Mobile Pause Button -->
-    <button id="mobile-pause-btn" class="hidden" aria-label="Pause">
+    <!-- Mobile Info Button (ouvre le mode ESC/Infos) -->
+    <button id="mobile-pause-btn" class="hidden" aria-label="Infos">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="6" y="4" width="4" height="16"></rect>
-            <rect x="14" y="4" width="4" height="16"></rect>
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+    </button>
+
+    <!-- Mobile Fullscreen Button -->
+    <button id="mobile-fullscreen-btn" class="hidden" aria-label="Plein écran">
+        <svg class="fs-enter-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+            <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+            <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+            <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+        </svg>
+        <svg class="fs-exit-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3"></path>
+            <path d="M21 8h-3a2 2 0 0 1-2-2V3"></path>
+            <path d="M3 16h3a2 2 0 0 1 2 2v3"></path>
+            <path d="M16 21v-3a2 2 0 0 1 2-2h3"></path>
         </svg>
     </button>
 
@@ -1827,6 +1917,10 @@
 
     <!-- Game Instructions (top-left, visible when on floor Y=11) -->
     <div class="game-instructions hidden" id="game-instructions">
+        <div class="instruction-row instruction-esc-infos">
+            <span class="key">ESC</span>
+            <span>Infos</span>
+        </div>
         <div class="instruction-row">
             <span class="key">Souris</span>
             <span>Regarder autour</span>
@@ -1847,10 +1941,6 @@
         <div class="instruction-row">
             <span class="key">Molette</span>
             <span>Avancer / Reculer</span>
-        </div>
-        <div class="instruction-row">
-            <span class="key">ESC</span>
-            <span>Pause</span>
         </div>
     </div>
 
@@ -1917,9 +2007,21 @@
         </div>
     </div>
 
-    <!-- Pause Screen (ESC) -->
+    <!-- Pause Screen (ESC / Infos) -->
     <div id="pause-screen">
+        <!-- Bouton fermer X (desktop) -->
+        <button class="pause-close-btn" id="pause-close-btn" onclick="resumeExperience()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+
         <div class="pause-instructions">
+            <div class="instruction-row instruction-esc-infos">
+                <span class="key">ESC</span>
+                <span>Infos</span>
+            </div>
             <div class="instruction-row">
                 <span class="key">Souris</span>
                 <span>Regarder autour</span>
@@ -1940,10 +2042,6 @@
             <div class="instruction-row">
                 <span class="key">Molette</span>
                 <span>Avancer / Reculer</span>
-            </div>
-            <div class="instruction-row">
-                <span class="key">ESC</span>
-                <span>Pause</span>
             </div>
         </div>
 
@@ -8787,6 +8885,13 @@
             isPaused = true;
             document.getElementById('pause-screen').classList.add('active');
 
+            // Cacher les contrôles mobiles en mode pause
+            if (isMobile) {
+                document.getElementById('gyro-toggle-btn')?.classList.add('hidden');
+                document.getElementById('mobile-joystick')?.classList.add('hidden');
+                document.getElementById('mobile-fullscreen-btn')?.classList.add('hidden');
+            }
+
             // Volume constant - pas de fade
             // Note: Pointer lock is automatically released by ESC key before this function is called
         }
@@ -8800,10 +8905,25 @@
             isPaused = false;
             document.getElementById('pause-screen').classList.remove('active');
 
+            // Réafficher les contrôles mobiles
+            if (isMobile) {
+                const gyroToggle = document.getElementById('gyro-toggle-btn');
+                if (gyroToggle) {
+                    gyroToggle.classList.remove('hidden');
+                    gyroToggle.style.display = 'flex';
+                }
+                document.getElementById('mobile-joystick')?.classList.remove('hidden');
+                const fsBtn = document.getElementById('mobile-fullscreen-btn');
+                if (fsBtn) {
+                    fsBtn.classList.remove('hidden');
+                    fsBtn.style.display = 'flex';
+                }
+            }
+
             // Volume constant - pas de fade
 
-            // CRITICAL: Request pointer lock immediately to avoid intermediate cursor state
-            if (fpsMode && renderer && renderer.domElement) {
+            // CRITICAL: Request pointer lock immediately to avoid intermediate cursor state (desktop only)
+            if (fpsMode && renderer && renderer.domElement && !isMobile) {
                 renderer.domElement.requestPointerLock();
             }
         }
@@ -9632,6 +9752,7 @@
                 // Ignorer si on touche le joystick ou d'autres controles
                 if (e.target.closest('#mobile-joystick') ||
                     e.target.closest('#mobile-pause-btn') ||
+                    e.target.closest('#mobile-fullscreen-btn') ||
                     e.target.closest('#gyro-toggle-btn') ||
                     e.target.closest('.pause-controls')) return;
 
@@ -9699,6 +9820,51 @@
         }
 
         // ═══════════════════════════════════════════════════════════════
+        // MOBILE FULLSCREEN BUTTON
+        // ═══════════════════════════════════════════════════════════════
+        function initMobileFullscreenButton() {
+            if (!isMobile) return;
+
+            const btn = document.getElementById('mobile-fullscreen-btn');
+            if (!btn) return;
+
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleFullscreen();
+            });
+
+            btn.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+            }, { passive: false });
+
+            // Mettre à jour l'icône lors des changements de plein écran
+            document.addEventListener('fullscreenchange', updateFullscreenIcon);
+            document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+        }
+
+        function toggleFullscreen() {
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            } else {
+                const el = document.documentElement;
+                if (el.requestFullscreen) el.requestFullscreen();
+                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            }
+        }
+
+        function updateFullscreenIcon() {
+            const btn = document.getElementById('mobile-fullscreen-btn');
+            if (!btn) return;
+            const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            const enterIcon = btn.querySelector('.fs-enter-icon');
+            const exitIcon = btn.querySelector('.fs-exit-icon');
+            if (enterIcon) enterIcon.style.display = isFS ? 'none' : 'block';
+            if (exitIcon) exitIcon.style.display = isFS ? 'block' : 'none';
+        }
+
+        // ═══════════════════════════════════════════════════════════════
         // MOBILE INSTRUCTIONS
         // ═══════════════════════════════════════════════════════════════
         function showMobileInstructions() {
@@ -9735,6 +9901,7 @@
             initPullToRefresh();
             initJoystick();
             initMobilePauseButton();
+            initMobileFullscreenButton();
             initGyroToggle();
             initTouchDrag();
 
@@ -9775,6 +9942,11 @@
                 // Afficher les contrôles mobiles
                 document.getElementById('mobile-pause-btn')?.classList.remove('hidden');
                 document.getElementById('mobile-joystick')?.classList.remove('hidden');
+                const fsBtn = document.getElementById('mobile-fullscreen-btn');
+                if (fsBtn) {
+                    fsBtn.classList.remove('hidden');
+                    fsBtn.style.display = 'flex';
+                }
                 const gyroToggle = document.getElementById('gyro-toggle-btn');
                 if (gyroToggle) {
                     gyroToggle.classList.remove('hidden');
