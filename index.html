@@ -1533,10 +1533,10 @@
                 display: none; /* Chrome/Safari */
             }
 
-            /* Logo mobile: top center */
+            /* Logo mobile: centré dans la zone entre le haut et le bloc texte */
             .welcome-logo-container {
                 left: calc(50% - var(--logoSize) / 2) !important;
-                top: calc(60px + env(safe-area-inset-top)) !important;
+                top: calc(30px + env(safe-area-inset-top)) !important;
             }
             body.hoverPlay .welcome-logo-container {
                 left: calc(50% - var(--logoSize) / 2) !important;
@@ -1546,16 +1546,19 @@
                 top: calc(50vh - var(--logoSize) / 2) !important;
             }
 
-            /* Texte mobile: centre, forme plus proche du desktop */
+            /* Texte mobile: glassmorphisme style pause-content */
             .welcome-content {
                 left: 50% !important;
-                top: calc(140px + env(safe-area-inset-top) + var(--logoSize)) !important;
+                top: calc(60px + env(safe-area-inset-top) + var(--logoSize)) !important;
                 transform: translateX(-50%) !important;
                 width: calc(100vw - 40px) !important;
                 max-width: 500px !important;
-                padding-right: 0;
-                padding-bottom: 0;
+                padding: 22px 20px;
                 text-align: left;
+                background: rgba(0,0,0,0.50);
+                -webkit-backdrop-filter: blur(50px) saturate(1.2);
+                backdrop-filter: blur(50px) saturate(1.2);
+                border-radius: 28px;
             }
             body.hoverPlay .welcome-content {
                 transform: translateX(-50%) !important;
@@ -1643,13 +1646,17 @@
                 display: none !important;
             }
 
-            /* Pause screen mobile - compact */
+            /* Pause screen mobile - compact, remonté */
+            #pause-screen {
+                justify-content: flex-start;
+                padding-top: calc(70px + env(safe-area-inset-top));
+            }
             .pause-content {
                 max-width: 85vw;
                 width: auto;
                 padding: 22px 20px;
                 margin: 15px;
-                max-height: calc(100dvh - 280px);
+                max-height: calc(100dvh - 200px);
                 overflow-y: auto;
                 font-size: 13px;
             }
@@ -1675,7 +1682,7 @@
                 padding-top: 15px;
             }
             .pause-controls {
-                bottom: calc(15px + env(safe-area-inset-bottom));
+                bottom: calc(60px + env(safe-area-inset-bottom));
                 right: calc(15px + env(safe-area-inset-right));
             }
             /* Cacher le volume sur mobile */
@@ -2513,7 +2520,7 @@
             fpsCameraHeight: -96,       // Hauteur de spawn de la caméra
             fpsGravity: -1.5,           // Gravité
             fpsPlayerHeight: 25,        // Hauteur des yeux du joueur au-dessus du sol
-            fpsMaxSpeed: 2.25,          // Vitesse maximale
+            fpsMaxSpeed: 1.125,         // Vitesse maximale (divisée par 2)
             fpsAcceleration: 0.1,       // Vitesse d'accélération
             fpsDeceleration: 0.3,       // Vitesse de décélération
             fpsCollisionRadius: 0.5,    // Rayon de collision (réduit par 10)
@@ -2549,7 +2556,7 @@
             down: false,
             sprint: false
         };
-        const CAMERA_SPEED = 3; // Vitesse de déplacement de la caméra (réduite)
+        const CAMERA_SPEED = 1.5; // Vitesse de déplacement de la caméra (divisée par 2)
         const CAMERA_SPRINT_MULTIPLIER = 2.5; // Multiplicateur pour la vitesse de sprint
 
         // Real-time regeneration with debounce
@@ -9199,7 +9206,7 @@
         let joystickActive = false;
         let joystickData = { x: 0, y: 0 };
         let mobileInstructionsHidden = false;
-        let touchDragEnabled = false; // Mode tap-and-drag actif
+        let touchDragEnabled = true; // Mode tap-and-drag actif par défaut (manuel)
         let lastTouchX = 0;
         let lastTouchY = 0;
 
@@ -9772,6 +9779,10 @@
                 if (gyroToggle) {
                     gyroToggle.classList.remove('hidden');
                     gyroToggle.style.display = 'flex';
+                    // Mode manuel par défaut
+                    if (touchDragEnabled) {
+                        gyroToggle.classList.add('touch-mode');
+                    }
                 }
 
                 // Afficher instructions après un délai
