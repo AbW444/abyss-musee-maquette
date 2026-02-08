@@ -6474,154 +6474,77 @@
                 });
             }
 
-            // SCREEN 4: Custom shape (color surface) - FORME 7
+            // SCREEN 4: Custom shape (color surface) - FORME 7 (plafond)
             // ═══════════════════════════════════════════════════════
-            // LIGHTING MUSÉAL — Surface organique semi-minérale
-            // Fresnel spectral + fake SSS + micro-grain + absorption
-            // environnementale + respiration lumineuse + stratification
+            // Matériau d'origine + observateur lumière ambiante
+            // Détecte les couleurs des projections et les reflète subtilement
             // ═══════════════════════════════════════════════════════
             const width4 = 964.573;
             const height4 = 228.534;
-            const geometry4 = new THREE.PlaneGeometry(width4, height4, 64, 16);
+            const geometry4 = new THREE.PlaneGeometry(width4, height4);
 
             const forme7Material = new THREE.ShaderMaterial({
                 uniforms: {
-                    time: { value: 0.0 },
                     baseColor: { value: new THREE.Color(0x070707) },
+                    gradientStrength: { value: 0.03 },
                     ambientTint: { value: new THREE.Color(0x000000) },
-                    ambientStrength: { value: 0.35 },
-                    fresnelPower: { value: 4.0 },
-                    sssStrength: { value: 0.12 },
-                    noiseScale: { value: 8.0 },
-                    breathSpeed: { value: 0.15 },
-                    breathAmplitude: { value: 0.06 },
-                    cameraWorldPos: { value: new THREE.Vector3() },
-                    proximityRadius: { value: 600.0 },
-                    proximityBoost: { value: 0.4 }
+                    ambientStrength: { value: 0.25 },
+                    time: { value: 0.0 }
                 },
                 vertexShader: `
-                    varying vec3 vWorldPosition;
-                    varying vec3 vNormal;
                     varying vec2 vUv;
-                    varying vec3 vViewDir;
-
-                    uniform vec3 cameraWorldPos;
-
                     void main() {
                         vUv = uv;
-                        vec4 worldPos = modelMatrix * vec4(position, 1.0);
-                        vWorldPosition = worldPos.xyz;
-                        vNormal = normalize(normalMatrix * normal);
-                        vViewDir = normalize(cameraWorldPos - worldPos.xyz);
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                     }
                 `,
                 fragmentShader: `
-                    uniform float time;
                     uniform vec3 baseColor;
+                    uniform float gradientStrength;
                     uniform vec3 ambientTint;
                     uniform float ambientStrength;
-                    uniform float fresnelPower;
-                    uniform float sssStrength;
-                    uniform float noiseScale;
-                    uniform float breathSpeed;
-                    uniform float breathAmplitude;
-                    uniform vec3 cameraWorldPos;
-                    uniform float proximityRadius;
-                    uniform float proximityBoost;
-
-                    varying vec3 vWorldPosition;
-                    varying vec3 vNormal;
+                    uniform float time;
                     varying vec2 vUv;
-                    varying vec3 vViewDir;
 
-                    // Hash pour bruit procédural
+                    // Dithering Bayer 4x4
+                    float bayerDither4x4(vec2 screenPos) {
+                        int x = int(mod(screenPos.x, 4.0));
+                        int y = int(mod(screenPos.y, 4.0));
+                        int index = x + y * 4;
+                        float bayer[16];
+                        bayer[0] = 0.0/16.0; bayer[1] = 8.0/16.0; bayer[2] = 2.0/16.0; bayer[3] = 10.0/16.0;
+                        bayer[4] = 12.0/16.0; bayer[5] = 4.0/16.0; bayer[6] = 14.0/16.0; bayer[7] = 6.0/16.0;
+                        bayer[8] = 3.0/16.0; bayer[9] = 11.0/16.0; bayer[10] = 1.0/16.0; bayer[11] = 9.0/16.0;
+                        bayer[12] = 15.0/16.0; bayer[13] = 7.0/16.0; bayer[14] = 13.0/16.0; bayer[15] = 5.0/16.0;
+                        return bayer[index];
+                    }
+
                     float hash(vec2 p) {
                         return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
                     }
 
-                    // Noise 2D value-based
-                    float noise(vec2 p) {
-                        vec2 i = floor(p);
-                        vec2 f = fract(p);
-                        f = f * f * (3.0 - 2.0 * f);
-                        float a = hash(i);
-                        float b = hash(i + vec2(1.0, 0.0));
-                        float c = hash(i + vec2(0.0, 1.0));
-                        float d = hash(i + vec2(1.0, 1.0));
-                        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-                    }
-
-                    // Fractal Brownian Motion — grain organique multi-échelle
-                    float fbm(vec2 p) {
-                        float value = 0.0;
-                        float amp = 0.5;
-                        float freq = 1.0;
-                        for (int i = 0; i < 4; i++) {
-                            value += amp * noise(p * freq);
-                            freq *= 2.17;
-                            amp *= 0.48;
-                        }
-                        return value;
-                    }
-
                     void main() {
-                        // ─── GRAIN MATIÈRE (micro-variations organiques) ───
-                        float grain = fbm(vUv * noiseScale + time * 0.008);
-                        float fineGrain = fbm(vUv * noiseScale * 5.0 - time * 0.004);
-                        float materialVar = mix(grain, fineGrain, 0.3) * 0.012;
+                        // Gradient vertical subtil
+                        float gradient = vUv.y * gradientStrength;
 
-                        // ─── FRESNEL SPECTRAL (physically-based) ───
-                        // Shift chromatique : centre chaud, bords froids (Rayleigh)
-                        float NdotV = max(dot(normalize(vNormal), normalize(vViewDir)), 0.0);
-                        float fresnel = pow(1.0 - NdotV, fresnelPower);
-                        vec3 fresnelWarm = vec3(0.025, 0.018, 0.012);
-                        vec3 fresnelCool = vec3(0.010, 0.020, 0.038);
-                        vec3 fresnelColor = mix(fresnelWarm, fresnelCool, fresnel);
+                        // Dithering anti-banding
+                        float dither = (bayerDither4x4(gl_FragCoord.xy) - 0.5) * 0.006;
 
-                        // ─── FAKE SUBSURFACE SCATTERING ───
-                        // Lumière qui semble traverser la matière aux bords
-                        float sss = pow(1.0 - NdotV, 3.5) * sssStrength;
-                        vec3 sssColor = ambientTint * sss;
+                        // ─── OBSERVATEUR LUMIÈRE AMBIANTE ───
+                        // Zone de réflexion : plus forte au centre, fondu aux bords
+                        float edgeFadeX = smoothstep(0.0, 0.2, vUv.x) * smoothstep(1.0, 0.8, vUv.x);
+                        float edgeFadeY = smoothstep(0.0, 0.15, vUv.y) * smoothstep(1.0, 0.85, vUv.y);
+                        float reflectZone = edgeFadeX * edgeFadeY;
 
-                        // ─── RESPIRATION LUMINEUSE (ultra-lente) ───
-                        float breath1 = sin(time * breathSpeed) * 0.5 + 0.5;
-                        float breath2 = sin(time * breathSpeed * 0.7 + 1.3) * 0.5 + 0.5;
-                        float breath = mix(breath1, breath2, 0.4);
-                        breath = breath * breath; // Ease-in
-                        float breathEffect = 1.0 + breath * breathAmplitude;
+                        // Variation organique lente pour éviter un rendu plat
+                        float vary = hash(vUv * 50.0 + vec2(time * 0.01, 0.0));
+                        vary = vary * 0.3 + 0.7; // 70%-100%
 
-                        // ─── ABSORPTION ENVIRONNEMENTALE ───
-                        // La surface capte les couleurs des écrans voisins
-                        // Plus forte aux bords (Fresnel) = physiquement correct
-                        vec3 absorbed = ambientTint * ambientStrength * (fresnel * 0.7 + 0.3);
+                        vec3 ambient = ambientTint * ambientStrength * reflectZone * vary;
 
-                        // ─── STRATIFICATION ZONALE ───
-                        // Certaines zones plus réactives (comme des veines minérales)
-                        float zone = fbm(vUv * 2.5 + vec2(0.0, time * 0.003));
-                        zone = smoothstep(0.3, 0.7, zone);
-
-                        // ─── PROXIMITÉ VISITEUR ───
-                        float dist = distance(cameraWorldPos, vWorldPosition);
-                        float proximity = 1.0 - smoothstep(0.0, proximityRadius, dist);
-                        proximity = proximity * proximity; // Falloff quadratique
-                        float proxEffect = 1.0 + proximity * proximityBoost;
-
-                        // ─── COMPOSITION FINALE ───
-                        vec3 color = baseColor;
-                        color += vec3(materialVar);
-                        color += fresnelColor * fresnel * 0.4;
-                        color += sssColor * zone * 0.5;
-                        color += absorbed * zone;
-                        color *= breathEffect;
-                        color *= proxEffect;
-
-                        // Dithering anti-banding (critique dans les noirs)
-                        float dither = (hash(gl_FragCoord.xy + vec2(time * 100.0, 0.0)) - 0.5) * 0.004;
-                        color += vec3(dither);
-
-                        color = clamp(color, 0.0, 1.0);
-                        gl_FragColor = vec4(color, 1.0);
+                        // Couleur finale
+                        vec3 finalColor = baseColor + vec3(gradient + dither) + ambient;
+                        gl_FragColor = vec4(finalColor, 1.0);
                     }
                 `,
                 side: THREE.DoubleSide
@@ -8458,7 +8381,8 @@
             }
 
             // ═══════════════════════════════════════════════════════
-            // FORME 7 — Mise à jour uniforms du shader muséal
+            // FORME 7 — Observateur lumière ambiante (plafond)
+            // Détecte les couleurs des projections et les reflète
             // ═══════════════════════════════════════════════════════
             if (allScreens && camera) {
                 // Trouver le matériau Forme 7
@@ -8470,7 +8394,6 @@
                         break;
                     }
                 }
-                // Fallback: chercher dans screensGroup
                 if (!forme7Mat && screensGroup) {
                     screensGroup.traverse(child => {
                         if (child.userData && child.userData.screenNumber === 7 && child.userData.forme7Material) {
@@ -8480,26 +8403,24 @@
                 }
 
                 if (forme7Mat) {
-                    // Time (en secondes)
                     forme7Mat.uniforms.time.value = performance.now() * 0.001;
 
-                    // Position caméra (pour Fresnel et proximité)
-                    forme7Mat.uniforms.cameraWorldPos.value.copy(camera.position);
-
-                    // Échantillonnage couleur des écrans voisins (1 frame sur 30)
+                    // Échantillonnage couleur ambiante (1 frame sur 30)
                     if (animateFrameCount % 30 === 0) {
+                        // Canvas réutilisable (évite createElement à chaque frame)
+                        if (!window._ambientSampleCanvas) {
+                            window._ambientSampleCanvas = document.createElement('canvas');
+                            window._ambientSampleCanvas.width = 4;
+                            window._ambientSampleCanvas.height = 4;
+                            window._ambientSampleCtx = window._ambientSampleCanvas.getContext('2d');
+                        }
+                        const ctx = window._ambientSampleCtx;
                         let avgR = 0, avgG = 0, avgB = 0, samples = 0;
 
-                        // Sampler les vidéos des écrans pour extraire la teinte dominante
                         for (const vidKey in screenVideos) {
                             const vid = screenVideos[vidKey];
                             if (vid && vid.readyState >= 2 && vid.videoWidth > 0) {
                                 try {
-                                    // Canvas temporaire 1x1 pour échantillonner le centre
-                                    const sampleCanvas = document.createElement('canvas');
-                                    sampleCanvas.width = 4;
-                                    sampleCanvas.height = 4;
-                                    const ctx = sampleCanvas.getContext('2d');
                                     const cx = vid.videoWidth / 2 - 2;
                                     const cy = vid.videoHeight / 2 - 2;
                                     ctx.drawImage(vid, cx, cy, 4, 4, 0, 0, 4, 4);
@@ -8510,7 +8431,7 @@
                                         avgB += data[px + 2];
                                         samples++;
                                     }
-                                } catch(e) { /* cross-origin ou pas prêt */ }
+                                } catch(e) { /* cross-origin */ }
                             }
                         }
 
@@ -8519,7 +8440,6 @@
                             avgG = (avgG / samples) / 255.0;
                             avgB = (avgB / samples) / 255.0;
 
-                            // Transition lente organique (lerp très doux)
                             const tint = forme7Mat.uniforms.ambientTint.value;
                             const lerpFactor = 0.05;
                             tint.r += (avgR - tint.r) * lerpFactor;
