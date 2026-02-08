@@ -1981,9 +1981,7 @@
 
         <div class="welcome-logo-container" id="welcome-logo-container">
             <img src="img/presences_rares_logo.png" alt="Logo" class="welcome-logo" id="welcome-logo">
-            <video class="welcome-logo-video" id="welcome-logo-video" loop muted playsinline preload="auto">
-                <source src="videos/dumbo_icone_chargement.webm" type="video/webm">
-            </video>
+            <canvas class="welcome-logo-video" id="welcome-logo-video"></canvas>
         </div>
 
         <div class="welcome-content" id="welcome-content">
@@ -2120,9 +2118,7 @@
 
     <!-- Loading Screen -->
     <div id="loading-screen">
-        <video class="loading-video" autoplay loop muted playsinline preload="auto">
-            <source src="videos/dumbo_icone_chargement.webm" type="video/webm">
-        </video>
+        <canvas class="loading-video" id="loading-canvas"></canvas>
     </div>
 
     <a href="index.html" id="title-link">
@@ -6474,39 +6470,162 @@
                 });
             }
 
+            // ============================================================
+            // HELPER: Matériau muséal organique pour MURS-FORMES
+            // (Fresnel spectral + fake SSS + FBM grain + respiration + absorption)
+            // ============================================================
+            function createMusealMaterial(baseColorHex) {
+                return new THREE.ShaderMaterial({
+                    uniforms: {
+                        time: { value: 0.0 },
+                        baseColor: { value: new THREE.Color(baseColorHex) },
+                        ambientTint: { value: new THREE.Color(0x000000) },
+                        ambientStrength: { value: 0.35 },
+                        fresnelPower: { value: 4.0 },
+                        sssStrength: { value: 0.12 },
+                        noiseScale: { value: 8.0 },
+                        breathSpeed: { value: 0.15 },
+                        breathAmplitude: { value: 0.06 },
+                        cameraWorldPos: { value: new THREE.Vector3() },
+                        proximityRadius: { value: 600.0 },
+                        proximityBoost: { value: 0.4 }
+                    },
+                    vertexShader: `
+                        varying vec3 vWorldPosition;
+                        varying vec3 vNormal;
+                        varying vec2 vUv;
+                        varying vec3 vViewDir;
+                        uniform vec3 cameraWorldPos;
+                        void main() {
+                            vUv = uv;
+                            vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                            vWorldPosition = worldPos.xyz;
+                            vNormal = normalize(normalMatrix * normal);
+                            vViewDir = normalize(cameraWorldPos - worldPos.xyz);
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        uniform float time;
+                        uniform vec3 baseColor;
+                        uniform vec3 ambientTint;
+                        uniform float ambientStrength;
+                        uniform float fresnelPower;
+                        uniform float sssStrength;
+                        uniform float noiseScale;
+                        uniform float breathSpeed;
+                        uniform float breathAmplitude;
+                        uniform vec3 cameraWorldPos;
+                        uniform float proximityRadius;
+                        uniform float proximityBoost;
+                        varying vec3 vWorldPosition;
+                        varying vec3 vNormal;
+                        varying vec2 vUv;
+                        varying vec3 vViewDir;
+
+                        float hash(vec2 p) {
+                            return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+                        }
+                        float noise(vec2 p) {
+                            vec2 i = floor(p);
+                            vec2 f = fract(p);
+                            f = f * f * (3.0 - 2.0 * f);
+                            float a = hash(i);
+                            float b = hash(i + vec2(1.0, 0.0));
+                            float c = hash(i + vec2(0.0, 1.0));
+                            float d = hash(i + vec2(1.0, 1.0));
+                            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+                        }
+                        float fbm(vec2 p) {
+                            float value = 0.0;
+                            float amp = 0.5;
+                            float freq = 1.0;
+                            for (int i = 0; i < 4; i++) {
+                                value += amp * noise(p * freq);
+                                freq *= 2.17;
+                                amp *= 0.48;
+                            }
+                            return value;
+                        }
+                        void main() {
+                            float grain = fbm(vUv * noiseScale + time * 0.008);
+                            float fineGrain = fbm(vUv * noiseScale * 5.0 - time * 0.004);
+                            float materialVar = mix(grain, fineGrain, 0.3) * 0.012;
+
+                            float NdotV = max(dot(normalize(vNormal), normalize(vViewDir)), 0.0);
+                            float fresnel = pow(1.0 - NdotV, fresnelPower);
+                            vec3 fresnelWarm = vec3(0.025, 0.018, 0.012);
+                            vec3 fresnelCool = vec3(0.010, 0.020, 0.038);
+                            vec3 fresnelColor = mix(fresnelWarm, fresnelCool, fresnel);
+
+                            float sss = pow(1.0 - NdotV, 3.5) * sssStrength;
+                            vec3 sssColor = ambientTint * sss;
+
+                            float breath1 = sin(time * breathSpeed) * 0.5 + 0.5;
+                            float breath2 = sin(time * breathSpeed * 0.7 + 1.3) * 0.5 + 0.5;
+                            float breath = mix(breath1, breath2, 0.4);
+                            breath = breath * breath;
+                            float breathEffect = 1.0 + breath * breathAmplitude;
+
+                            vec3 absorbed = ambientTint * ambientStrength * (fresnel * 0.7 + 0.3);
+
+                            float zone = fbm(vUv * 2.5 + vec2(0.0, time * 0.003));
+                            zone = smoothstep(0.3, 0.7, zone);
+
+                            float dist = distance(cameraWorldPos, vWorldPosition);
+                            float proximity = 1.0 - smoothstep(0.0, proximityRadius, dist);
+                            proximity = proximity * proximity;
+                            float proxEffect = 1.0 + proximity * proximityBoost;
+
+                            vec3 color = baseColor;
+                            color += vec3(materialVar);
+                            color += fresnelColor * fresnel * 0.4;
+                            color += sssColor * zone * 0.5;
+                            color += absorbed * zone;
+                            color *= breathEffect;
+                            color *= proxEffect;
+
+                            float dither = (hash(gl_FragCoord.xy + vec2(time * 100.0, 0.0)) - 0.5) * 0.004;
+                            color += vec3(dither);
+
+                            color = clamp(color, 0.0, 1.0);
+                            gl_FragColor = vec4(color, 1.0);
+                        }
+                    `,
+                    side: THREE.DoubleSide
+                });
+            }
+
             // SCREEN 4: Custom shape (color surface) - FORME 7
             // ═══════════════════════════════════════════════════════
-            // LIGHTING MUSÉAL — Surface organique semi-minérale
-            // Fresnel spectral + fake SSS + micro-grain + absorption
-            // environnementale + respiration lumineuse + stratification
+            // RÉFLECTEUR AMBIANT — Plafond captant les lumières des écrans
+            // Reflection diffuse + caustics organiques + Fresnel bords
             // ═══════════════════════════════════════════════════════
             const width4 = 964.573;
             const height4 = 228.534;
             const geometry4 = new THREE.PlaneGeometry(width4, height4, 64, 16);
 
-            const forme7Material = new THREE.ShaderMaterial({
+            const reflectorMaterial = new THREE.ShaderMaterial({
                 uniforms: {
                     time: { value: 0.0 },
-                    baseColor: { value: new THREE.Color(0x070707) },
-                    ambientTint: { value: new THREE.Color(0x000000) },
-                    ambientStrength: { value: 0.35 },
-                    fresnelPower: { value: 4.0 },
-                    sssStrength: { value: 0.12 },
-                    noiseScale: { value: 8.0 },
-                    breathSpeed: { value: 0.15 },
-                    breathAmplitude: { value: 0.06 },
+                    baseColor: { value: new THREE.Color(0x050505) },
+                    screenColor0: { value: new THREE.Color(0x000000) },
+                    screenColor1: { value: new THREE.Color(0x000000) },
+                    screenColor2: { value: new THREE.Color(0x000000) },
+                    screenColor3: { value: new THREE.Color(0x000000) },
+                    screenColor4: { value: new THREE.Color(0x000000) },
+                    screenColor5: { value: new THREE.Color(0x000000) },
+                    reflectIntensity: { value: 0.18 },
                     cameraWorldPos: { value: new THREE.Vector3() },
                     proximityRadius: { value: 600.0 },
-                    proximityBoost: { value: 0.4 }
+                    proximityBoost: { value: 0.3 }
                 },
                 vertexShader: `
                     varying vec3 vWorldPosition;
                     varying vec3 vNormal;
                     varying vec2 vUv;
                     varying vec3 vViewDir;
-
                     uniform vec3 cameraWorldPos;
-
                     void main() {
                         vUv = uv;
                         vec4 worldPos = modelMatrix * vec4(position, 1.0);
@@ -6519,13 +6638,13 @@
                 fragmentShader: `
                     uniform float time;
                     uniform vec3 baseColor;
-                    uniform vec3 ambientTint;
-                    uniform float ambientStrength;
-                    uniform float fresnelPower;
-                    uniform float sssStrength;
-                    uniform float noiseScale;
-                    uniform float breathSpeed;
-                    uniform float breathAmplitude;
+                    uniform vec3 screenColor0;
+                    uniform vec3 screenColor1;
+                    uniform vec3 screenColor2;
+                    uniform vec3 screenColor3;
+                    uniform vec3 screenColor4;
+                    uniform vec3 screenColor5;
+                    uniform float reflectIntensity;
                     uniform vec3 cameraWorldPos;
                     uniform float proximityRadius;
                     uniform float proximityBoost;
@@ -6535,12 +6654,9 @@
                     varying vec2 vUv;
                     varying vec3 vViewDir;
 
-                    // Hash pour bruit procédural
                     float hash(vec2 p) {
                         return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
                     }
-
-                    // Noise 2D value-based
                     float noise(vec2 p) {
                         vec2 i = floor(p);
                         vec2 f = fract(p);
@@ -6551,8 +6667,6 @@
                         float d = hash(i + vec2(1.0, 1.0));
                         return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
                     }
-
-                    // Fractal Brownian Motion — grain organique multi-échelle
                     float fbm(vec2 p) {
                         float value = 0.0;
                         float amp = 0.5;
@@ -6565,58 +6679,67 @@
                         return value;
                     }
 
+                    // Compute light contribution from a single screen
+                    vec3 screenContrib(vec3 screenPos, vec3 screenCol, float sigma) {
+                        vec3 toLight = screenPos - vWorldPosition;
+                        float d = length(toLight);
+                        vec3 lightDir = normalize(toLight);
+                        // Gaussian falloff
+                        float falloff = exp(-(d * d) / (sigma * sigma));
+                        // Lambertian diffuse (light from below hitting ceiling)
+                        float NdotL = max(dot(normalize(vNormal), lightDir), 0.0);
+                        // Inverse square attenuation (softened)
+                        float atten = 1.0 / (1.0 + d * 0.002);
+                        return screenCol * falloff * NdotL * atten;
+                    }
+
                     void main() {
-                        // ─── GRAIN MATIÈRE (micro-variations organiques) ───
-                        float grain = fbm(vUv * noiseScale + time * 0.008);
-                        float fineGrain = fbm(vUv * noiseScale * 5.0 - time * 0.004);
-                        float materialVar = mix(grain, fineGrain, 0.3) * 0.012;
+                        vec3 N = normalize(vNormal);
 
-                        // ─── FRESNEL SPECTRAL (physically-based) ───
-                        // Shift chromatique : centre chaud, bords froids (Rayleigh)
-                        float NdotV = max(dot(normalize(vNormal), normalize(vViewDir)), 0.0);
-                        float fresnel = pow(1.0 - NdotV, fresnelPower);
-                        vec3 fresnelWarm = vec3(0.025, 0.018, 0.012);
-                        vec3 fresnelCool = vec3(0.010, 0.020, 0.038);
-                        vec3 fresnelColor = mix(fresnelWarm, fresnelCool, fresnel);
+                        // ─── ACCUMULATION DES REFLETS DES 6 ÉCRANS ───
+                        // Positions statiques des écrans (scène fixe)
+                        float sigma = 350.0; // Rayon de diffusion Gaussien
+                        vec3 reflected = vec3(0.0);
+                        reflected += screenContrib(vec3(0.0, 0.0, 0.0), screenColor0, sigma);         // Écran 1: mur arrière gauche
+                        reflected += screenContrib(vec3(400.0, 0.0, 0.0), screenColor1, sigma);       // Écran 2: mur arrière droit
+                        reflected += screenContrib(vec3(599.938, -0.064, 112.546), screenColor2, sigma); // Écran 3: panneau latéral
+                        reflected += screenContrib(vec3(400.0, 0.0, 225.0), screenColor3, sigma);     // Écran 4: mur avant droit
+                        reflected += screenContrib(vec3(0.0, 0.0, 225.0), screenColor4, sigma);       // Écran 5: mur avant gauche
+                        reflected += screenContrib(vec3(200.858, -112.5, 112.5), screenColor5, sigma); // Écran 6: sol
 
-                        // ─── FAKE SUBSURFACE SCATTERING ───
-                        // Lumière qui semble traverser la matière aux bords
-                        float sss = pow(1.0 - NdotV, 3.5) * sssStrength;
-                        vec3 sssColor = ambientTint * sss;
+                        // ─── CAUSTICS ORGANIQUES (ondulations lumineuses) ───
+                        float caustic1 = fbm(vUv * 5.0 + time * 0.018);
+                        float caustic2 = fbm(vUv * 10.0 - time * 0.012 + vec2(3.7, 1.2));
+                        float caustic = mix(caustic1, caustic2, 0.5);
+                        caustic = smoothstep(0.3, 0.7, caustic);
+                        // Modulation caustic sur les reflets
+                        reflected *= (0.6 + 0.8 * caustic);
 
-                        // ─── RESPIRATION LUMINEUSE (ultra-lente) ───
-                        float breath1 = sin(time * breathSpeed) * 0.5 + 0.5;
-                        float breath2 = sin(time * breathSpeed * 0.7 + 1.3) * 0.5 + 0.5;
-                        float breath = mix(breath1, breath2, 0.4);
-                        breath = breath * breath; // Ease-in
-                        float breathEffect = 1.0 + breath * breathAmplitude;
+                        // ─── FRESNEL BORDS (reflets plus intenses aux angles rasants) ───
+                        float NdotV = max(dot(N, normalize(vViewDir)), 0.0);
+                        float fresnel = pow(1.0 - NdotV, 3.5);
+                        reflected *= (1.0 + fresnel * 1.2);
 
-                        // ─── ABSORPTION ENVIRONNEMENTALE ───
-                        // La surface capte les couleurs des écrans voisins
-                        // Plus forte aux bords (Fresnel) = physiquement correct
-                        vec3 absorbed = ambientTint * ambientStrength * (fresnel * 0.7 + 0.3);
-
-                        // ─── STRATIFICATION ZONALE ───
-                        // Certaines zones plus réactives (comme des veines minérales)
-                        float zone = fbm(vUv * 2.5 + vec2(0.0, time * 0.003));
-                        zone = smoothstep(0.3, 0.7, zone);
+                        // ─── RESPIRATION LUMINEUSE ───
+                        float breath = sin(time * 0.12) * 0.5 + 0.5;
+                        breath = breath * breath;
+                        float breathEffect = 1.0 + breath * 0.05;
 
                         // ─── PROXIMITÉ VISITEUR ───
                         float dist = distance(cameraWorldPos, vWorldPosition);
                         float proximity = 1.0 - smoothstep(0.0, proximityRadius, dist);
-                        proximity = proximity * proximity; // Falloff quadratique
+                        proximity = proximity * proximity;
                         float proxEffect = 1.0 + proximity * proximityBoost;
 
-                        // ─── COMPOSITION FINALE ───
-                        vec3 color = baseColor;
-                        color += vec3(materialVar);
-                        color += fresnelColor * fresnel * 0.4;
-                        color += sssColor * zone * 0.5;
-                        color += absorbed * zone;
-                        color *= breathEffect;
-                        color *= proxEffect;
+                        // ─── MICRO-GRAIN SURFACE ───
+                        float grain = fbm(vUv * 12.0 + time * 0.005);
+                        float surfaceVar = grain * 0.006;
 
-                        // Dithering anti-banding (critique dans les noirs)
+                        // ─── COMPOSITION FINALE ───
+                        vec3 color = baseColor + vec3(surfaceVar);
+                        color += reflected * reflectIntensity * breathEffect * proxEffect;
+
+                        // Dithering anti-banding
                         float dither = (hash(gl_FragCoord.xy + vec2(time * 100.0, 0.0)) - 0.5) * 0.004;
                         color += vec3(dither);
 
@@ -6627,7 +6750,7 @@
                 side: THREE.DoubleSide
             });
 
-            const screen4 = new THREE.Mesh(geometry4, forme7Material);
+            const screen4 = new THREE.Mesh(geometry4, reflectorMaterial);
 
             // Position et orientation (from user JSON)
             screen4.position.set(132.131, 109.022, 112.031);
@@ -6638,7 +6761,7 @@
             screen4.userData.screenNumber = 7;
             screen4.userData.isColorSurface = true;
             screen4.userData.color = 0x070707;
-            screen4.userData.forme7Material = forme7Material; // Référence pour animation
+            screen4.userData.reflectorMaterial = reflectorMaterial; // Référence pour animation
 
             screensGroup.add(screen4);
 
@@ -6712,59 +6835,8 @@
             // ======================
             const width11 = 155.945;
             const height11 = 228.534;
-            const geometry11 = new THREE.PlaneGeometry(width11, height11);
-
-            // Shader spécial pour sol avec ombre fake mur-sol (dégradé radial subtil)
-            const material11 = new THREE.ShaderMaterial({
-                uniforms: {
-                    baseColor: { value: new THREE.Color(0x0A0A0A) },
-                    gradientStrength: { value: 0.03 },
-                    shadowStrength: { value: 0.025 } // 2.5% assombrissement aux bords
-                },
-                vertexShader: `
-                    varying vec2 vUv;
-                    void main() {
-                        vUv = uv;
-                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    }
-                `,
-                fragmentShader: `
-                    uniform vec3 baseColor;
-                    uniform float gradientStrength;
-                    uniform float shadowStrength;
-                    varying vec2 vUv;
-
-                    float bayerDither4x4(vec2 screenPos) {
-                        int x = int(mod(screenPos.x, 4.0));
-                        int y = int(mod(screenPos.y, 4.0));
-                        int index = x + y * 4;
-                        float bayer[16];
-                        bayer[0] = 0.0/16.0; bayer[1] = 8.0/16.0; bayer[2] = 2.0/16.0; bayer[3] = 10.0/16.0;
-                        bayer[4] = 12.0/16.0; bayer[5] = 4.0/16.0; bayer[6] = 14.0/16.0; bayer[7] = 6.0/16.0;
-                        bayer[8] = 3.0/16.0; bayer[9] = 11.0/16.0; bayer[10] = 1.0/16.0; bayer[11] = 9.0/16.0;
-                        bayer[12] = 15.0/16.0; bayer[13] = 7.0/16.0; bayer[14] = 13.0/16.0; bayer[15] = 5.0/16.0;
-                        return bayer[index];
-                    }
-
-                    void main() {
-                        // Gradient vertical
-                        float gradient = vUv.y * gradientStrength;
-
-                        // Ombre fake mur-sol : dégradé radial depuis les bords
-                        vec2 center = vec2(0.5, 0.5);
-                        float distFromCenter = distance(vUv, center);
-                        float shadow = smoothstep(0.3, 0.7, distFromCenter) * shadowStrength;
-
-                        // Dithering
-                        float dither = (bayerDither4x4(gl_FragCoord.xy) - 0.5) * 0.006;
-
-                        // Couleur finale (assombrie aux bords)
-                        vec3 finalColor = baseColor + vec3(gradient + dither) - vec3(shadow);
-                        gl_FragColor = vec4(finalColor, 1.0);
-                    }
-                `,
-                side: THREE.DoubleSide
-            });
+            const geometry11 = new THREE.PlaneGeometry(width11, height11, 16, 16);
+            const material11 = createMusealMaterial(0x0A0A0A);
             const screen11 = new THREE.Mesh(geometry11, material11);
             screen11.position.set(-274.876, -111.773, 112.79);
             screen11.rotation.set(1.570796, 0, 0);
@@ -6772,6 +6844,7 @@
             screen11.userData.screenNumber = 11;
             screen11.userData.isColorSurface = true;
             screen11.userData.color = 0x0A0A0A;
+            screen11.userData.musealMaterial = material11;
             screensGroup.add(screen11);
 
             // ======================
@@ -6779,8 +6852,8 @@
             // ======================
             const width12 = 235.076;
             const height12 = 231.29;
-            const geometry12 = new THREE.PlaneGeometry(width12, height12);
-            const material12 = createWallFormMaterial(0x060606); // Shader subtil pour mur-forme
+            const geometry12 = new THREE.PlaneGeometry(width12, height12, 16, 16);
+            const material12 = createMusealMaterial(0x060606);
             const screen12 = new THREE.Mesh(geometry12, material12);
             screen12.position.set(-348.048, -6.589, 115.234);
             screen12.rotation.set(0, 1.570796, 0);
@@ -6788,6 +6861,7 @@
             screen12.userData.screenNumber = 12;
             screen12.userData.isColorSurface = true;
             screen12.userData.color = 0x060606;
+            screen12.userData.musealMaterial = material12;
             screensGroup.add(screen12);
 
             // ======================
@@ -6947,8 +7021,8 @@
             // ======================
             const width22 = 235.076;
             const height22 = 60.24; // Ajusté pour bas = -111.773
-            const geometry22 = new THREE.PlaneGeometry(width22, height22);
-            const material22 = createWallFormMaterial(0x060606); // Noir foncé
+            const geometry22 = new THREE.PlaneGeometry(width22, height22, 16, 8);
+            const material22 = createMusealMaterial(0x060606);
             const screen22 = new THREE.Mesh(geometry22, material22);
             screen22.position.set(-315.617, -81.653, 180.248); // Y ajusté
             screen22.rotation.set(-3.141593, 0, -3.141593);
@@ -6956,6 +7030,7 @@
             screen22.userData.screenNumber = 22;
             screen22.userData.isColorSurface = true;
             screen22.userData.color = 0x060606;
+            screen22.userData.musealMaterial = material22;
             screensGroup.add(screen22);
 
             // ======================
@@ -6964,8 +7039,8 @@
             // ======================
             const width23 = 235.076;
             const height23 = 60.24; // Ajusté pour bas = -111.773
-            const geometry23 = new THREE.PlaneGeometry(width23, height23);
-            const material23 = createWallFormMaterial(0x060606); // Noir foncé
+            const geometry23 = new THREE.PlaneGeometry(width23, height23, 16, 8);
+            const material23 = createMusealMaterial(0x060606);
             const screen23 = new THREE.Mesh(geometry23, material23);
             screen23.position.set(-315.617, -81.653, 48.644); // Y ajusté
             screen23.rotation.set(-3.141593, 0, -3.141593);
@@ -6973,6 +7048,7 @@
             screen23.userData.screenNumber = 23;
             screen23.userData.isColorSurface = true;
             screen23.userData.color = 0x060606;
+            screen23.userData.musealMaterial = material23;
             screensGroup.add(screen23);
 
             // Restore custom shapes (>23) - both in allScreens and screensGroup
@@ -8420,19 +8496,6 @@
                 camera.updateProjectionMatrix();
             }
 
-            // OPTIMIZED: Throttle CubeCamera updates (expensive: renders scene 6 times)
-            if (allScreens && allScreens[4] && allScreens[4].userData.cubeCamera) {
-                cubeCameraUpdateCounter++;
-                if (cubeCameraUpdateCounter >= CUBE_CAMERA_UPDATE_INTERVAL) {
-                    cubeCameraUpdateCounter = 0;
-                    const screen4 = allScreens[4];
-                    const cubeCamera = screen4.userData.cubeCamera;
-                    screen4.visible = false;  // Cacher l'écran pour éviter auto-réflexion
-                    cubeCamera.update(renderer, scene);  // Capturer l'environnement
-                    screen4.visible = true;  // Réafficher l'écran
-                }
-            }
-
             // Update game instructions visibility based on Y position
             // Floor 11 is at Y=-111.773, with eye height 25, camera should be at Y≈-86.773
             const instructionsElement = fpsDOMCache.gameInstructions;
@@ -8458,73 +8521,126 @@
             }
 
             // ═══════════════════════════════════════════════════════
-            // FORME 7 — Mise à jour uniforms du shader muséal
+            // MISE À JOUR SHADERS — Matériaux muséaux + Réflecteur plafond
             // ═══════════════════════════════════════════════════════
             if (allScreens && camera) {
-                // Trouver le matériau Forme 7
-                let forme7Mat = null;
+                const now = performance.now() * 0.001;
+
+                // ─── Canvas réutilisable pour échantillonnage couleur ───
+                if (!window._colorSampleCanvas) {
+                    window._colorSampleCanvas = document.createElement('canvas');
+                    window._colorSampleCanvas.width = 4;
+                    window._colorSampleCanvas.height = 4;
+                    window._colorSampleCtx = window._colorSampleCanvas.getContext('2d');
+                }
+
+                // ─── 1. Mise à jour matériaux MUSÉAUX (formes 11, 12, 22, 23) ───
+                const musealScreenNums = [11, 12, 22, 23];
+                const musealMats = [];
                 for (const key in allScreens) {
                     const s = allScreens[key];
-                    if (s && s.userData && s.userData.screenNumber === 7 && s.userData.forme7Material) {
-                        forme7Mat = s.userData.forme7Material;
+                    if (s && s.userData && s.userData.musealMaterial) {
+                        const mat = s.userData.musealMaterial;
+                        mat.uniforms.time.value = now;
+                        mat.uniforms.cameraWorldPos.value.copy(camera.position);
+                        musealMats.push(mat);
+                    }
+                }
+
+                // ─── 2. Mise à jour RÉFLECTEUR plafond (forme 7) ───
+                let reflectorMat = null;
+                for (const key in allScreens) {
+                    const s = allScreens[key];
+                    if (s && s.userData && s.userData.screenNumber === 7 && s.userData.reflectorMaterial) {
+                        reflectorMat = s.userData.reflectorMaterial;
                         break;
                     }
                 }
-                // Fallback: chercher dans screensGroup
-                if (!forme7Mat && screensGroup) {
+                if (!reflectorMat && screensGroup) {
                     screensGroup.traverse(child => {
-                        if (child.userData && child.userData.screenNumber === 7 && child.userData.forme7Material) {
-                            forme7Mat = child.userData.forme7Material;
+                        if (child.userData && child.userData.screenNumber === 7 && child.userData.reflectorMaterial) {
+                            reflectorMat = child.userData.reflectorMaterial;
                         }
                     });
                 }
+                if (reflectorMat) {
+                    reflectorMat.uniforms.time.value = now;
+                    reflectorMat.uniforms.cameraWorldPos.value.copy(camera.position);
+                }
 
-                if (forme7Mat) {
-                    // Time (en secondes)
-                    forme7Mat.uniforms.time.value = performance.now() * 0.001;
+                // ─── 3. Échantillonnage couleur des écrans (1 frame sur 30) ───
+                if (animateFrameCount % 30 === 0) {
+                    const ctx = window._colorSampleCtx;
+                    const canvas = window._colorSampleCanvas;
+                    let avgR = 0, avgG = 0, avgB = 0, totalSamples = 0;
 
-                    // Position caméra (pour Fresnel et proximité)
-                    forme7Mat.uniforms.cameraWorldPos.value.copy(camera.position);
+                    // Couleurs individuelles par écran (pour le réflecteur)
+                    const screenColorData = {};
+                    const vidKeys = Object.keys(screenVideos);
 
-                    // Échantillonnage couleur des écrans voisins (1 frame sur 30)
-                    if (animateFrameCount % 30 === 0) {
-                        let avgR = 0, avgG = 0, avgB = 0, samples = 0;
-
-                        // Sampler les vidéos des écrans pour extraire la teinte dominante
-                        for (const vidKey in screenVideos) {
-                            const vid = screenVideos[vidKey];
-                            if (vid && vid.readyState >= 2 && vid.videoWidth > 0) {
-                                try {
-                                    // Canvas temporaire 1x1 pour échantillonner le centre
-                                    const sampleCanvas = document.createElement('canvas');
-                                    sampleCanvas.width = 4;
-                                    sampleCanvas.height = 4;
-                                    const ctx = sampleCanvas.getContext('2d');
-                                    const cx = vid.videoWidth / 2 - 2;
-                                    const cy = vid.videoHeight / 2 - 2;
-                                    ctx.drawImage(vid, cx, cy, 4, 4, 0, 0, 4, 4);
-                                    const data = ctx.getImageData(0, 0, 4, 4).data;
-                                    for (let px = 0; px < data.length; px += 4) {
-                                        avgR += data[px];
-                                        avgG += data[px + 1];
-                                        avgB += data[px + 2];
-                                        samples++;
-                                    }
-                                } catch(e) { /* cross-origin ou pas prêt */ }
-                            }
+                    for (let vi = 0; vi < vidKeys.length; vi++) {
+                        const vidKey = vidKeys[vi];
+                        const vid = screenVideos[vidKey];
+                        if (vid && vid.readyState >= 2 && vid.videoWidth > 0) {
+                            try {
+                                const cx = vid.videoWidth / 2 - 2;
+                                const cy = vid.videoHeight / 2 - 2;
+                                ctx.drawImage(vid, cx, cy, 4, 4, 0, 0, 4, 4);
+                                const data = ctx.getImageData(0, 0, 4, 4).data;
+                                let sr = 0, sg = 0, sb = 0, sc = 0;
+                                for (let px = 0; px < data.length; px += 4) {
+                                    sr += data[px];
+                                    sg += data[px + 1];
+                                    sb += data[px + 2];
+                                    sc++;
+                                }
+                                screenColorData[vidKey] = {
+                                    r: (sr / sc) / 255.0,
+                                    g: (sg / sc) / 255.0,
+                                    b: (sb / sc) / 255.0
+                                };
+                                avgR += sr; avgG += sg; avgB += sb;
+                                totalSamples += sc;
+                            } catch(e) { /* cross-origin ou pas prêt */ }
                         }
+                    }
 
-                        if (samples > 0) {
-                            avgR = (avgR / samples) / 255.0;
-                            avgG = (avgG / samples) / 255.0;
-                            avgB = (avgB / samples) / 255.0;
+                    // Mise à jour ambientTint pour matériaux muséaux (moyenne globale)
+                    if (totalSamples > 0) {
+                        const ar = (avgR / totalSamples) / 255.0;
+                        const ag = (avgG / totalSamples) / 255.0;
+                        const ab = (avgB / totalSamples) / 255.0;
+                        const lerpFactor = 0.05;
 
-                            // Transition lente organique (lerp très doux)
-                            const tint = forme7Mat.uniforms.ambientTint.value;
-                            const lerpFactor = 0.05;
-                            tint.r += (avgR - tint.r) * lerpFactor;
-                            tint.g += (avgG - tint.g) * lerpFactor;
-                            tint.b += (avgB - tint.b) * lerpFactor;
+                        for (let mi = 0; mi < musealMats.length; mi++) {
+                            const tint = musealMats[mi].uniforms.ambientTint.value;
+                            tint.r += (ar - tint.r) * lerpFactor;
+                            tint.g += (ag - tint.g) * lerpFactor;
+                            tint.b += (ab - tint.b) * lerpFactor;
+                        }
+                    }
+
+                    // Mise à jour couleurs individuelles pour le réflecteur
+                    if (reflectorMat) {
+                        const lerpFactor = 0.08;
+                        const colorUniforms = [
+                            reflectorMat.uniforms.screenColor0,
+                            reflectorMat.uniforms.screenColor1,
+                            reflectorMat.uniforms.screenColor2,
+                            reflectorMat.uniforms.screenColor3,
+                            reflectorMat.uniforms.screenColor4,
+                            reflectorMat.uniforms.screenColor5
+                        ];
+                        // Mapper les vidéos aux 6 écrans (clés 1-6)
+                        for (let si = 0; si < 6; si++) {
+                            const sKey = String(si + 1);
+                            const cd = screenColorData[sKey];
+                            if (cd && colorUniforms[si]) {
+                                const u = colorUniforms[si].value;
+                                u.r += (cd.r - u.r) * lerpFactor;
+                                u.g += (cd.g - u.g) * lerpFactor;
+                                u.b += (cd.b - u.b) * lerpFactor;
+                            }
                         }
                     }
                 }
@@ -8550,6 +8666,65 @@
             camera.updateProjectionMatrix();
             renderer.setSize(canvasWidth, canvasHeight);
         };
+
+        // ═══════════════════════════════════════════════════════
+        // ICÔNE VIDÉO via Canvas (anti-pixelisation)
+        // Dessine la vidéo source à résolution native dans des canvas
+        // ═══════════════════════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', function() {
+            const iconSrc = 'videos/dumbo_icone_chargement.webm';
+            const vid = document.createElement('video');
+            vid.src = iconSrc;
+            vid.loop = true;
+            vid.muted = true;
+            vid.playsInline = true;
+            vid.preload = 'auto';
+            vid.style.display = 'none';
+            document.body.appendChild(vid);
+
+            const loadingCanvas = document.getElementById('loading-canvas');
+            const welcomeCanvas = document.getElementById('welcome-logo-video');
+            let loadingCtx = null, welcomeCtx = null;
+            let canvasReady = false;
+
+            vid.addEventListener('loadedmetadata', function() {
+                const w = vid.videoWidth || 256;
+                const h = vid.videoHeight || 256;
+                if (loadingCanvas) {
+                    loadingCanvas.width = w;
+                    loadingCanvas.height = h;
+                    loadingCtx = loadingCanvas.getContext('2d');
+                }
+                if (welcomeCanvas) {
+                    welcomeCanvas.width = w;
+                    welcomeCanvas.height = h;
+                    welcomeCtx = welcomeCanvas.getContext('2d');
+                }
+                canvasReady = true;
+            });
+
+            function drawIconFrames() {
+                if (canvasReady && vid.readyState >= 2) {
+                    if (loadingCtx) {
+                        loadingCtx.drawImage(vid, 0, 0);
+                    }
+                    if (welcomeCtx) {
+                        welcomeCtx.drawImage(vid, 0, 0);
+                    }
+                }
+                requestAnimationFrame(drawIconFrames);
+            }
+
+            vid.play().then(function() {
+                drawIconFrames();
+            }).catch(function() {
+                // Autoplay bloqué, lancer au premier clic
+                document.addEventListener('click', function() {
+                    vid.play();
+                }, { once: true });
+                drawIconFrames();
+            });
+        });
 
         // Shape selector event listeners
         document.addEventListener('DOMContentLoaded', function() {
@@ -9063,7 +9238,7 @@
                 }
                 if (logoVideo) {
                     logoVideo.classList.add('active');
-                    logoVideo.play();
+                    if (logoVideo.play) logoVideo.play(); // No-op si canvas
                 }
 
                 // Phase 3: Démarrer l'expérience après l'animation icône
