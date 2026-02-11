@@ -87,11 +87,11 @@
               z-index: 100; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
               padding: 24px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
               max-width: 420px; width: 90%; transition: all 0.4s ease;
-              max-height: 85vh; overflow-y: auto; }
+              max-height: 85vh; max-height: 85dvh; overflow-y: auto; }
 
         #ui.loaded { top: auto; bottom: 20px; left: auto; right: 20px;
                      transform: none; max-width: 320px; width: auto; padding: 16px;
-                     max-height: calc(100vh - 40px); overflow-y: auto; cursor: move; user-select: none; }
+                     max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; cursor: move; user-select: none; }
 
         #title-link { position: fixed; top: 20px; left: 20px; z-index: 100;
                       text-decoration: none; color: #fff; transition: opacity 0.2s; }
@@ -282,6 +282,7 @@
             max-width: 300px;
             width: 300px;
             max-height: calc(100vh - 40px);
+            max-height: calc(100dvh - 40px);
             overflow-y: auto;
             cursor: move;
             user-select: none;
@@ -590,6 +591,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             background: #000;
             z-index: 10001;
             transition: opacity 0.6s ease;
@@ -646,8 +648,15 @@
             transform: translateY(-50%);
             width: var(--textColW);
             max-width: 580px; /* ~60-65 caractères par ligne */
+            max-height: calc(100vh - 120px);
+            max-height: calc(100dvh - 120px);
+            overflow-y: auto;
+            scrollbar-width: none;
             z-index: 2;
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--clickFadeMs) ease;
+        }
+        .welcome-content::-webkit-scrollbar {
+            display: none;
         }
         body.hoverPlay .welcome-content {
             transform: translateY(-50%) translateX(var(--hoverTextShift));
@@ -802,6 +811,7 @@
         body.clickedPlay .welcome-logo-container {
             left: calc(50vw - var(--logoSize) / 2);
             top: calc(50vh - var(--logoSize) / 2);
+            top: calc(50dvh - var(--logoSize) / 2);
         }
 
         .welcome-logo,
@@ -836,6 +846,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             background: transparent;
             display: none;
             flex-direction: column;
@@ -1206,6 +1217,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             background: #000000;
             z-index: 99999;
             opacity: 1;
@@ -1224,6 +1236,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             background: #000000;
             display: none;
             flex-direction: column;
@@ -1628,6 +1641,7 @@
             body.clickedPlay .welcome-logo-container {
                 left: calc(50vw - var(--logoSize) / 2) !important;
                 top: calc(50vh - var(--logoSize) / 2) !important;
+                top: calc(50dvh - var(--logoSize) / 2) !important;
             }
 
             /* Texte mobile: glassmorphisme style pause-content, scroll interne */
@@ -8858,8 +8872,17 @@
             const welcomeScreen = document.getElementById('welcome-screen');
             const loadingScreen = document.getElementById('loading-screen');
 
-            // Hide welcome screen
-            welcomeScreen.classList.add('hidden');
+            // Sync loading screen video with welcome logo video to avoid visual jump
+            const welcomeLogoVideo = document.getElementById('welcome-logo-video');
+            const loadingVideo = loadingScreen.querySelector('.loading-video');
+            if (welcomeLogoVideo && loadingVideo) {
+                loadingVideo.currentTime = welcomeLogoVideo.currentTime;
+            }
+
+            // Hide welcome screen instantly (fade overlay is already black from clickedPlay)
+            welcomeScreen.style.transition = 'none';
+            welcomeScreen.style.opacity = '0';
+            welcomeScreen.style.pointerEvents = 'none';
 
             // Show loading screen IMMEDIATELY
             loadingScreen.classList.add('active');
