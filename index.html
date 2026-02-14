@@ -9018,9 +9018,10 @@
 
             // Volume constant - pas de fade
 
-            // CRITICAL: Request pointer lock immediately to avoid intermediate cursor state (desktop only)
+            // Request pointer lock (desktop only) — may fail if not triggered by user gesture
             if (fpsMode && renderer && renderer.domElement && !isMobile) {
-                renderer.domElement.requestPointerLock();
+                const p = renderer.domElement.requestPointerLock();
+                if (p && p.catch) p.catch(() => console.log('🔒 Pointer lock sera activé au prochain clic'));
             }
         }
 
@@ -9110,13 +9111,14 @@
                     loadingScreen.style.display = 'none';
                 }, 500);
 
-                // CRITICAL: Request pointer lock immediately to avoid intermediate cursor state
-                // Only on desktop — mobile doesn't support pointer lock and shows unwanted browser message
+                // Request pointer lock — may fail as setTimeout breaks user gesture chain
+                // The click handler on the canvas will request it on next click
                 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
                 setTimeout(() => {
                     if (fpsMode && renderer && renderer.domElement && !isMobileDevice) {
                         console.log('🔒 Demande de pointer lock automatique...');
-                        renderer.domElement.requestPointerLock();
+                        const p = renderer.domElement.requestPointerLock();
+                        if (p && p.catch) p.catch(() => console.log('🔒 Pointer lock sera activé au prochain clic'));
                     }
                 }, 800);
 
