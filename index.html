@@ -9092,7 +9092,7 @@
                     currentVideo = screenVideos[1];
 
                     // Show preview
-                    const previewSrc = screenVideos[1].src || 'videos/panorama_opti.webm';
+                    const previewSrc = screenVideos[1].src || 'videos/ecran_panorama.webm';
                     document.getElementById('preview').innerHTML = '<video src="' + previewSrc + '" muted loop playsinline style="max-width:100%;max-height:100%;"></video>';
                     document.getElementById('preview').classList.add('loaded');
                     const previewVideo = document.getElementById('preview').querySelector('video');
@@ -9231,9 +9231,9 @@
             });
         }
 
-        // PANORAMIC VIDEO SYSTEM: Load single panorama_opti.webm for all screens
+        // PANORAMIC VIDEO SYSTEM: Load single ecran_panorama.webm for all screens
         async function loadVolumetricScreenVideos() {
-            console.log('🎬 Tentative de chargement de la vidéo panoramique (panorama_opti.webm)...');
+            console.log('🎬 Tentative de chargement de la vidéo panoramique (ecran_panorama.webm)...');
 
             // Charger aussi la vidéo du sol en parallèle
             loadFloorVideo();
@@ -9249,7 +9249,7 @@
                 document.body.appendChild(videoElement);
 
                 // Try to load panoramic video
-                const videoPath = 'videos/panorama_opti.webm';
+                const videoPath = 'videos/ecran_panorama.webm';
                 videoElement.src = videoPath;
                 videoElement.load();
 
@@ -9285,7 +9285,7 @@
 
                 videoElement.onerror = function() {
                     console.warn('⚠️ Vidéo panoramique non trouvée:', videoPath);
-                    console.warn('   Le fichier videos/panorama_opti.webm est requis');
+                    console.warn('   Le fichier videos/ecran_panorama.webm est requis');
                     panoramicVideo = null;
                     resolve(false);
                 };
