@@ -5832,7 +5832,7 @@
             if (allScreens) {
                 Object.keys(allScreens).forEach(key => {
                     const num = parseInt(key);
-                    if (num > 23) {
+                    if (num > 24) {
                         customShapesToPreserve[num] = allScreens[num];
                         // Remove from screensGroup temporarily to avoid disposal
                         if (allScreens[num].parent === screensGroup) {
@@ -5841,7 +5841,7 @@
                     }
                 });
             }
-            console.log('💾 Formes personnalisées préservées (>23):', Object.keys(customShapesToPreserve));
+            console.log('💾 Formes personnalisées préservées (>24):', Object.keys(customShapesToPreserve));
 
             // CRITICAL: Detach transform controls before clearing to avoid "object must be part of scene graph" error
             const wasScreenSelected = selectedScreen;
@@ -6421,7 +6421,7 @@
             // Position et orientation de base (coordonnées ajustées par l'utilisateur)
             screen7.position.set(599.938, -0.064, 112.546);
             screen7.rotation.set(0, -1.570796, 0); // -90° en Y
-            screen7.scale.set(1, 1, 1); // IMPORTANT: pas de scale, l'image garde sa taille normale
+            screen7.scale.set(1/3, 1, 1); // Largeur réduite par 3 (X local = largeur visible après rotation -90° Y)
             if (!screen7.userData.screenNumber) screen7.userData.screenNumber = 3; // Renuméroté: anciennement 6 → 3
 
             screensGroup.add(screen7);
@@ -6831,8 +6831,24 @@
             screen23.userData.color = 0x060606;
             screensGroup.add(screen23);
 
-            // Restore custom shapes (>23) - both in allScreens and screensGroup
-            console.log('🔄 Restauration des formes personnalisées (>23):', Object.keys(customShapesToPreserve));
+            // ======================
+            // FORME 24: Gray surface right side
+            // ======================
+            const width24 = 235.076;
+            const height24 = 231.29;
+            const geometry24 = new THREE.PlaneGeometry(width24, height24);
+            const material24 = createWallFormMaterial(0x808080); // Gris
+            const screen24 = new THREE.Mesh(geometry24, material24);
+            screen24.position.set(600.959, -6.589, 116.138);
+            screen24.rotation.set(0, 1.570796, 0); // 90° en Y
+            screen24.scale.set(1, 1, 1);
+            screen24.userData.screenNumber = 24;
+            screen24.userData.isColorSurface = true;
+            screen24.userData.color = 0x808080;
+            screensGroup.add(screen24);
+
+            // Restore custom shapes (>24) - both in allScreens and screensGroup
+            console.log('🔄 Restauration des formes personnalisées (>24):', Object.keys(customShapesToPreserve));
             Object.keys(customShapesToPreserve).forEach(key => {
                 const shape = customShapesToPreserve[key];
                 screensGroup.add(shape); // Re-add to scene
@@ -6866,9 +6882,10 @@
                 21: screen21b,          // FORME: Gray thin vertical panel 2
                 22: screen22,           // FORME: Dark panel back
                 23: screen23,           // FORME: Dark panel front
-                ...customShapesToPreserve // Restore custom shapes (>23)
+                24: screen24,           // FORME: Gray surface right side
+                ...customShapesToPreserve // Restore custom shapes (>24)
             };
-            console.log('✅ Tous les écrans (1-23 + custom):', Object.keys(allScreens));
+            console.log('✅ Tous les écrans (1-24 + custom):', Object.keys(allScreens));
 
             // CRITICAL: Update screen list UI immediately after allScreens is populated
             updateScreenList();
