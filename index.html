@@ -861,6 +861,8 @@
             max-width: 850px;
             max-height: calc(100vh - 120px);
             overflow-y: auto;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
             background: rgba(0,0,0,0.80);
             border: none;
             border-radius: 28px;
@@ -869,6 +871,9 @@
             box-shadow: none;
             pointer-events: all;
             cursor: default;
+        }
+        .pause-content::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
         }
         .pause-title {
             font-family: 'Inter', sans-serif;
@@ -6365,15 +6370,15 @@
                 }
             }
 
-            // Crop screen 3 : exactement 960x1080 (moitié de 1920x1080)
-            // Coordonnées particules: X [-200,200] = 1920px, Y [-112.5,112.5] = 1080px
-            // 960px = 200 unités → crop X à [-100, 100]
+            // Crop screen 3 : largeur alignée sur écrans 2 (Z=0) et 4 (Z=225)
+            // Local X → World Z après rotation -90° Y. Centre Z=112.5
+            // Donc crop X à [-112.5, 112.5] → bords à Z=0 et Z=225
             {
                 const croppedPositions = [];
                 const croppedColors = [];
                 const croppedInitialZ = [];
                 const croppedUvs = [];
-                const cropHalfWidth = 100; // 960px / 4.8 px/unité / 2
+                const cropHalfWidth = 112.5; // Distance centre→bord = 225/2
                 for (let i = 0; i < screen7Positions.length / 3; i++) {
                     const x = screen7Positions[i * 3];
                     if (x >= -cropHalfWidth && x <= cropHalfWidth) {
@@ -6387,7 +6392,7 @@
                 screen7Colors = croppedColors;
                 screen7InitialZ = croppedInitialZ;
                 screen7Uvs = croppedUvs.length > 0 ? croppedUvs : null;
-                console.log(`✂️ Écran 3 croppé: 960x1080 (X: [-100, 100], ${croppedPositions.length / 3} particules)`);
+                console.log(`✂️ Écran 3 croppé: aligné écrans 2-4 (X: [-112.5, 112.5], ${croppedPositions.length / 3} particules)`);
             }
 
             // GPU material for screen 3 (panorama portion 2/5)
@@ -6450,7 +6455,7 @@
             }
 
             // Position et orientation de base (coordonnées ajustées par l'utilisateur)
-            screen7.position.set(599.938, -0.064, 112.546);
+            screen7.position.set(599.938, -0.064, 112.5); // Centré entre écran 2 (Z=0) et écran 4 (Z=225)
             screen7.rotation.set(0, -1.570796, 0); // -90° en Y
             screen7.scale.set(1, 1, 1); // Pas de scale (particules déjà croppées en largeur)
             if (!screen7.userData.screenNumber) screen7.userData.screenNumber = 3; // Renuméroté: anciennement 6 → 3
@@ -6868,14 +6873,14 @@
             const width24 = 235.076;
             const height24 = 231.29;
             const geometry24 = new THREE.PlaneGeometry(width24, height24);
-            const material24 = createWallFormMaterial(0x808080); // Gris
+            const material24 = createWallFormMaterial(0x000000); // Noir absolu
             const screen24 = new THREE.Mesh(geometry24, material24);
             screen24.position.set(600.959, -6.589, 116.138);
             screen24.rotation.set(0, 1.570796, 0); // 90° en Y
             screen24.scale.set(1, 1, 1);
             screen24.userData.screenNumber = 24;
             screen24.userData.isColorSurface = true;
-            screen24.userData.color = 0x808080;
+            screen24.userData.color = 0x000000;
             screensGroup.add(screen24);
 
             // Restore custom shapes (>24) - both in allScreens and screensGroup
