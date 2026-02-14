@@ -6146,7 +6146,7 @@
             // Position et orientation de base
             screen3.position.set(200.858, -112.500, 112.500);
             screen3.rotation.set(1.570796, 0.000000, 0.000000); // 90° sur X
-            screen3.scale.set(1, 1, 1); // Pas de scale (positions déjà multipliées x2)
+            screen3.scale.set(1, 228.534 / 450, 1); // Hauteur réduite pour correspondre à la forme 10 (228.534)
 
             screensGroup.add(screen3);
 
@@ -6421,7 +6421,7 @@
             // Position et orientation de base (coordonnées ajustées par l'utilisateur)
             screen7.position.set(599.938, -0.064, 112.546);
             screen7.rotation.set(0, -1.570796, 0); // -90° en Y
-            screen7.scale.set(1/3, 1, 1); // Largeur réduite par 3 (X local = largeur visible après rotation -90° Y)
+            screen7.scale.set(1/2, 1, 1); // Largeur réduite par 2 (X local = largeur visible après rotation -90° Y)
             if (!screen7.userData.screenNumber) screen7.userData.screenNumber = 3; // Renuméroté: anciennement 6 → 3
 
             screensGroup.add(screen7);
