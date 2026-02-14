@@ -4535,10 +4535,11 @@
 
             console.log('🖼️ Création du renderer...');
             renderer = new THREE.WebGLRenderer({
-                antialias: true,
+                antialias: false, // PERF: MSAA disabled — particle rendering doesn't benefit from AA
                 alpha: true,
                 powerPreference: 'high-performance'
             });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // PERF: Cap at 2x to avoid 3x+ on HiDPI
             renderer.setSize(canvasWidth, canvasHeight);
             // PERFORMANCE: Shadows désactivés (coûteux, pas visibles sur ce projet)
             renderer.shadowMap.enabled = false;
@@ -5093,6 +5094,7 @@
         // Global reference to GPU materials for uniform updates
         let gpuVolumeMaterials = [];
         let gpuVideoTexture = null;
+        let lastVideoTime = -1; // Track video frame changes for texture update optimization
 
         // Create GPU volumetric ShaderMaterial
         function createGPUVolumeMaterial(videoTexture, portionOffset, portionWidth, options) {
@@ -5876,12 +5878,18 @@
             // ═══ GPU VOLUMETRIC PIPELINE ═══
             // Create VideoTexture from panoramic or main video (auto-updates on GPU)
             gpuVolumeMaterials = []; // Reset material references
+            if (!video || !video.videoWidth) {
+                console.warn('⚠️ GPU Pipeline: vidéo invalide ou non prête, abandon');
+                return;
+            }
             if (!gpuVideoTexture || gpuVideoTexture.image !== video) {
+                if (gpuVideoTexture) gpuVideoTexture.dispose(); // Clean up previous texture
                 gpuVideoTexture = new THREE.VideoTexture(video);
                 gpuVideoTexture.minFilter = THREE.LinearFilter;
                 gpuVideoTexture.magFilter = THREE.LinearFilter;
                 gpuVideoTexture.format = THREE.RGBFormat;
                 gpuVideoTexture.flipY = false; // UVs are computed top-down (y/H), matching video pixel order
+                lastVideoTime = -1; // Reset frame tracking for new video
             }
 
             const depthSpreadForShader = TARGET_HEIGHT * scaleFactor * depthMultiplier;
@@ -7839,9 +7847,7 @@
 
             animateFrameCount++;
             if (animateFrameCount === 1) {
-                console.log('🎬 ANIMATE() - Première frame');
-            } else if (animateFrameCount % 60 === 0) {
-                console.log(`🎬 ANIMATE() - Frame ${animateFrameCount} (${(animateFrameCount/60).toFixed(0)}s)`);
+                _log('🎬 ANIMATE() - Première frame');
             }
 
             time += 0.001 * breathSpeed;
@@ -7879,11 +7885,20 @@
                 }
             }
 
-            // GPU PIPELINE: VideoTexture auto-updates on GPU each frame
-            // Color + depth are computed by shaders — no CPU loops needed
-            // updateColorsFromVideo() and updateMultiScreenColors() are ELIMINATED
-            if (gpuVideoTexture) {
-                gpuVideoTexture.needsUpdate = true;
+            // GPU PIPELINE: Only update texture when video frame actually changes
+            // Avoids re-uploading 31MB (9600×1080×RGB) to GPU on every frame
+            if (gpuVideoTexture && panoramicVideo) {
+                const currentVideoTime = panoramicVideo.currentTime;
+                if (currentVideoTime !== lastVideoTime) {
+                    gpuVideoTexture.needsUpdate = true;
+                    lastVideoTime = currentVideoTime;
+                }
+            } else if (gpuVideoTexture && currentVideo) {
+                const currentVideoTime = currentVideo.currentTime;
+                if (currentVideoTime !== lastVideoTime) {
+                    gpuVideoTexture.needsUpdate = true;
+                    lastVideoTime = currentVideoTime;
+                }
             }
 
             // PERFORMANCE: Skip particle animation loop entirely if no breathing and no flow
@@ -9092,7 +9107,7 @@
                     currentVideo = screenVideos[1];
 
                     // Show preview
-                    const previewSrc = screenVideos[1].src || 'videos/ecran_panorama.webm';
+                    const previewSrc = screenVideos[1].src;
                     document.getElementById('preview').innerHTML = '<video src="' + previewSrc + '" muted loop playsinline style="max-width:100%;max-height:100%;"></video>';
                     document.getElementById('preview').classList.add('loaded');
                     const previewVideo = document.getElementById('preview').querySelector('video');
@@ -9248,55 +9263,74 @@
                 videoElement.style.display = 'none';
                 document.body.appendChild(videoElement);
 
-                // Try to load panoramic video
-                const videoPath = 'videos/ecran_panorama.webm';
-                videoElement.src = videoPath;
-                videoElement.load();
+                // Try to load panoramic video with fallback
+                const videoPaths = ['videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
+                let currentPathIndex = 0;
 
-                let videoReady = false;
-                videoElement.oncanplaythrough = function() {
-                    if (videoReady) return; // Éviter les appels multiples
-                    videoReady = true;
-                    videoElement.oncanplaythrough = null; // Supprimer le handler
+                function tryLoadVideo(pathIndex) {
+                    if (pathIndex >= videoPaths.length) {
+                        _log('⚠️ Aucune vidéo panoramique disponible');
+                        panoramicVideo = null;
+                        resolve(false);
+                        return;
+                    }
 
-                    console.log(`✅ Vidéo panoramique chargée: ${videoPath}`);
-                    console.log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
-                    console.log(`   Attendu: ${PANORAMIC_WIDTH}x${PANORAMIC_HEIGHT}`);
+                    const videoPath = videoPaths[pathIndex];
+                    _log(`🎬 Tentative chargement: ${videoPath}...`);
+                    videoElement.src = videoPath;
+                    videoElement.load();
 
-                    // Store as the panoramic video
-                    panoramicVideo = videoElement;
+                    let videoReady = false;
+                    videoElement.oncanplaythrough = function() {
+                        if (videoReady) return;
+                        videoReady = true;
+                        videoElement.oncanplaythrough = null;
+                        videoElement.onerror = null;
 
-                    // Also set as screenVideos[1] for backward compatibility with generate()
-                    screenVideos[1] = videoElement;
+                        _log(`✅ Vidéo panoramique chargée: ${videoPath}`);
+                        _log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+                        _log(`   Attendu: ${PANORAMIC_WIDTH}x${PANORAMIC_HEIGHT}`);
 
-                    // Jouer brièvement pour que les pixels soient disponibles
-                    videoElement.currentTime = 0.1;
-                    videoElement.play().then(() => {
-                        setTimeout(() => {
-                            videoElement.pause();
-                            console.log('🌅 MODE PANORAMIQUE ACTIVÉ - Pixels prêts');
+                        // Validate video dimensions
+                        if (videoElement.videoWidth < 1920 || videoElement.videoHeight < 480) {
+                            _log(`⚠️ Dimensions invalides pour ${videoPath}, tentative suivante...`);
+                            tryLoadVideo(pathIndex + 1);
+                            return;
+                        }
+
+                        // Store as the panoramic video
+                        panoramicVideo = videoElement;
+                        screenVideos[1] = videoElement;
+
+                        // Jouer brièvement pour que les pixels soient disponibles
+                        videoElement.currentTime = 0.1;
+                        videoElement.play().then(() => {
+                            setTimeout(() => {
+                                videoElement.pause();
+                                _log('🌅 MODE PANORAMIQUE ACTIVÉ - Pixels prêts');
+                                resolve(true);
+                            }, 100);
+                        }).catch(() => {
+                            _log('🌅 MODE PANORAMIQUE ACTIVÉ');
                             resolve(true);
-                        }, 100);
-                    }).catch(() => {
-                        console.log('🌅 MODE PANORAMIQUE ACTIVÉ');
-                        resolve(true);
-                    });
-                };
+                        });
+                    };
 
-                videoElement.onerror = function() {
-                    console.warn('⚠️ Vidéo panoramique non trouvée:', videoPath);
-                    console.warn('   Le fichier videos/ecran_panorama.webm est requis');
-                    panoramicVideo = null;
-                    resolve(false);
-                };
+                    videoElement.onerror = function() {
+                        _log(`⚠️ Vidéo non trouvée: ${videoPath}, tentative suivante...`);
+                        tryLoadVideo(pathIndex + 1);
+                    };
+                }
+
+                tryLoadVideo(0);
 
                 // Timeout fallback
                 setTimeout(() => {
                     if (!panoramicVideo) {
-                        console.warn('⏱️ Timeout chargement vidéo panoramique');
+                        _log('⏱️ Timeout chargement vidéo panoramique');
                         resolve(false);
                     }
-                }, 10000);
+                }, 15000);
             });
         }
 
