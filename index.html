@@ -4953,20 +4953,22 @@
          * Density 1-15 : Comportement classique (step variable, résolution fixe 800x450)
          * Density 16-30 : Résolution progressive + step=1 pour plus de détails
          */
-        function calculateDensityParams(density) {
+        function calculateDensityParams(density, baseWidth, baseHeight) {
+            baseWidth = baseWidth || 800;
+            baseHeight = baseHeight || 450;
             let step, TARGET_WIDTH, TARGET_HEIGHT;
 
             if (density <= 15) {
                 // Mode classique (backward compatible)
                 step = Math.max(1, Math.floor(10 / density));
-                TARGET_WIDTH = 800;
-                TARGET_HEIGHT = 450;
+                TARGET_WIDTH = baseWidth;
+                TARGET_HEIGHT = baseHeight;
             } else {
                 // Mode haute densité : augmentation progressive de la résolution
                 step = 1; // Step fixé à 1
                 const resolutionMultiplier = 1 + ((density - 15) / 30); // 1.0 à 1.5x
-                TARGET_WIDTH = Math.floor(800 * resolutionMultiplier);
-                TARGET_HEIGHT = Math.floor(450 * resolutionMultiplier);
+                TARGET_WIDTH = Math.floor(baseWidth * resolutionMultiplier);
+                TARGET_HEIGHT = Math.floor(baseHeight * resolutionMultiplier);
             }
 
             return { step, TARGET_WIDTH, TARGET_HEIGHT };
@@ -5156,8 +5158,8 @@
         }
 
         // Helper function: Extract particle data from video for multi-video system
-        function createParticleDataFromVideo(video) {
-            const { step, TARGET_WIDTH, TARGET_HEIGHT } = calculateDensityParams(particleDensity);
+        function createParticleDataFromVideo(video, customWidth, customHeight) {
+            const { step, TARGET_WIDTH, TARGET_HEIGHT } = calculateDensityParams(particleDensity, customWidth, customHeight);
 
             // Create or reuse sampling canvas
             const canvas = document.createElement('canvas');
@@ -5169,7 +5171,7 @@
             const videoWidth = video.videoWidth;
             const videoHeight = video.videoHeight;
             const videoAspect = videoWidth / videoHeight;
-            const targetAspect = 16 / 9;
+            const targetAspect = TARGET_WIDTH / TARGET_HEIGHT;
 
             let sourceWidth, sourceHeight, offsetX, offsetY;
             if (videoAspect > targetAspect) {
@@ -6067,21 +6069,20 @@
             let screen3InitialZ = [];
             let screen3Uvs = [];
 
+            const FLOOR_CANVAS_WIDTH = 800;
+            const FLOOR_CANVAS_HEIGHT = 229; // Canvas au ratio exact du sol (800:229 ≈ 3.5:1)
             const floorHalfTargetY = 228.534 / 4; // Demi-hauteur pré-*2 pour correspondre à forme 10
             if (floorVideo && floorVideo.videoWidth > 0) {
-                // Utiliser la vidéo du sol
-                console.log('🏠 Génération écran 6 (sol) depuis ecran_06.webm');
-                const floorData = createParticleDataFromVideo(floorVideo);
+                // Utiliser la vidéo du sol avec canvas au bon ratio (pas de crop nécessaire)
+                console.log('🏠 Génération écran 6 (sol) depuis ecran_06.webm — canvas ' + FLOOR_CANVAS_WIDTH + '×' + FLOOR_CANVAS_HEIGHT);
+                const floorData = createParticleDataFromVideo(floorVideo, FLOOR_CANVAS_WIDTH, FLOOR_CANVAS_HEIGHT);
                 if (floorData) {
-                    // Multiplier X et Y par 2 pour surface doublée, cropper Y pour correspondre à forme 10
+                    // Multiplier X et Y par 2 pour surface doublée (pas de crop Y — canvas déjà au bon ratio)
                     for (let i = 0; i < floorData.positions.length / 3; i++) {
-                        const py = floorData.positions[i * 3 + 1];
-                        if (py >= -floorHalfTargetY && py <= floorHalfTargetY) {
-                            screen3Positions.push(floorData.positions[i * 3] * 2, py * 2, floorData.positions[i * 3 + 2]);
-                            screen3Colors.push(floorData.colors[i * 3], floorData.colors[i * 3 + 1], floorData.colors[i * 3 + 2]);
-                            screen3InitialZ.push(floorData.initialZ[i]);
-                            if (floorData.uvs) screen3Uvs.push(floorData.uvs[i * 2], floorData.uvs[i * 2 + 1]);
-                        }
+                        screen3Positions.push(floorData.positions[i * 3] * 2, floorData.positions[i * 3 + 1] * 2, floorData.positions[i * 3 + 2]);
+                        screen3Colors.push(floorData.colors[i * 3], floorData.colors[i * 3 + 1], floorData.colors[i * 3 + 2]);
+                        screen3InitialZ.push(floorData.initialZ[i]);
+                        if (floorData.uvs) screen3Uvs.push(floorData.uvs[i * 2], floorData.uvs[i * 2 + 1]);
                     }
                 }
             } else {
@@ -7389,7 +7390,8 @@
                 }
 
                 // CRITICAL: Also update screen 6 (sol) if it exists (3D mode)
-                if (allScreens[6] && allScreens[6].instanceColor) {
+                // Skip if floor has its own video (handled by updateMultiScreenColors)
+                if (allScreens[6] && allScreens[6].instanceColor && !screenVideos[6]) {
                     const screen3 = allScreens[6];
                     const colors3 = screen3.instanceColor.array;
                     const screen3Positions = screen3.userData.positions;
@@ -7520,7 +7522,8 @@
                 }
 
                 // CRITICAL: Also update screen 6 (sol) if it exists (2D mode)
-                if (allScreens[6] && allScreens[6].geometry && allScreens[6].geometry.attributes.color) {
+                // Skip if floor has its own video (handled by updateMultiScreenColors)
+                if (allScreens[6] && allScreens[6].geometry && allScreens[6].geometry.attributes.color && !screenVideos[6]) {
                     const screen3 = allScreens[6];
                     const geom3 = screen3.geometry;
                     const colors3 = geom3.attributes.color.array;
@@ -7580,7 +7583,9 @@
             lastMultiScreenUpdate = now;
 
             // Screens to update: 2, 3, 4, 5 (screen 1 is updated by updateColorsFromVideo)
+            // Screen 6 (floor) added when it has its own video
             const screensToUpdate = [2, 3, 4, 5];
+            if (screenVideos[6]) screensToUpdate.push(6);
             const scaleFactor = 0.5;
             const rgbToLumFactor = 1 / (3 * 255);
 
@@ -7599,16 +7604,22 @@
             for (const screenNum of screensToUpdate) {
                 const screen = allScreens[screenNum];
 
-                // Use panoramicVideo in panoramic mode, otherwise use individual screenVideos
-                const video = panoramicVideo || screenVideos[screenNum];
+                // Screen 6 (floor) always uses its own dedicated video
+                const video = (screenNum === 6) ? screenVideos[6] : (panoramicVideo || screenVideos[screenNum]);
 
                 if (!screen || !video || video.paused || video.videoWidth === 0) continue;
 
                 // Create or get sampling canvas for this screen
                 if (!screenSamplingCanvases[screenNum]) {
                     const canvas = document.createElement('canvas');
-                    canvas.width = 800;
-                    canvas.height = 450;
+                    if (screenNum === 6) {
+                        // Floor: canvas au ratio exact du sol (800×229 ≈ 3.5:1)
+                        canvas.width = 800;
+                        canvas.height = 229;
+                    } else {
+                        canvas.width = 800;
+                        canvas.height = 450;
+                    }
                     screenSamplingCanvases[screenNum] = {
                         canvas: canvas,
                         ctx: canvas.getContext('2d', { willReadFrequently: true })
@@ -7628,7 +7639,7 @@
 
                 let sourceX, sourceY, sourceWidth, sourceHeight;
 
-                if (panoramicVideo) {
+                if (panoramicVideo && screenNum !== 6) {
                     // PANORAMIC MODE: Extract the correct portion using ninths mapping
                     const portionIdx = screenToPortionIndex[screenNum];
                     const portion = PANORAMIC_PORTIONS[portionIdx];
@@ -7638,9 +7649,9 @@
                     sourceWidth = portion.width * videoWidth;
                     sourceHeight = videoHeight;
                 } else {
-                    // MULTI-VIDEO MODE: Use the whole video with aspect ratio handling
+                    // MULTI-VIDEO / FLOOR MODE: Use the whole video with aspect ratio handling
                     const videoAspect = videoWidth / videoHeight;
-                    const targetAspect = 16 / 9;
+                    const targetAspect = TARGET_WIDTH / TARGET_HEIGHT;
 
                     if (videoAspect > targetAspect) {
                         sourceHeight = videoHeight;
