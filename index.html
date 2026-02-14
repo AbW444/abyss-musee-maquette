@@ -848,6 +848,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            padding: 60px 0;
+            box-sizing: border-box;
             z-index: 9999;
             cursor: pointer;
             transition: opacity 0.4s ease;
@@ -857,6 +859,8 @@
         }
         .pause-content {
             max-width: 850px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
             background: rgba(0,0,0,0.80);
             border: none;
             border-radius: 28px;
@@ -6361,24 +6365,18 @@
                 }
             }
 
-            // Crop screen 3 : réduire la largeur par 2 (supprimer les côtés, garder le centre)
+            // Crop screen 3 : exactement 960x1080 (moitié de 1920x1080)
+            // Coordonnées particules: X [-200,200] = 1920px, Y [-112.5,112.5] = 1080px
+            // 960px = 200 unités → crop X à [-100, 100]
             {
                 const croppedPositions = [];
                 const croppedColors = [];
                 const croppedInitialZ = [];
                 const croppedUvs = [];
-                // Trouver l'étendue X actuelle
-                let minX = Infinity, maxX = -Infinity;
+                const cropHalfWidth = 100; // 960px / 4.8 px/unité / 2
                 for (let i = 0; i < screen7Positions.length / 3; i++) {
                     const x = screen7Positions[i * 3];
-                    if (x < minX) minX = x;
-                    if (x > maxX) maxX = x;
-                }
-                const centerX = (minX + maxX) / 2;
-                const quarterWidth = (maxX - minX) / 4; // moitié de la demi-largeur
-                for (let i = 0; i < screen7Positions.length / 3; i++) {
-                    const x = screen7Positions[i * 3];
-                    if (x >= centerX - quarterWidth && x <= centerX + quarterWidth) {
+                    if (x >= -cropHalfWidth && x <= cropHalfWidth) {
                         croppedPositions.push(screen7Positions[i * 3], screen7Positions[i * 3 + 1], screen7Positions[i * 3 + 2]);
                         croppedColors.push(screen7Colors[i * 3], screen7Colors[i * 3 + 1], screen7Colors[i * 3 + 2]);
                         croppedInitialZ.push(screen7InitialZ[i]);
@@ -6389,7 +6387,7 @@
                 screen7Colors = croppedColors;
                 screen7InitialZ = croppedInitialZ;
                 screen7Uvs = croppedUvs.length > 0 ? croppedUvs : null;
-                console.log(`✂️ Écran 3 croppé: largeur réduite par 2 (X: ${minX.toFixed(1)}→${maxX.toFixed(1)} → ${(centerX - quarterWidth).toFixed(1)}→${(centerX + quarterWidth).toFixed(1)})`);
+                console.log(`✂️ Écran 3 croppé: 960x1080 (X: [-100, 100], ${croppedPositions.length / 3} particules)`);
             }
 
             // GPU material for screen 3 (panorama portion 2/5)
