@@ -6047,30 +6047,32 @@
             let screen3InitialZ = [];
             let screen3Uvs = [];
 
+            const floorHalfTargetY = 228.534 / 4; // Demi-hauteur pré-*2 pour correspondre à forme 10
             if (floorVideo && floorVideo.videoWidth > 0) {
                 // Utiliser la vidéo du sol
                 console.log('🏠 Génération écran 6 (sol) depuis ecran_06.webm');
                 const floorData = createParticleDataFromVideo(floorVideo);
                 if (floorData) {
-                    // Multiplier X et Y par 2 pour surface doublée (UVs stay unchanged — they map to texture)
+                    // Multiplier X et Y par 2 pour surface doublée, cropper Y pour correspondre à forme 10
                     for (let i = 0; i < floorData.positions.length / 3; i++) {
-                        screen3Positions.push(floorData.positions[i * 3] * 2, floorData.positions[i * 3 + 1] * 2, floorData.positions[i * 3 + 2]);
-                        screen3Colors.push(floorData.colors[i * 3], floorData.colors[i * 3 + 1], floorData.colors[i * 3 + 2]);
-                        screen3InitialZ.push(floorData.initialZ[i]);
-                        if (floorData.uvs) screen3Uvs.push(floorData.uvs[i * 2], floorData.uvs[i * 2 + 1]);
+                        const py = floorData.positions[i * 3 + 1];
+                        if (py >= -floorHalfTargetY && py <= floorHalfTargetY) {
+                            screen3Positions.push(floorData.positions[i * 3] * 2, py * 2, floorData.positions[i * 3 + 2]);
+                            screen3Colors.push(floorData.colors[i * 3], floorData.colors[i * 3 + 1], floorData.colors[i * 3 + 2]);
+                            screen3InitialZ.push(floorData.initialZ[i]);
+                            if (floorData.uvs) screen3Uvs.push(floorData.uvs[i * 2], floorData.uvs[i * 2 + 1]);
+                        }
                     }
                 }
             } else {
                 // Fallback: Filtrer les particules de l'écran 1
                 console.log('🏠 Génération écran 6 (sol) depuis écran 1 (fallback)');
-                const halfH = screenH / 2;
-                const halfH_screen3 = halfH / 2;
 
                 for (let i = 0; i < positions.length / 3; i++) {
                     const x = positions[i * 3];
                     const y = positions[i * 3 + 1];
 
-                    if (y >= -halfH_screen3 && y <= halfH_screen3) {
+                    if (y >= -floorHalfTargetY && y <= floorHalfTargetY) {
                         screen3Positions.push(x * 2, y * 2, 0);
                         screen3Colors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
                         screen3InitialZ.push(initialZ[i]);
@@ -6146,7 +6148,7 @@
             // Position et orientation de base
             screen3.position.set(200.858, -112.500, 112.500);
             screen3.rotation.set(1.570796, 0.000000, 0.000000); // 90° sur X
-            screen3.scale.set(1, 228.534 / 450, 1); // Hauteur réduite pour correspondre à la forme 10 (228.534)
+            screen3.scale.set(1, 1, 1); // Pas de scale (particules déjà croppées en hauteur)
 
             screensGroup.add(screen3);
 
@@ -6359,6 +6361,37 @@
                 }
             }
 
+            // Crop screen 3 : réduire la largeur par 2 (supprimer les côtés, garder le centre)
+            {
+                const croppedPositions = [];
+                const croppedColors = [];
+                const croppedInitialZ = [];
+                const croppedUvs = [];
+                // Trouver l'étendue X actuelle
+                let minX = Infinity, maxX = -Infinity;
+                for (let i = 0; i < screen7Positions.length / 3; i++) {
+                    const x = screen7Positions[i * 3];
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                }
+                const centerX = (minX + maxX) / 2;
+                const quarterWidth = (maxX - minX) / 4; // moitié de la demi-largeur
+                for (let i = 0; i < screen7Positions.length / 3; i++) {
+                    const x = screen7Positions[i * 3];
+                    if (x >= centerX - quarterWidth && x <= centerX + quarterWidth) {
+                        croppedPositions.push(screen7Positions[i * 3], screen7Positions[i * 3 + 1], screen7Positions[i * 3 + 2]);
+                        croppedColors.push(screen7Colors[i * 3], screen7Colors[i * 3 + 1], screen7Colors[i * 3 + 2]);
+                        croppedInitialZ.push(screen7InitialZ[i]);
+                        if (screen7Uvs) croppedUvs.push(screen7Uvs[i * 2], screen7Uvs[i * 2 + 1]);
+                    }
+                }
+                screen7Positions = croppedPositions;
+                screen7Colors = croppedColors;
+                screen7InitialZ = croppedInitialZ;
+                screen7Uvs = croppedUvs.length > 0 ? croppedUvs : null;
+                console.log(`✂️ Écran 3 croppé: largeur réduite par 2 (X: ${minX.toFixed(1)}→${maxX.toFixed(1)} → ${(centerX - quarterWidth).toFixed(1)}→${(centerX + quarterWidth).toFixed(1)})`);
+            }
+
             // GPU material for screen 3 (panorama portion 2/5)
             const screen3Material = createGPUVolumeMaterial(gpuVideoTexture,
                 isPanoramicMode ? 0.4 : 0.0, isPanoramicMode ? 0.2 : 1.0,
@@ -6421,7 +6454,7 @@
             // Position et orientation de base (coordonnées ajustées par l'utilisateur)
             screen7.position.set(599.938, -0.064, 112.546);
             screen7.rotation.set(0, -1.570796, 0); // -90° en Y
-            screen7.scale.set(1/2, 1, 1); // Largeur réduite par 2 (X local = largeur visible après rotation -90° Y)
+            screen7.scale.set(1, 1, 1); // Pas de scale (particules déjà croppées en largeur)
             if (!screen7.userData.screenNumber) screen7.userData.screenNumber = 3; // Renuméroté: anciennement 6 → 3
 
             screensGroup.add(screen7);
@@ -7344,7 +7377,7 @@
                     const screen3Positions = screen3.userData.positions;
                     const screen3InitialZ = screen3.userData.initialZ;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2;
-                    const halfH_screen3 = halfH / 2;
+                    const halfH_screen3 = 228.534 / 4; // Correspondre à forme 10
 
                     let particleIndex = 0;
                     let screen3Index = 0;
@@ -7475,7 +7508,7 @@
                     const colors3 = geom3.attributes.color.array;
                     const positions3 = geom3.attributes.position.array;
                     const halfH = TARGET_HEIGHT * scaleFactor / 2;
-                    const halfH_screen3 = halfH / 2;
+                    const halfH_screen3 = 228.534 / 4; // Correspondre à forme 10
 
                     let particleIndex = 0;
                     let screen3Index = 0;
