@@ -84,9 +84,9 @@
         #canvas canvas { display: block; }
 
         #ui { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-              z-index: 100; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+              z-index: 100; background: rgba(0,0,0,0.92);
               padding: 24px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
-              max-width: 420px; width: 90%; transition: all 0.4s ease;
+              max-width: 420px; width: 90%; transition: transform 0.4s ease, top 0.4s ease, bottom 0.4s ease, max-width 0.4s ease, padding 0.4s ease;
               max-height: 85vh; max-height: 85dvh; overflow-y: auto; }
 
         #ui.loaded { top: auto; bottom: 20px; left: auto; right: 20px;
@@ -108,7 +108,7 @@
                  background: rgba(255,255,255,0.1); color: #fff;
                  border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
                  cursor: pointer; font-size: 12px; font-weight: 600;
-                 transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+                 transition: background 0.15s, transform 0.1s; text-transform: uppercase; letter-spacing: 1px; }
         button:hover { background: rgba(255,255,255,0.2); }
         button:active { transform: scale(0.98); }
 
@@ -161,7 +161,7 @@
                      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
                      border-radius: 4px; color: #fff; font-size: 10px; cursor: pointer;
                      display: flex; align-items: center; justify-content: center;
-                     transition: all 0.15s; line-height: 1; }
+                     transition: background 0.1s, transform 0.1s; line-height: 1; }
         .arrow-btn:hover { background: rgba(255,255,255,0.2); }
         .arrow-btn:active { background: rgba(255,255,255,0.3); transform: scale(0.95); }
 
@@ -181,13 +181,13 @@
         #ui::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
 
         #shape-selector { position: fixed; top: 20px; right: 20px; z-index: 100;
-                          display: flex; gap: 8px; background: rgba(0,0,0,0.75);
-                          backdrop-filter: blur(10px); padding: 8px; border-radius: 8px;
+                          display: flex; gap: 8px; background: rgba(0,0,0,0.88);
+                          padding: 8px; border-radius: 8px;
                           border: 1px solid rgba(255,255,255,0.2); }
 
         .shape-btn { width: 40px; height: 40px; background: rgba(255,255,255,0.1);
                      border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
-                     color: #fff; font-size: 20px; cursor: pointer; transition: all 0.2s;
+                     color: #fff; font-size: 20px; cursor: pointer; transition: background 0.15s, transform 0.1s;
                      display: flex; align-items: center; justify-content: center;
                      padding: 0; margin: 0; }
         .shape-btn:hover { background: rgba(255,255,255,0.2); transform: none; }
@@ -199,21 +199,21 @@
 
         /* Version selector */
         #version-selector { position: fixed; bottom: 20px; left: 20px; z-index: 100;
-                           background: rgba(0,0,0,0.75); backdrop-filter: blur(10px);
+                           background: rgba(0,0,0,0.88);
                            padding: 8px 12px; border-radius: 6px;
                            border: 1px solid rgba(255,255,255,0.2);
-                           font-size: 10px; cursor: pointer; transition: all 0.2s; }
+                           font-size: 10px; cursor: pointer; transition: background 0.15s; }
         #version-selector:hover { background: rgba(0,0,0,0.85); }
 
         #version-menu { position: fixed; bottom: 60px; left: 20px; z-index: 99;
-                       background: rgba(0,0,0,0.9); backdrop-filter: blur(10px);
+                       background: rgba(0,0,0,0.95);
                        padding: 8px; border-radius: 6px;
                        border: 1px solid rgba(255,255,255,0.2);
                        display: none; }
         #version-menu.show { display: block; }
 
         .version-item { padding: 8px 12px; cursor: pointer; font-size: 10px;
-                       border-radius: 4px; margin: 2px 0; transition: all 0.2s;
+                       border-radius: 4px; margin: 2px 0; transition: background 0.15s;
                        white-space: nowrap; }
         .version-item:hover { background: rgba(255,255,255,0.1); }
         .version-item.current { background: rgba(255,255,255,0.15); font-weight: 600; }
@@ -274,8 +274,7 @@
             top: 20px;
             left: 20px;
             z-index: 100;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.92);
             padding: 16px;
             border-radius: 8px;
             border: 1px solid rgba(255,255,255,0.2);
@@ -316,7 +315,7 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-            transition: all 0.2s;
+            transition: background 0.15s;
             cursor: pointer;
         }
         .screen-item:hover {
@@ -346,7 +345,7 @@
             font-size: 20px;
             line-height: 20px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: color 0.15s, transform 0.1s;
             color: rgba(255,80,80,0.7);
             font-weight: 600;
             display: flex;
@@ -368,7 +367,7 @@
             padding: 6px;
             font-size: 9px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.15s;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: 600;
@@ -402,7 +401,7 @@
             border-radius: 6px;
             cursor: pointer;
             border: 2px solid rgba(255,255,255,0.1);
-            transition: all 0.2s;
+            transition: transform 0.15s, border-color 0.15s;
             position: relative;
         }
         .color-option:hover {
@@ -411,7 +410,6 @@
         }
         .color-option.active {
             border-color: rgba(100,150,255,0.9);
-            box-shadow: 0 0 12px rgba(100,150,255,0.6);
             transform: scale(1.05);
         }
         .color-custom {
@@ -450,7 +448,7 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            transition: all 0.2s;
+            transition: background 0.15s, border-color 0.15s;
         }
         .add-screen-btn:hover {
             background: rgba(100,200,100,0.35);
@@ -477,8 +475,7 @@
             bottom: 20px;
             right: 360px;
             z-index: 100;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.92);
             padding: 16px;
             border-radius: 8px;
             border: 1px solid rgba(255,255,255,0.2);
@@ -567,8 +564,7 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 200;
-            background: rgba(255, 100, 0, 0.9);
-            backdrop-filter: blur(10px);
+            background: rgba(255, 100, 0, 0.95);
             padding: 12px 24px;
             border-radius: 8px;
             border: 1px solid rgba(255, 150, 0, 0.8);
@@ -861,9 +857,7 @@
         }
         .pause-content {
             max-width: 850px;
-            background: rgba(0,0,0,0.50);
-            -webkit-backdrop-filter: blur(50px) saturate(1.2);
-            backdrop-filter: blur(50px) saturate(1.2);
+            background: rgba(0,0,0,0.80);
             border: none;
             border-radius: 28px;
             padding: 60px 70px;
@@ -990,8 +984,7 @@
             border: none;
         }
         .mute-button {
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.75);
             border: 1px solid rgba(255,255,255,0.2);
             color: #ffffff;
             padding: 0;
@@ -1002,7 +995,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            transition: background 0.15s, transform 0.1s;
         }
         .mute-button:hover {
             background: rgba(255,255,255,0.1);
@@ -1032,8 +1025,7 @@
             z-index: 10001;
             width: 50px;
             height: 50px;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.75);
             border: 1px solid rgba(255,255,255,0.2);
             border-radius: 50%;
             color: #fff;
@@ -1041,7 +1033,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            transition: background 0.15s, transform 0.1s;
         }
         .pause-close-btn:hover {
             background: rgba(255,255,255,0.1);
@@ -1280,7 +1272,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            transition: color 0.15s, transform 0.1s;
             z-index: 10;
         }
         .panel-close-btn:hover {
@@ -1294,8 +1286,7 @@
             top: 20px;
             right: 20px;
             z-index: 9999;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.88);
             padding: 12px 20px;
             border-radius: 8px;
             border: 1px solid rgba(0, 255, 136, 0.3);
@@ -1305,7 +1296,6 @@
             color: #00ff88;
             min-width: 100px;
             text-align: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
         #fps-counter .fps-value {
             font-size: 28px;
@@ -1340,8 +1330,7 @@
             left: 50%;
             transform: translateX(-50%) translateY(-100%);
             z-index: 100000;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.75);
             padding: 12px 24px;
             border-radius: 0 0 12px 12px;
             font-size: 12px;
@@ -1381,8 +1370,7 @@
             z-index: 10000;
             width: 44px;
             height: 44px;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.75);
             border: 1px solid rgba(255,255,255,0.2);
             border-radius: 50%;
             color: #fff;
@@ -1436,8 +1424,7 @@
             z-index: 10000;
             width: 44px;
             height: 44px;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.75);
             border: 1px solid rgba(255,255,255,0.2);
             border-radius: 50%;
             color: #fff;
@@ -1497,8 +1484,7 @@
             z-index: 9999;
             width: 48px;
             height: 48px;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.75);
             border: 1px solid rgba(255,255,255,0.2);
             border-radius: 50%;
             color: #fff;
@@ -1508,7 +1494,7 @@
             justify-content: center;
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
-            transition: all 0.2s ease;
+            transition: background 0.15s, transform 0.1s;
         }
         #gyro-toggle-btn:active {
             background: rgba(100,150,255,0.4);
@@ -1533,8 +1519,7 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
-            background: rgba(0,0,0,0.65);
-            backdrop-filter: blur(12px);
+            background: rgba(0,0,0,0.85);
             padding: 14px 20px;
             border-radius: 10px;
             border: 1px solid rgba(255,255,255,0.08);
@@ -1575,8 +1560,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 100001;
-            background: rgba(0,0,0,0.9);
-            backdrop-filter: blur(20px);
+            background: rgba(0,0,0,0.95);
             padding: 30px 40px;
             border-radius: 16px;
             border: 1px solid rgba(255,255,255,0.2);
@@ -1657,9 +1641,7 @@
                 scrollbar-width: none;
                 padding: 22px 20px;
                 text-align: left;
-                background: rgba(0,0,0,0.50);
-                -webkit-backdrop-filter: blur(50px) saturate(1.2);
-                backdrop-filter: blur(50px) saturate(1.2);
+                background: rgba(0,0,0,0.80);
                 border-radius: 28px;
             }
             .welcome-content::-webkit-scrollbar {
@@ -7831,16 +7813,16 @@
                 fpsFrameCount = 0;
                 fpsLastTime = currentTime;
 
-                // OPTIMIZED: Use cached DOM elements instead of querying
+                // OPTIMIZED: Use cached DOM elements, only touch DOM when value changes
                 if (fpsDOMCache.value && fpsDOMCache.counter) {
                     fpsDOMCache.value.textContent = fpsCurrentFPS;
 
-                    // Color coding based on performance
-                    fpsDOMCache.counter.classList.remove('low-fps', 'critical-fps');
-                    if (fpsCurrentFPS < 30) {
-                        fpsDOMCache.counter.classList.add('critical-fps');
-                    } else if (fpsCurrentFPS < 50) {
-                        fpsDOMCache.counter.classList.add('low-fps');
+                    // Only update class when threshold zone changes
+                    const newZone = fpsCurrentFPS < 30 ? 'critical-fps' : (fpsCurrentFPS < 50 ? 'low-fps' : '');
+                    if (newZone !== fpsDOMCache._lastZone) {
+                        fpsDOMCache.counter.classList.remove('low-fps', 'critical-fps');
+                        if (newZone) fpsDOMCache.counter.classList.add(newZone);
+                        fpsDOMCache._lastZone = newZone;
                     }
                 }
             }
