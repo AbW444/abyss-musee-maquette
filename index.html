@@ -9228,9 +9228,9 @@
             });
         }
 
-        // PANORAMIC VIDEO SYSTEM: Load single ecran_panorama.webm for all screens
+        // PANORAMIC VIDEO SYSTEM: Load single panoramic video for all screens
         async function loadVolumetricScreenVideos() {
-            console.log('🎬 Tentative de chargement de la vidéo panoramique (ecran_panorama.webm)...');
+            console.log('🎬 Tentative de chargement de la vidéo panoramique (panorama_opti.webm)...');
 
             // Charger aussi la vidéo du sol en parallèle
             loadFloorVideo();
@@ -9272,13 +9272,6 @@
                         _log(`✅ Vidéo panoramique chargée: ${videoPath}`);
                         _log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
                         _log(`   Attendu: ${PANORAMIC_WIDTH}x${PANORAMIC_HEIGHT}`);
-
-                        // Validate video dimensions
-                        if (videoElement.videoWidth < 1920 || videoElement.videoHeight < 480) {
-                            _log(`⚠️ Dimensions invalides pour ${videoPath}, tentative suivante...`);
-                            tryLoadVideo(pathIndex + 1);
-                            return;
-                        }
 
                         // Store as the panoramic video
                         panoramicVideo = videoElement;
