@@ -5316,17 +5316,29 @@
         }
 
         // === PANORAMIC VIDEO SYSTEM ===
-        // Single panoramic video (9600x1080) projected across 5 screens
-        // Each screen shows 1920x1080 (standard 16:9 HD)
+        // Single panoramic video (8640x1080) projected across 5 screens
+        // Video divided into 9 equal columns (960px each):
+        //   Screen 1: 2/9 (0-1920px), Screen 2: 2/9 (1920-3840px),
+        //   Screen 3: 1/9 (3840-4800px, center), Screen 4: 2/9 (4800-6720px),
+        //   Screen 5: 2/9 (6720-8640px)
         let panoramicVideo = null; // Single video for all screens
         const PANORAMIC_SCREENS = [1, 2, 3, 4, 5]; // Screens that show panoramic portions (excluding 6=floor)
-        const PANORAMIC_WIDTH = 9600; // Total panoramic video width (5 x 1920)
+        const PANORAMIC_WIDTH = 8640; // Total panoramic video width (9 x 960)
         const PANORAMIC_HEIGHT = 1080; // Panoramic video height
 
+        // Portion mapping: offset and width as fractions of total video width
+        const PANORAMIC_PORTIONS = [
+            { offset: 0,     width: 2/9 },  // Screen 1: columns 0-1
+            { offset: 2/9,   width: 2/9 },  // Screen 2: columns 2-3
+            { offset: 4/9,   width: 1/9 },  // Screen 3: column 4 (center, narrower)
+            { offset: 5/9,   width: 2/9 },  // Screen 4: columns 5-6
+            { offset: 7/9,   width: 2/9 },  // Screen 5: columns 7-8
+        ];
+
         // Helper function: Extract particle data from a PORTION of the panoramic video
-        // portionIndex: 0-based index (0=leftmost, 4=rightmost for 5 screens)
-        // totalPortions: how many portions to divide the video into (5 for our case)
-        function createParticleDataFromVideoPortion(video, portionIndex, totalPortions) {
+        // offsetFraction: start position as fraction of video width (0.0 to 1.0)
+        // widthFraction: width of portion as fraction of video width
+        function createParticleDataFromVideoPortion(video, offsetFraction, widthFraction) {
             const { step, TARGET_WIDTH, TARGET_HEIGHT } = calculateDensityParams(particleDensity);
 
             // Create sampling canvas
@@ -5338,12 +5350,11 @@
             // Calculate portion bounds in the panoramic video
             const videoWidth = video.videoWidth;
             const videoHeight = video.videoHeight;
-            const portionWidth = videoWidth / totalPortions;
 
-            // Source coordinates for this portion
-            const sourceX = portionIndex * portionWidth;
+            // Source coordinates for this portion (fraction-based)
+            const sourceX = offsetFraction * videoWidth;
             const sourceY = 0;
-            const sourceWidth = portionWidth;
+            const sourceWidth = widthFraction * videoWidth;
             const sourceHeight = videoHeight;
 
             // Draw only this portion of the video, scaled to fill the target canvas
@@ -5474,7 +5485,7 @@
                 }
             }
 
-            console.log(`🎬 Panorama portion ${portionIndex + 1}/${totalPortions}: ${particleCount.toLocaleString()} particules`);
+            console.log(`🎬 Panorama portion offset=${(offsetFraction*100).toFixed(1)}% width=${(widthFraction*100).toFixed(1)}%: ${particleCount.toLocaleString()} particules`);
             return { positions, colors, initialZ, uvs, TARGET_WIDTH, TARGET_HEIGHT, scaleFactor };
         }
 
@@ -5490,7 +5501,7 @@
             if (isPanoramicMode) {
                 console.log('🌅 MODE PANORAMIQUE ACTIVÉ');
                 console.log(`   Vidéo: ${panoramicVideo.videoWidth}x${panoramicVideo.videoHeight}`);
-                console.log(`   5 écrans × 1920px chacun = 9600px total`);
+                console.log(`   9 colonnes de 960px = 8640px (2/9+2/9+1/9+2/9+2/9)`);
                 video = panoramicVideo; // Use panoramic video as base
             } else if (screenVideos[1]) {
                 console.log('🎬 Multi-video mode: Utilisation de video_01.mp4 pour génération');
@@ -5591,7 +5602,7 @@
             // === PANORAMIC MODE: Use portion-based generation for screen 1 ===
             if (isPanoramicMode) {
                 console.log('🌅 Génération écran 1 depuis portion 0 (gauche) du panorama');
-                const screen1Data = createParticleDataFromVideoPortion(panoramicVideo, 0, 5);
+                const screen1Data = createParticleDataFromVideoPortion(panoramicVideo, PANORAMIC_PORTIONS[0].offset, PANORAMIC_PORTIONS[0].width);
                 positions = screen1Data.positions;
                 colors = screen1Data.colors;
                 initialZ = screen1Data.initialZ;
@@ -5885,8 +5896,8 @@
 
             const depthSpreadForShader = TARGET_HEIGHT * scaleFactor * depthMultiplier;
             // Screen 1: portion 0/5 in panoramic mode, full video otherwise
-            const screen1PortionOffset = isPanoramicMode ? 0.0 : 0.0;
-            const screen1PortionWidth = isPanoramicMode ? 0.2 : 1.0;
+            const screen1PortionOffset = isPanoramicMode ? PANORAMIC_PORTIONS[0].offset : 0.0;
+            const screen1PortionWidth = isPanoramicMode ? PANORAMIC_PORTIONS[0].width : 1.0;
 
             if (is3DMode) {
                 console.log('🔷 Création des particules en mode 3D (GPU pipeline)...');
@@ -5985,16 +5996,16 @@
             let screen2Data = null;
             if (isPanoramicMode) {
                 console.log('🌅 Génération écran 2 depuis portion 1 du panorama');
-                screen2Data = createParticleDataFromVideoPortion(panoramicVideo, 1, 5);
+                screen2Data = createParticleDataFromVideoPortion(panoramicVideo, PANORAMIC_PORTIONS[1].offset, PANORAMIC_PORTIONS[1].width);
             } else if (screenVideos[2] && screenVideos[2] !== video) {
                 console.log('🎬 Génération écran 2 depuis video_02.mp4');
                 screen2Data = createParticleDataFromVideo(screenVideos[2]);
             }
 
             if (screen2Data) {
-                // GPU material for screen 2 (panorama portion 1/5)
+                // GPU material for screen 2 (panorama portion 2/9)
                 const screen2Material = createGPUVolumeMaterial(gpuVideoTexture,
-                    isPanoramicMode ? 0.2 : 0.0, isPanoramicMode ? 0.2 : 1.0,
+                    isPanoramicMode ? PANORAMIC_PORTIONS[1].offset : 0.0, isPanoramicMode ? PANORAMIC_PORTIONS[1].width : 1.0,
                     { depthSpread: depthSpreadForShader, shapeTexture: is3DMode ? null : getShapeTexture(currentShape) });
 
                 if (is3DMode) {
@@ -6168,16 +6179,16 @@
             let screen5Data = null;
             if (isPanoramicMode) {
                 console.log('🌅 Génération écran 5 depuis portion 4 (droite) du panorama');
-                screen5Data = createParticleDataFromVideoPortion(panoramicVideo, 4, 5);
+                screen5Data = createParticleDataFromVideoPortion(panoramicVideo, PANORAMIC_PORTIONS[4].offset, PANORAMIC_PORTIONS[4].width);
             } else if (screenVideos[5]) {
                 console.log('🎬 Génération écran 5 depuis video_05.mp4');
                 screen5Data = createParticleDataFromVideo(screenVideos[5]);
             }
 
             if (screen5Data) {
-                // GPU material for screen 5 (panorama portion 4/5)
+                // GPU material for screen 5 (panorama portion 2/9)
                 const screen5Material = createGPUVolumeMaterial(gpuVideoTexture,
-                    isPanoramicMode ? 0.8 : 0.0, isPanoramicMode ? 0.2 : 1.0,
+                    isPanoramicMode ? PANORAMIC_PORTIONS[4].offset : 0.0, isPanoramicMode ? PANORAMIC_PORTIONS[4].width : 1.0,
                     { depthSpread: depthSpreadForShader, shapeTexture: is3DMode ? null : getShapeTexture(currentShape) });
 
                 if (is3DMode) {
@@ -6249,16 +6260,16 @@
             let screen6Data = null;
             if (isPanoramicMode) {
                 console.log('🌅 Génération écran 4 depuis portion 3 du panorama');
-                screen6Data = createParticleDataFromVideoPortion(panoramicVideo, 3, 5);
+                screen6Data = createParticleDataFromVideoPortion(panoramicVideo, PANORAMIC_PORTIONS[3].offset, PANORAMIC_PORTIONS[3].width);
             } else if (screenVideos[4]) {
                 console.log('🎬 Génération écran 4 depuis ecran4.mp4');
                 screen6Data = createParticleDataFromVideo(screenVideos[4]);
             }
 
             if (screen6Data) {
-                // GPU material for screen 4 (panorama portion 3/5)
+                // GPU material for screen 4 (panorama portion 2/9)
                 const screen4Material = createGPUVolumeMaterial(gpuVideoTexture,
-                    isPanoramicMode ? 0.6 : 0.0, isPanoramicMode ? 0.2 : 1.0,
+                    isPanoramicMode ? PANORAMIC_PORTIONS[3].offset : 0.0, isPanoramicMode ? PANORAMIC_PORTIONS[3].width : 1.0,
                     { depthSpread: depthSpreadForShader, shapeTexture: is3DMode ? null : getShapeTexture(currentShape) });
 
                 if (is3DMode) {
@@ -6332,7 +6343,7 @@
             if (isPanoramicMode) {
                 // Use panorama portion 2 (middle)
                 console.log('🌅 Génération écran 3 depuis portion 2 (centre) du panorama');
-                const screen7Data = createParticleDataFromVideoPortion(panoramicVideo, 2, 5);
+                const screen7Data = createParticleDataFromVideoPortion(panoramicVideo, PANORAMIC_PORTIONS[2].offset, PANORAMIC_PORTIONS[2].width);
                 screen7Positions = screen7Data.positions;
                 screen7Colors = screen7Data.colors;
                 screen7InitialZ = screen7Data.initialZ;
@@ -6370,15 +6381,18 @@
                 }
             }
 
-            // Crop screen 3 : largeur alignée sur écrans 2 (Z=0) et 4 (Z=225)
-            // Local X → World Z après rotation -90° Y. Centre Z=112.5
-            // Donc crop X à [-112.5, 112.5] → bords à Z=0 et Z=225
-            {
+            // Screen 3: scale to fit 225-unit width instead of cropping
+            // Particles span [-200, 200] in local X (from 800px canvas * 0.5 scaleFactor)
+            // Screen 3 physical width = 225 units, so scale X by 112.5/200 = 0.5625
+            // This preserves all particles and their UVs (0-1 range) for correct GPU shader mapping
+            const screen3ScaleX = isPanoramicMode ? (112.5 / 200) : 1.0;
+            if (!isPanoramicMode) {
+                // Non-panoramic fallback: still crop for backward compatibility
                 const croppedPositions = [];
                 const croppedColors = [];
                 const croppedInitialZ = [];
                 const croppedUvs = [];
-                const cropHalfWidth = 112.5; // Distance centre→bord = 225/2
+                const cropHalfWidth = 112.5;
                 for (let i = 0; i < screen7Positions.length / 3; i++) {
                     const x = screen7Positions[i * 3];
                     if (x >= -cropHalfWidth && x <= cropHalfWidth) {
@@ -6393,11 +6407,13 @@
                 screen7InitialZ = croppedInitialZ;
                 screen7Uvs = croppedUvs.length > 0 ? croppedUvs : null;
                 console.log(`✂️ Écran 3 croppé: aligné écrans 2-4 (X: [-112.5, 112.5], ${croppedPositions.length / 3} particules)`);
+            } else {
+                console.log(`📐 Écran 3 panorama: scale X=${screen3ScaleX.toFixed(4)} (${screen7Positions.length / 3} particules)`);
             }
 
-            // GPU material for screen 3 (panorama portion 2/5)
+            // GPU material for screen 3 (panorama portion 4/9)
             const screen3Material = createGPUVolumeMaterial(gpuVideoTexture,
-                isPanoramicMode ? 0.4 : 0.0, isPanoramicMode ? 0.2 : 1.0,
+                isPanoramicMode ? PANORAMIC_PORTIONS[2].offset : 0.0, isPanoramicMode ? PANORAMIC_PORTIONS[2].width : 1.0,
                 { depthSpread: depthSpreadForShader, shapeTexture: is3DMode ? null : getShapeTexture(currentShape) });
 
             let screen7;
@@ -6457,7 +6473,7 @@
             // Position et orientation de base (coordonnées ajustées par l'utilisateur)
             screen7.position.set(599.938, -0.064, 112.5); // Centré entre écran 2 (Z=0) et écran 4 (Z=225)
             screen7.rotation.set(0, -1.570796, 0); // -90° en Y
-            screen7.scale.set(1, 1, 1); // Pas de scale (particules déjà croppées en largeur)
+            screen7.scale.set(screen3ScaleX, 1, 1); // Scale X pour ajuster la largeur (panorama: 0.5625, sinon: 1)
             if (!screen7.userData.screenNumber) screen7.userData.screenNumber = 3; // Renuméroté: anciennement 6 → 3
 
             screensGroup.add(screen7);
@@ -7066,13 +7082,12 @@
 
             let sourceWidth, sourceHeight, offsetX, offsetY;
 
-            // MODE PANORAMIQUE: Écran 1 = portion 0 (gauche) de la vidéo
+            // MODE PANORAMIQUE: Écran 1 = portion 0 (2/9 gauche) de la vidéo
             if (panoramicVideo && currentVideo === panoramicVideo) {
-                // Extraire la portion gauche (0/5) de la vidéo panoramique
-                const portionWidth = videoWidth / 5;
-                offsetX = 0; // Portion 0 = tout à gauche
+                // Extraire la portion gauche (2/9) de la vidéo panoramique
+                offsetX = PANORAMIC_PORTIONS[0].offset * videoWidth; // 0
                 offsetY = 0;
-                sourceWidth = portionWidth;
+                sourceWidth = PANORAMIC_PORTIONS[0].width * videoWidth; // 2/9 du total
                 sourceHeight = videoHeight;
             } else if (videoAspect > targetAspect) {
                 // Video is wider, fit to height and crop sides
@@ -7569,16 +7584,16 @@
             const scaleFactor = 0.5;
             const rgbToLumFactor = 1 / (3 * 255);
 
-            // Mapping from allScreens index to panorama portion index
-            // allScreens[2] (particlesRight) → portion 1
-            // allScreens[3] (screen7/Side panel) → portion 2
-            // allScreens[4] (wallOppB = ÉCRAN 6) → portion 3
-            // allScreens[5] (wallOppA = ÉCRAN 5) → portion 4
-            const screenToPortion = {
-                2: 1,  // allScreens[2] → portion 1/5
-                3: 2,  // allScreens[3] = ÉCRAN 7 → portion 2/5
-                4: 3,  // allScreens[4] = ÉCRAN 6 → portion 3/5
-                5: 4   // allScreens[5] = ÉCRAN 5 → portion 4/5
+            // Mapping from allScreens index to PANORAMIC_PORTIONS index
+            // allScreens[2] (particlesRight) → PANORAMIC_PORTIONS[1] (2/9)
+            // allScreens[3] (screen7/Side panel) → PANORAMIC_PORTIONS[2] (1/9)
+            // allScreens[4] (wallOppB = ÉCRAN 6) → PANORAMIC_PORTIONS[3] (2/9)
+            // allScreens[5] (wallOppA = ÉCRAN 5) → PANORAMIC_PORTIONS[4] (2/9)
+            const screenToPortionIndex = {
+                2: 1,  // allScreens[2] → PANORAMIC_PORTIONS[1]
+                3: 2,  // allScreens[3] → PANORAMIC_PORTIONS[2]
+                4: 3,  // allScreens[4] → PANORAMIC_PORTIONS[3]
+                5: 4   // allScreens[5] → PANORAMIC_PORTIONS[4]
             };
 
             for (const screenNum of screensToUpdate) {
@@ -7614,14 +7629,13 @@
                 let sourceX, sourceY, sourceWidth, sourceHeight;
 
                 if (panoramicVideo) {
-                    // PANORAMIC MODE: Extract the correct portion of the panorama
-                    const portionIndex = screenToPortion[screenNum];
-                    const totalPortions = 5;
-                    const portionWidth = videoWidth / totalPortions;
+                    // PANORAMIC MODE: Extract the correct portion using ninths mapping
+                    const portionIdx = screenToPortionIndex[screenNum];
+                    const portion = PANORAMIC_PORTIONS[portionIdx];
 
-                    sourceX = portionIndex * portionWidth;
+                    sourceX = portion.offset * videoWidth;
                     sourceY = 0;
-                    sourceWidth = portionWidth;
+                    sourceWidth = portion.width * videoWidth;
                     sourceHeight = videoHeight;
                 } else {
                     // MULTI-VIDEO MODE: Use the whole video with aspect ratio handling
@@ -7921,7 +7935,7 @@
             }
 
             // GPU PIPELINE: Only update texture when video frame actually changes
-            // Avoids re-uploading 31MB (9600×1080×RGB) to GPU on every frame
+            // Avoids re-uploading 28MB (8640×1080×RGB) to GPU on every frame
             if (gpuVideoTexture && panoramicVideo) {
                 const currentVideoTime = panoramicVideo.currentTime;
                 if (currentVideoTime !== lastVideoTime) {
