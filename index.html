@@ -8936,6 +8936,13 @@
                 this.clickSound = new Audio('son/immersivecontrol-button-click-sound-463065.mp3');
                 this.clickSound.volume = 0.5;
 
+                // Réduire le volume de 10% sur mobile
+                if (typeof isMobile !== 'undefined' && isMobile) {
+                    this.masterVolume = Math.max(0, this.masterVolume - 0.1);
+                    this.music.volume = this.masterVolume;
+                    this.currentMusicVolume = this.masterVolume;
+                }
+
                 console.log('🔊 AudioManager initialized');
             },
 
