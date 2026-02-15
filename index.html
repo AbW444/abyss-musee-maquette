@@ -934,7 +934,7 @@
             display: flex;
         }
         .pause-content {
-            max-width: 850px;
+            max-width: 720px;
             max-height: calc(100vh - 120px);
             overflow-y: auto;
             scrollbar-width: none;
@@ -953,21 +953,23 @@
         }
         .pause-title {
             font-family: var(--font-sans);
-            font-size: 26px;
+            font-size: 22px;
             font-weight: 500;
             color: var(--color-text);
-            margin-bottom: 35px;
-            letter-spacing: 1.2px;
+            margin-bottom: 28px;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
+            line-height: 1.4;
         }
         .pause-text {
             font-family: var(--font-sans);
-            font-size: 17px;
+            font-size: 15px;
             font-weight: 300;
             color: var(--color-text-secondary);
             line-height: 1.9;
-            margin-bottom: 22px;
+            margin-bottom: 20px;
             letter-spacing: 0.3px;
+            text-align: justify;
         }
         .pause-text strong {
             font-weight: 400;
@@ -976,11 +978,11 @@
         /* Liste conceptuelle - sans décoration */
         .pause-conceptual-list {
             font-family: var(--font-sans);
-            font-size: 17px;
+            font-size: 15px;
             font-weight: 300;
             color: var(--color-text-secondary);
             line-height: 2.2;
-            margin: 22px 0;
+            margin: 20px 0;
             letter-spacing: 0.3px;
         }
         .pause-conceptual-list .list-intro {
@@ -1096,7 +1098,7 @@
             top: 12px;
             left: 12px;
             padding: 9px 11px;
-            font-size: var(--text-md);
+            font-size: 11.3px;
             color: var(--color-text);
             z-index: var(--z-ui);
             opacity: 1;
@@ -1213,19 +1215,10 @@
         .loading-video {
             width: var(--logoSize);
             height: var(--logoSize);
-            opacity: 0.9;
+            opacity: 1;
             object-fit: contain;
-            will-change: transform, opacity;
+            will-change: transform;
             transform: translateZ(0);
-        }
-
-        @keyframes loading-pulse {
-            0%, 100% { opacity: 0.9; }
-            50% { opacity: 0.55; }
-        }
-
-        #loading-screen.active .loading-video {
-            animation: loading-pulse 2s ease-in-out infinite;
         }
 
         /* Panel Close Button (X) */
@@ -1370,6 +1363,7 @@
             color: #fff;
             line-height: 1;
             opacity: 1;
+            text-transform: lowercase;
         }
         #mobile-pause-btn .btn-icon-close {
             opacity: 0;
@@ -2053,10 +2047,10 @@
 
             <div class="pause-conceptual-list">
                 <span class="list-intro">Le choix d'une maquette web répond à des contraintes de temps et de moyens. Il permet néanmoins d'explorer des questions essentielles&nbsp;:</span>
-                <span class="list-item">— distance et proximité du regard</span>
-                <span class="list-item">— échelle et corporalité</span>
-                <span class="list-item">— temporalité de l'observation</span>
-                <span class="list-item">— relation entre image documentaire et forme exposée</span>
+                <span class="list-item">- distance et proximité du regard</span>
+                <span class="list-item">- échelle et corporalité</span>
+                <span class="list-item">- temporalité de l'observation</span>
+                <span class="list-item">- relation entre image documentaire et forme exposée</span>
             </div>
 
             <p class="pause-text">
@@ -2064,7 +2058,7 @@
             </p>
 
             <div class="pause-meta">
-                Navigation libre — déplacement lent recommandé<br>
+                Navigation libre - déplacement lent recommandé<br>
                 Les contenus projetés peuvent évoluer au cours du projet
             </div>
         </div>
@@ -6536,7 +6530,7 @@
             const width4 = 964.573;
             const height4 = 228.534;
             const geometry4 = new THREE.PlaneGeometry(width4, height4);
-            const material4 = new THREE.MeshBasicMaterial({ color: 0x070707, side: THREE.DoubleSide });
+            const material4 = new THREE.MeshBasicMaterial({ color: 0x060606, side: THREE.DoubleSide });
             const screen4 = new THREE.Mesh(geometry4, material4);
 
             // Position et orientation (from user JSON)
@@ -6547,7 +6541,7 @@
             // Mark as color surface
             screen4.userData.screenNumber = 7;
             screen4.userData.isColorSurface = true;
-            screen4.userData.color = 0x070707;
+            screen4.userData.color = 0x060606;
 
             screensGroup.add(screen4);
 
@@ -6626,7 +6620,7 @@
             // Shader spécial pour sol avec ombre fake mur-sol (dégradé radial subtil)
             const material11 = new THREE.ShaderMaterial({
                 uniforms: {
-                    baseColor: { value: new THREE.Color(0x0A0A0A) },
+                    baseColor: { value: new THREE.Color(0x080808) },
                     gradientStrength: { value: 0.03 },
                     shadowStrength: { value: 0.025 } // 2.5% assombrissement aux bords
                 },
@@ -6680,7 +6674,7 @@
             screen11.scale.set(1, 1, 1);
             screen11.userData.screenNumber = 11;
             screen11.userData.isColorSurface = true;
-            screen11.userData.color = 0x0A0A0A;
+            screen11.userData.color = 0x080808;
             screensGroup.add(screen11);
 
             // ======================
@@ -6689,14 +6683,14 @@
             const width12 = 235.076;
             const height12 = 231.29;
             const geometry12 = new THREE.PlaneGeometry(width12, height12);
-            const material12 = createWallFormMaterial(0x060606); // Shader subtil pour mur-forme
+            const material12 = createWallFormMaterial(0x050505); // Shader subtil pour mur-forme
             const screen12 = new THREE.Mesh(geometry12, material12);
             screen12.position.set(-348.048, -6.589, 115.234);
             screen12.rotation.set(0, 1.570796, 0);
             screen12.scale.set(1, 1, 1);
             screen12.userData.screenNumber = 12;
             screen12.userData.isColorSurface = true;
-            screen12.userData.color = 0x060606;
+            screen12.userData.color = 0x050505;
             screensGroup.add(screen12);
 
             // ======================
@@ -6706,14 +6700,14 @@
             const width14 = 96.102;
             const height14 = 231.269; // Ajusté pour bas = -111.773
             const geometry14 = new THREE.PlaneGeometry(width14, height14);
-            const material14 = new THREE.MeshBasicMaterial({ color: 0x070707, side: THREE.DoubleSide });
+            const material14 = new THREE.MeshBasicMaterial({ color: 0x060606, side: THREE.DoubleSide });
             const screen14 = new THREE.Mesh(geometry14, material14);
             screen14.position.set(-197.183, 3.862, 178.672); // Y ajusté
             screen14.rotation.set(0, 1.570796, 0);
             screen14.scale.set(1, 1, 1);
             screen14.userData.screenNumber = 13; // Renuméroté: 14 → 13
             screen14.userData.isColorSurface = true;
-            screen14.userData.color = 0x070707;
+            screen14.userData.color = 0x060606;
             screensGroup.add(screen14);
 
             // ======================
@@ -6723,14 +6717,14 @@
             const width15 = 96.102;
             const height15 = 231.187; // Ajusté pour bas = -111.773
             const geometry15 = new THREE.PlaneGeometry(width15, height15);
-            const material15 = new THREE.MeshBasicMaterial({ color: 0x070707, side: THREE.DoubleSide });
+            const material15 = new THREE.MeshBasicMaterial({ color: 0x060606, side: THREE.DoubleSide });
             const screen15 = new THREE.Mesh(geometry15, material15);
             screen15.position.set(-197.107, 3.821, 47.768); // Y ajusté
             screen15.rotation.set(0, 1.570796, 0);
             screen15.scale.set(1, 1, 1);
             screen15.userData.screenNumber = 14; // Renuméroté: 15 → 14
             screen15.userData.isColorSurface = true;
-            screen15.userData.color = 0x070707;
+            screen15.userData.color = 0x060606;
             screensGroup.add(screen15);
 
             // ======================
@@ -6739,14 +6733,14 @@
             const width16 = 163.506;
             const height16 = 239.079;
             const geometry16 = new THREE.PlaneGeometry(width16, height16);
-            const material16 = new THREE.MeshBasicMaterial({ color: 0x070707, side: THREE.DoubleSide });
+            const material16 = new THREE.MeshBasicMaterial({ color: 0x060606, side: THREE.DoubleSide });
             const screen16 = new THREE.Mesh(geometry16, material16);
             screen16.position.set(-197.04, 27.158, 110.291);
             screen16.rotation.set(1.570796, 1.570796, 0);
             screen16.scale.set(1, 1, 1);
             screen16.userData.screenNumber = 15; // Renuméroté: 16 → 15
             screen16.userData.isColorSurface = true;
-            screen16.userData.color = 0x070707;
+            screen16.userData.color = 0x060606;
             screensGroup.add(screen16);
 
             // ======================
@@ -8715,6 +8709,7 @@
             music: null,
             clickSound: null,
             audioContext: null,
+            clickBuffer: null,
             masterVolume: 0.3,
             currentMusicVolume: 0.3,
             isMuted: false,
@@ -8728,16 +8723,25 @@
                 this.music.volume = this.masterVolume;
                 this.currentMusicVolume = this.masterVolume;
 
-                // Click sound effect
-                this.clickSound = new Audio('son/immersivecontrol-button-click-sound-463065.mp3');
-                this.clickSound.volume = 0.5; // Base volume for click sound
-
-                // Web Audio Context for UI sounds (fallback)
+                // Web Audio Context for instant UI sounds (zero latency)
                 try {
                     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    // Pre-decode click sound into AudioBuffer for instant playback
+                    fetch('son/immersivecontrol-button-click-sound-463065.mp3')
+                        .then(r => r.arrayBuffer())
+                        .then(buf => this.audioContext.decodeAudioData(buf))
+                        .then(decoded => {
+                            this.clickBuffer = decoded;
+                            console.log('🔊 Click sound pre-decoded (Web Audio API)');
+                        })
+                        .catch(e => console.warn('Click buffer decode error:', e));
                 } catch(e) {
                     console.warn('Web Audio API not supported');
                 }
+
+                // Fallback HTML Audio click sound
+                this.clickSound = new Audio('son/immersivecontrol-button-click-sound-463065.mp3');
+                this.clickSound.volume = 0.5;
 
                 console.log('🔊 AudioManager initialized');
             },
@@ -8819,19 +8823,36 @@
                 }
             },
 
-            // Play click sound (using audio file)
+            // Play click sound (Web Audio API for zero-latency)
             playClick() {
-                if (this.isMuted || !this.clickSound) return;
+                if (this.isMuted) return;
 
-                try {
-                    // Reset to start and play immediately (no delay)
-                    this.clickSound.currentTime = 0;
-                    this.clickSound.volume = 0.5 * this.masterVolume;
-                    this.clickSound.play().catch(err => {
-                        console.warn('Click sound playback error:', err);
-                    });
-                } catch(e) {
-                    console.warn('Click sound error:', e);
+                // Primary: Web Audio API with pre-decoded buffer (instant, no delay)
+                if (this.audioContext && this.clickBuffer) {
+                    try {
+                        if (this.audioContext.state === 'suspended') {
+                            this.audioContext.resume();
+                        }
+                        const source = this.audioContext.createBufferSource();
+                        const gainNode = this.audioContext.createGain();
+                        source.buffer = this.clickBuffer;
+                        gainNode.gain.value = 0.5 * this.masterVolume;
+                        source.connect(gainNode);
+                        gainNode.connect(this.audioContext.destination);
+                        source.start(0);
+                        return;
+                    } catch(e) {
+                        // Fall through to HTML Audio fallback
+                    }
+                }
+
+                // Fallback: HTML Audio element
+                if (this.clickSound) {
+                    try {
+                        this.clickSound.currentTime = 0;
+                        this.clickSound.volume = 0.5 * this.masterVolume;
+                        this.clickSound.play().catch(() => {});
+                    } catch(e) {}
                 }
             }
         };
@@ -8893,23 +8914,19 @@
             document.body.classList.remove('hoverPlay');
             document.body.classList.add('clickedPlay');
 
-            // Phase 2: Après le fondu (320ms), lancer l'animation icône
+            // Phase 2: Après le fondu du texte (320ms), faire disparaître le logo PNG
             const fadeMs = 350; // Légèrement après --clickFadeMs (320ms)
             setTimeout(() => {
-                const logoVideo = document.getElementById('welcome-logo-video');
                 const logoStatic = document.getElementById('welcome-logo');
                 if (logoStatic) {
-                    logoStatic.style.opacity = '0';
-                }
-                if (logoVideo) {
-                    logoVideo.classList.add('active');
-                    logoVideo.play();
+                    logoStatic.style.opacity = '0'; // Fade out (200ms CSS transition)
                 }
 
-                // Phase 3: Démarrer l'expérience après l'animation icône
+                // Phase 3: Attendre que le logo soit totalement invisible, puis lancer le loading screen
+                // 250ms = 200ms (transition CSS opacity logo) + 50ms (marge de sécurité)
                 setTimeout(() => {
                     startExperience();
-                }, 600);
+                }, 250);
             }, fadeMs);
         }
 
@@ -8930,13 +8947,6 @@
         function startExperience() {
             const welcomeScreen = document.getElementById('welcome-screen');
             const loadingScreen = document.getElementById('loading-screen');
-
-            // Sync loading screen video with welcome logo video to avoid visual jump
-            const welcomeLogoVideo = document.getElementById('welcome-logo-video');
-            const loadingVideo = loadingScreen.querySelector('.loading-video');
-            if (welcomeLogoVideo && loadingVideo) {
-                loadingVideo.currentTime = welcomeLogoVideo.currentTime;
-            }
 
             // Hide welcome screen instantly (fade overlay is already black from clickedPlay)
             welcomeScreen.style.transition = 'none';
