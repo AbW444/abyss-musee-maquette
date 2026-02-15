@@ -1092,10 +1092,26 @@
             z-index: var(--z-pause-controls);
         }
 
-        /* Game & Pause Instructions (shared) */
-        .game-instructions, .pause-instructions {
+        /* Persistent Instructions (ALT + ESC — always visible in FPS mode) */
+        .persistent-instructions {
             position: fixed;
             top: 12px;
+            left: 12px;
+            padding: 9px 11px;
+            font-size: 11.3px;
+            color: var(--color-text);
+            z-index: var(--z-ui);
+            pointer-events: none;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        /* Game & Pause Instructions (shared base) */
+        .game-instructions, .pause-instructions {
+            position: fixed;
             left: 12px;
             padding: 9px 11px;
             font-size: 11.3px;
@@ -1109,17 +1125,15 @@
             flex-direction: column;
             gap: var(--space-sm);
         }
+        .game-instructions {
+            top: 60px; /* Below persistent-instructions */
+        }
         .pause-instructions {
+            top: 12px;
             z-index: var(--z-pause-controls);
         }
         .game-instructions .instruction-row {
             transition: opacity 0.6s ease;
-        }
-        .game-instructions.hidden .instruction-row {
-            opacity: 0;
-        }
-        .game-instructions.hidden .instruction-always-visible {
-            opacity: 1;
         }
         .instruction-row {
             display: grid;
@@ -1700,6 +1714,7 @@
             }
 
             /* Cacher UI desktop */
+            .persistent-instructions,
             .game-instructions,
             .pause-instructions {
                 display: none !important;
@@ -1904,16 +1919,20 @@
         <button onclick="requestGyroPermission()">Activer</button>
     </div>
 
-    <!-- Game Instructions (top-left, visible when on floor Y=11) -->
-    <div class="game-instructions hidden" id="game-instructions">
-        <div class="instruction-row instruction-always-visible">
+    <!-- Persistent Instructions (ALT + ESC — always visible in FPS mode) -->
+    <div class="persistent-instructions" id="persistent-instructions" style="display:none;">
+        <div class="instruction-row">
             <span class="key">ALT</span>
             <span>Infos</span>
         </div>
-        <div class="instruction-row instruction-always-visible">
+        <div class="instruction-row">
             <span class="key">ESC</span>
             <span>Plein écran</span>
         </div>
+    </div>
+
+    <!-- Game Instructions (top-left, visible when on floor Y=11, hides after movement) -->
+    <div class="game-instructions hidden" id="game-instructions">
         <div class="instruction-row">
             <span class="key">Souris</span>
             <span>Regarder autour</span>
@@ -3058,15 +3077,22 @@
                 }
             }
 
-            // Escape: Enter fullscreen if not in fullscreen (browser handles exit natively)
-            // OR deselect in Admin mode
+            // Escape: Toggle fullscreen in FPS mode, OR deselect in Admin mode
             if (e.code === 'Escape') {
                 e.preventDefault();
-                if (fpsMode && !document.fullscreenElement && !document.webkitFullscreenElement) {
-                    // Not in fullscreen: enter fullscreen
-                    const el = document.documentElement;
-                    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-                    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                if (fpsMode) {
+                    const now = performance.now();
+                    // If fullscreen was just exited (<300ms ago by browser's native ESC handling),
+                    // don't re-enter — the user wanted to exit
+                    if (now - lastFullscreenExitTime < 300) {
+                        // Browser just exited fullscreen via ESC — do nothing
+                    } else if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                        // Not in fullscreen and no recent exit: enter fullscreen
+                        const el = document.documentElement;
+                        if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+                        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                    }
+                    // If currently in fullscreen: browser will exit it natively
                 } else if (selectedScreen) {
                     // Admin mode: deselect screen
                     deselectScreen();
@@ -4744,9 +4770,9 @@
                     console.log('🔓 PointerLock désactivé');
 
                     // Pointer lock released (ESC) — do NOT auto-show pause screen
-                    // Info screen is now triggered by right-click or the info button
+                    // Info screen is triggered by ALT key
                     if (fpsMode && !isPaused) {
-                        console.log('🔓 PointerLock libéré — clic droit ou bouton info pour les infos');
+                        console.log('🔓 PointerLock libéré — ALT pour les infos');
                     }
                 }
             }
@@ -8364,6 +8390,12 @@
             }
 
 
+            // Show persistent instructions (ALT + ESC) in FPS mode, hide when paused
+            const persistentInstr = document.getElementById('persistent-instructions');
+            if (persistentInstr) {
+                persistentInstr.style.display = (fpsMode && !isPaused) ? 'flex' : 'none';
+            }
+
             // Update game instructions visibility based on Y position
             // Floor 11 is at Y=-111.773, with eye height 25, camera should be at Y≈-86.773
             const instructionsElement = fpsDOMCache.gameInstructions;
@@ -8691,6 +8723,7 @@
         let isPaused = false;
         let lastPauseToggleTime = 0; // Debounce pour éviter double ESC
         const PAUSE_DEBOUNCE_MS = 300; // Délai minimum entre toggles pause
+        let lastFullscreenExitTime = 0; // Track fullscreen exit to prevent ESC re-entry
 
         // Instructions timer (hide after 5 seconds)
         // Track keyboard interactions instead of time
@@ -8918,6 +8951,13 @@
         window.handlePlayClick = function() {
             playClickSound(); // Click feedback
 
+            // Request fullscreen immediately (user gesture required — click IS a valid gesture)
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                const el = document.documentElement;
+                if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            }
+
             // Phase 1: Fondu au noir (texte + bouton disparaissent)
             document.body.classList.remove('hoverPlay');
             document.body.classList.add('clickedPlay');
@@ -9001,6 +9041,18 @@
                             }
                             showPauseScreen();
                         }
+                    }
+                });
+
+                // Track fullscreen exits to prevent ESC from re-entering immediately
+                document.addEventListener('fullscreenchange', function() {
+                    if (!document.fullscreenElement) {
+                        lastFullscreenExitTime = performance.now();
+                    }
+                });
+                document.addEventListener('webkitfullscreenchange', function() {
+                    if (!document.webkitFullscreenElement) {
+                        lastFullscreenExitTime = performance.now();
                     }
                 });
 
@@ -9159,16 +9211,11 @@
                     loadingScreen.style.display = 'none';
                 }, 500);
 
-                // Request fullscreen at the end of loading
-                const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
-                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                    const el = document.documentElement;
-                    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-                    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-                }
+                // Fullscreen is already requested from handlePlayClick (user gesture)
 
                 // Request pointer lock — may fail as setTimeout breaks user gesture chain
                 // The click handler on the canvas will request it on next click
+                const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
                 setTimeout(() => {
                     if (fpsMode && renderer && renderer.domElement && !isMobileDevice) {
                         console.log('🔒 Demande de pointer lock automatique...');
