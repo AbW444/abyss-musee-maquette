@@ -1149,14 +1149,14 @@
         }
         .persistent-instructions .key, .game-instructions .key, .pause-instructions .key {
             display: inline-block;
-            background: var(--color-accent-hover);
+            background: rgba(255,255,255,0.08);
             padding: 5px 7px;
             border-radius: var(--radius-md);
-            border: none;
+            border: 1px solid rgba(255,255,255,0.12);
             font-family: var(--font-mono);
             font-size: var(--text-sm);
-            color: #fff;
-            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+            font-weight: 500;
             white-space: nowrap;
         }
         .arrows-grid {
@@ -1417,7 +1417,7 @@
             transform: translate(-50%, -50%) rotate(0deg);
         }
         #mobile-pause-btn:active {
-            background: var(--color-accent-strong);
+            background: rgba(255,255,255,0.15);
             transform: scale(0.93);
         }
 
@@ -1441,7 +1441,7 @@
             touch-action: manipulation;
         }
         #mobile-fullscreen-btn:active {
-            background: var(--color-accent-strong);
+            background: rgba(255,255,255,0.15);
             transform: scale(0.93);
         }
 
@@ -1503,7 +1503,7 @@
             transition: background 0.15s, transform 0.1s;
         }
         #gyro-toggle-btn:active {
-            background: var(--color-accent-strong);
+            background: rgba(255,255,255,0.15);
             transform: scale(0.93);
         }
         #gyro-toggle-btn .gyro-icon,
@@ -4592,11 +4592,13 @@
 
             console.log('🖼️ Création du renderer...');
             renderer = new THREE.WebGLRenderer({
-                antialias: false, // PERF: MSAA disabled — particle rendering doesn't benefit from AA
+                antialias: isMobile, // Enable MSAA on mobile for crisp edges
                 alpha: true,
                 powerPreference: 'high-performance'
             });
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // PERF: Cap at 2x to avoid 3x+ on HiDPI
+            // Mobile: allow native DPR (up to 3x) for sharp rendering
+            // Desktop: cap at 2x (sufficient with larger screens)
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 3 : 2));
             renderer.setSize(canvasWidth, canvasHeight);
             // PERFORMANCE: Shadows désactivés (coûteux, pas visibles sur ce projet)
             renderer.shadowMap.enabled = false;
@@ -6841,14 +6843,14 @@
             const width17 = 96.102;
             const height17 = 221.302; // Ajusté: ancien haut (109.529) - sol (-111.773)
             const geometry17 = new THREE.PlaneGeometry(width17, height17);
-            const material17 = createWallFormMaterial(0x999999); // Gris clair
+            const material17 = createWallFormMaterial(0x070707);
             const screen17 = new THREE.Mesh(geometry17, material17);
-            screen17.position.set(-200.734, -1.122, 47.768); // Y ajusté pour bas = -111.773
+            screen17.position.set(-200.492, -1.122, 47.776);
             screen17.rotation.set(0, 1.570796, 0);
             screen17.scale.set(1, 1, 1);
             screen17.userData.screenNumber = 16; // Renuméroté: 17 → 16
             screen17.userData.isColorSurface = true;
-            screen17.userData.color = 0x999999;
+            screen17.userData.color = 0x070707;
             screensGroup.add(screen17);
 
             // ======================
@@ -6858,14 +6860,14 @@
             const width18 = 96.102;
             const height18 = 226.947; // Ajusté: ancien haut (115.174) - sol (-111.773)
             const geometry18 = new THREE.PlaneGeometry(width18, height18);
-            const material18 = createWallFormMaterial(0x999999); // Gris clair
+            const material18 = createWallFormMaterial(0x070707);
             const screen18 = new THREE.Mesh(geometry18, material18);
-            screen18.position.set(-200.734, 1.7, 178.493); // Y ajusté pour bas = -111.773
+            screen18.position.set(-200.734, 1.7, 178.493);
             screen18.rotation.set(0, 1.570796, 0);
             screen18.scale.set(1, 1, 1);
             screen18.userData.screenNumber = 17; // Renuméroté: 18 → 17
             screen18.userData.isColorSurface = true;
-            screen18.userData.color = 0x999999;
+            screen18.userData.color = 0x070707;
             screensGroup.add(screen18);
 
             // ======================
@@ -6892,7 +6894,7 @@
             const geometry19 = new THREE.PlaneGeometry(width19, height19);
             const material19 = createWallFormMaterial(0x060606); // Même couleur que forme 22
             const screen19 = new THREE.Mesh(geometry19, material19);
-            screen19.position.set(-279.053, -54.612, 110.34);
+            screen19.position.set(-278.532, -54.6, 110.305);
             screen19.rotation.set(1.570796, 0, 0);
             screen19.scale.set(1, 1, 1);
             screen19.userData.screenNumber = 19;
@@ -6907,14 +6909,14 @@
             const width20 = 3.246;
             const height20 = 131.518; // Ajusté: ancien haut (19.745) - sol (-111.773)
             const geometry20 = new THREE.PlaneGeometry(width20, height20);
-            const material20 = createWallFormMaterial(0x999999); // Gris clair
+            const material20 = createWallFormMaterial(0x070707);
             const screen20 = new THREE.Mesh(geometry20, material20);
-            screen20.position.set(-198.905, -46.014, 95.8); // Position mise à jour
+            screen20.position.set(-198.905, -46.014, 95.8);
             screen20.rotation.set(-3.141593, 0, -3.141593);
             screen20.scale.set(1, 1, 1);
             screen20.userData.screenNumber = 20;
             screen20.userData.isColorSurface = true;
-            screen20.userData.color = 0x999999;
+            screen20.userData.color = 0x070707;
             screensGroup.add(screen20);
 
             // ======================
@@ -6924,14 +6926,14 @@
             const width21b = 3.576;
             const height21b = 131.518; // Ajusté: ancien haut (19.745) - sol (-111.773)
             const geometry21b = new THREE.PlaneGeometry(width21b, height21b);
-            const material21b = createWallFormMaterial(0x999999); // Gris clair
+            const material21b = createWallFormMaterial(0x070707);
             const screen21b = new THREE.Mesh(geometry21b, material21b);
-            screen21b.position.set(-198.975, -46.014, 130.621); // Y ajusté pour bas = -111.773
+            screen21b.position.set(-198.975, -46.014, 130.621);
             screen21b.rotation.set(-3.141593, 0, -3.141593);
             screen21b.scale.set(1, 1, 1);
             screen21b.userData.screenNumber = 21;
             screen21b.userData.isColorSurface = true;
-            screen21b.userData.color = 0x999999;
+            screen21b.userData.color = 0x070707;
             screensGroup.add(screen21b);
 
             // ======================
@@ -8287,7 +8289,11 @@
                     // ===== MODE FPS: Vitesse graduée avec accélération =====
 
                     if (isMoving) {
-                        currentSpeed = Math.min(currentSpeed + fpsSettings.fpsAcceleration, fpsSettings.fpsMaxSpeed);
+                        // On mobile, scale max speed by analog joystick magnitude
+                        const effectiveMaxSpeed = (isMobile && mobileSpeedMultiplier > 0)
+                            ? fpsSettings.fpsMaxSpeed * mobileSpeedMultiplier
+                            : fpsSettings.fpsMaxSpeed;
+                        currentSpeed = Math.min(currentSpeed + fpsSettings.fpsAcceleration, effectiveMaxSpeed);
                         if (cameraKeys.sprint) {
                             currentSpeed = Math.min(currentSpeed, fpsSettings.fpsMaxSpeed * 1.5);
                         }
@@ -9646,14 +9652,24 @@
         let initialAlpha = null;
         let initialBeta = null;
         let initialGamma = null;
-        let baseYaw = 0; // Orientation camera au demarrage
+        let baseYaw = 0;
         let basePitch = 0;
         let joystickActive = false;
         let joystickData = { x: 0, y: 0 };
+        let mobileSpeedMultiplier = 0; // Analog joystick multiplier (0-1)
         let mobileInstructionsHidden = false;
         let touchDragEnabled = true; // Mode tap-and-drag actif par défaut (manuel)
         let lastTouchX = 0;
         let lastTouchY = 0;
+
+        // Professional mobile control state
+        let _gyroFilteredYaw = 0;
+        let _gyroFilteredPitch = 0;
+        let _gyroLastTimestamp = 0;
+        let _touchVelocityX = 0;
+        let _touchVelocityY = 0;
+        let _touchLastMoveTime = 0;
+        let _touchMomentumRAF = null;
 
         // ═══════════════════════════════════════════════════════════════
         // VISIBILITY CHANGE - Couper le son quand page inactive
@@ -9838,58 +9854,76 @@
         function handleDeviceOrientation(event) {
             if (!fpsMode || isPaused || !gyroEnabled || touchDragEnabled) return;
 
-            const alpha = event.alpha || 0; // Rotation Z (compass/yaw)
-            const beta = event.beta || 0;   // Rotation X (tilt front/back = pitch)
-            const gamma = event.gamma || 0; // Rotation Y (tilt left/right)
+            const alpha = event.alpha || 0; // Compass/yaw (Z rotation)
+            const beta = event.beta || 0;   // Pitch (X tilt front/back)
+            const gamma = event.gamma || 0; // Roll (Y tilt left/right)
 
-            // Initialiser les valeurs de référence au premier événement
+            // Time-based smoothing for frame-rate independence
+            const now = performance.now();
+            const dt = _gyroLastTimestamp ? Math.min((now - _gyroLastTimestamp) / 1000, 0.1) : 0.016;
+            _gyroLastTimestamp = now;
+
+            // Initialize reference on first event
             if (initialAlpha === null) {
                 initialAlpha = alpha;
                 initialBeta = beta;
                 initialGamma = gamma;
-                // Sauvegarder l'orientation camera actuelle comme base
                 baseYaw = cameraYaw;
                 basePitch = cameraPitch;
+                _gyroFilteredYaw = 0;
+                _gyroFilteredPitch = 0;
                 return;
             }
 
-            // Calculer les deltas par rapport à la position initiale
+            // Compute deltas from reference orientation
             let deltaAlpha = alpha - initialAlpha;
-
-            // Normaliser deltaAlpha (-180 à 180)
             if (deltaAlpha > 180) deltaAlpha -= 360;
             if (deltaAlpha < -180) deltaAlpha += 360;
 
-            // Pour le pitch, utiliser beta (inclinaison avant/arriere)
-            // beta = 0 quand le telephone est a plat, 90 quand vertical
-            // On veut que le telephone tenu normalement (beta ~60-90) corresponde a regarder droit
             let deltaBeta = beta - initialBeta;
 
-            // Sensibilité ajustee
-            const yawSensitivity = 0.018;
-            const pitchSensitivity = 0.012;
-            const smoothing = 0.15;
+            // Dead zone: filter micro-movements from hand tremor (1.5 degrees)
+            const DEAD_ZONE = 1.5;
+            if (Math.abs(deltaAlpha) < DEAD_ZONE) deltaAlpha = 0;
+            else deltaAlpha = (deltaAlpha - Math.sign(deltaAlpha) * DEAD_ZONE);
 
-            // Calculer les cibles en ajoutant aux valeurs de base
-            const targetYaw = baseYaw - (deltaAlpha * yawSensitivity);
-            const targetPitch = basePitch + (deltaBeta * pitchSensitivity);
+            if (Math.abs(deltaBeta) < DEAD_ZONE) deltaBeta = 0;
+            else deltaBeta = (deltaBeta - Math.sign(deltaBeta) * DEAD_ZONE);
 
-            // Limiter le pitch (regarder haut/bas)
+            // Tuned sensitivity - higher for responsive feel
+            const yawSensitivity = 0.028;
+            const pitchSensitivity = 0.022;
+
+            // Target orientation
+            const rawTargetYaw = baseYaw - (deltaAlpha * yawSensitivity);
+            const rawTargetPitch = basePitch + (deltaBeta * pitchSensitivity);
+
+            // Low-pass filter (exponential moving average, frame-rate independent)
+            // Higher SMOOTH_FACTOR = more responsive, lower = smoother
+            const SMOOTH_FACTOR = 10;
+            const filterAlpha = 1 - Math.exp(-SMOOTH_FACTOR * dt);
+
+            _gyroFilteredYaw += (rawTargetYaw - _gyroFilteredYaw) * filterAlpha;
+            _gyroFilteredPitch += (rawTargetPitch - _gyroFilteredPitch) * filterAlpha;
+
+            // Clamp pitch
             const maxPitch = Math.PI / 2.5;
-            const clampedPitch = Math.max(-maxPitch, Math.min(maxPitch, targetPitch));
+            _gyroFilteredPitch = Math.max(-maxPitch, Math.min(maxPitch, _gyroFilteredPitch));
 
-            // Lissage progressif
-            cameraYaw += (targetYaw - cameraYaw) * smoothing;
-            cameraPitch += (clampedPitch - cameraPitch) * smoothing;
+            cameraYaw = _gyroFilteredYaw;
+            cameraPitch = _gyroFilteredPitch;
         }
 
-        // Réinitialiser l'orientation de référence
+        // Reset gyroscope reference orientation
         function resetGyroReference() {
             initialAlpha = null;
             initialBeta = null;
             initialGamma = null;
             baseYaw = cameraYaw;
             basePitch = cameraPitch;
+            _gyroFilteredYaw = cameraYaw;
+            _gyroFilteredPitch = cameraPitch;
+            _gyroLastTimestamp = 0;
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -9966,60 +10000,68 @@
                 let deltaX = clientX - centerX;
                 let deltaY = clientY - centerY;
 
-                // Limiter au cercle
+                // Clamp to circle
                 const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
                 if (distance > maxDistance) {
                     deltaX = (deltaX / distance) * maxDistance;
                     deltaY = (deltaY / distance) * maxDistance;
                 }
 
-                // Mettre à jour le thumb
+                // Update thumb visual
                 thumb.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
 
-                // Normaliser entre -1 et 1
-                joystickData.x = deltaX / maxDistance;
-                joystickData.y = deltaY / maxDistance;
-                joystickActive = true;
+                // Normalize to -1..1
+                const normX = deltaX / maxDistance;
+                const normY = deltaY / maxDistance;
+
+                // Dead zone with smooth ramp (0.15 threshold)
+                const DEAD_ZONE = 0.15;
+                const mag = Math.sqrt(normX * normX + normY * normY);
+                if (mag < DEAD_ZONE) {
+                    joystickData.x = 0;
+                    joystickData.y = 0;
+                    mobileSpeedMultiplier = 0;
+                } else {
+                    // Remap [DEAD_ZONE..1] to [0..1] with quadratic curve for fine control
+                    const remapped = (mag - DEAD_ZONE) / (1 - DEAD_ZONE);
+                    const curved = remapped * remapped; // Quadratic for precision near center
+                    const angle = Math.atan2(normY, normX);
+                    joystickData.x = Math.cos(angle) * curved;
+                    joystickData.y = Math.sin(angle) * curved;
+                    mobileSpeedMultiplier = curved;
+                }
+                joystickActive = mag >= DEAD_ZONE;
             }
 
             function resetJoystick() {
                 thumb.style.transform = 'translate(-50%, -50%)';
                 joystickData.x = 0;
                 joystickData.y = 0;
+                mobileSpeedMultiplier = 0;
                 joystickActive = false;
             }
         }
 
-        // Appliquer le mouvement du joystick à la caméra (MOBILE UNIQUEMENT)
+        // Apply analog joystick movement to camera (MOBILE ONLY)
         function applyJoystickMovement() {
             if (!isMobile || !fpsMode || isPaused) return;
 
-            // Si joystick pas actif, remettre toutes les touches a false
             if (!joystickActive) {
                 cameraKeys.forward = false;
                 cameraKeys.backward = false;
                 cameraKeys.left = false;
                 cameraKeys.right = false;
+                mobileSpeedMultiplier = 0;
                 return;
             }
 
-            // Forward/Backward (Y axis inversé)
-            if (Math.abs(joystickData.y) > 0.1) {
-                cameraKeys.forward = joystickData.y < -0.1;
-                cameraKeys.backward = joystickData.y > 0.1;
-            } else {
-                cameraKeys.forward = false;
-                cameraKeys.backward = false;
-            }
-
-            // Left/Right
-            if (Math.abs(joystickData.x) > 0.1) {
-                cameraKeys.left = joystickData.x < -0.1;
-                cameraKeys.right = joystickData.x > 0.1;
-            } else {
-                cameraKeys.left = false;
-                cameraKeys.right = false;
-            }
+            // Set direction keys based on joystick direction
+            // The speed will be modulated by mobileSpeedMultiplier in the movement system
+            const threshold = 0.01; // Very low since dead zone is already handled
+            cameraKeys.forward = joystickData.y < -threshold;
+            cameraKeys.backward = joystickData.y > threshold;
+            cameraKeys.left = joystickData.x < -threshold;
+            cameraKeys.right = joystickData.x > threshold;
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -10066,56 +10108,131 @@
             const canvas = document.getElementById('canvas');
             if (!canvas) return;
 
-            let touchStartX = 0;
-            let touchStartY = 0;
-            let initialYaw = 0;
-            let initialPitch = 0;
+            let touchId = null;
+            let prevTouchX = 0;
+            let prevTouchY = 0;
+            let touchActive = false;
+
+            // Sensitivity tuned for natural feel (relative to screen size)
+            const baseSensitivity = 0.004;
 
             document.addEventListener('touchstart', (e) => {
                 if (!touchDragEnabled || !fpsMode || isPaused) return;
+                if (touchId !== null) return;
 
-                // Ignorer si on touche le joystick ou d'autres controles
+                // Ignore UI controls
                 if (e.target.closest('#mobile-joystick') ||
                     e.target.closest('#mobile-pause-btn') ||
                     e.target.closest('#mobile-fullscreen-btn') ||
                     e.target.closest('#gyro-toggle-btn') ||
                     e.target.closest('.pause-controls')) return;
 
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-                initialYaw = cameraYaw;
-                initialPitch = cameraPitch;
+                const touch = e.changedTouches[0];
+                touchId = touch.identifier;
+                prevTouchX = touch.clientX;
+                prevTouchY = touch.clientY;
+                touchActive = true;
+                _touchVelocityX = 0;
+                _touchVelocityY = 0;
+                _touchLastMoveTime = performance.now();
+
+                // Cancel any ongoing momentum animation
+                if (_touchMomentumRAF) {
+                    cancelAnimationFrame(_touchMomentumRAF);
+                    _touchMomentumRAF = null;
+                }
             }, { passive: true });
 
             document.addEventListener('touchmove', (e) => {
-                if (!touchDragEnabled || !fpsMode || isPaused) return;
-                if (touchStartX === 0 && touchStartY === 0) return;
+                if (!touchDragEnabled || !fpsMode || isPaused || !touchActive) return;
 
-                // Ignorer si on touche le joystick
-                if (e.target.closest('#mobile-joystick')) return;
+                let activeTouch = null;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchId) {
+                        activeTouch = e.changedTouches[i];
+                        break;
+                    }
+                }
+                if (!activeTouch) return;
 
-                const touchX = e.touches[0].clientX;
-                const touchY = e.touches[0].clientY;
+                const touchX = activeTouch.clientX;
+                const touchY = activeTouch.clientY;
 
-                const deltaX = touchX - touchStartX;
-                const deltaY = touchY - touchStartY;
+                // Delta-based (frame-to-frame) for smoother continuous rotation
+                const deltaX = touchX - prevTouchX;
+                const deltaY = touchY - prevTouchY;
 
-                // Sensibilite du drag
-                const sensitivity = 0.005;
+                // Screen-relative sensitivity: scale by screen width for consistency
+                const screenScale = 400 / Math.min(window.innerWidth, window.innerHeight);
+                const sensitivity = baseSensitivity * screenScale;
 
-                // Appliquer la rotation (signes inverses pour direction naturelle)
-                cameraYaw = initialYaw + deltaX * sensitivity;
-                cameraPitch = initialPitch + deltaY * sensitivity;
+                // Apply rotation
+                cameraYaw -= deltaX * sensitivity;
+                cameraPitch += deltaY * sensitivity;
 
-                // Limiter le pitch
+                // Clamp pitch
                 const maxPitch = Math.PI / 2.2;
                 cameraPitch = Math.max(-maxPitch, Math.min(maxPitch, cameraPitch));
+
+                // Track velocity for momentum (exponential moving average)
+                const now = performance.now();
+                const timeDelta = Math.max(now - _touchLastMoveTime, 1);
+                const instantVelX = (deltaX * sensitivity) / (timeDelta / 16.67);
+                const instantVelY = (deltaY * sensitivity) / (timeDelta / 16.67);
+                _touchVelocityX = _touchVelocityX * 0.7 + instantVelX * 0.3;
+                _touchVelocityY = _touchVelocityY * 0.7 + instantVelY * 0.3;
+                _touchLastMoveTime = now;
+
+                prevTouchX = touchX;
+                prevTouchY = touchY;
             }, { passive: true });
 
-            document.addEventListener('touchend', () => {
-                touchStartX = 0;
-                touchStartY = 0;
-            }, { passive: true });
+            const handleTouchEnd = (e) => {
+                if (!touchActive) return;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchId) {
+                        touchId = null;
+                        touchActive = false;
+
+                        // Apply momentum if velocity is significant
+                        const speed = Math.sqrt(_touchVelocityX * _touchVelocityX + _touchVelocityY * _touchVelocityY);
+                        if (speed > 0.0005) {
+                            applyTouchMomentum();
+                        }
+                        break;
+                    }
+                }
+            };
+
+            document.addEventListener('touchend', handleTouchEnd, { passive: true });
+            document.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+
+            function applyTouchMomentum() {
+                const FRICTION = 0.92; // Deceleration per frame
+                const MIN_VELOCITY = 0.0002;
+
+                function momentumStep() {
+                    if (!touchDragEnabled || isPaused || touchActive) return;
+
+                    _touchVelocityX *= FRICTION;
+                    _touchVelocityY *= FRICTION;
+
+                    cameraYaw -= _touchVelocityX;
+                    cameraPitch += _touchVelocityY;
+
+                    const maxPitch = Math.PI / 2.2;
+                    cameraPitch = Math.max(-maxPitch, Math.min(maxPitch, cameraPitch));
+
+                    const speed = Math.sqrt(_touchVelocityX * _touchVelocityX + _touchVelocityY * _touchVelocityY);
+                    if (speed > MIN_VELOCITY) {
+                        _touchMomentumRAF = requestAnimationFrame(momentumStep);
+                    } else {
+                        _touchMomentumRAF = null;
+                    }
+                }
+
+                _touchMomentumRAF = requestAnimationFrame(momentumStep);
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -10160,21 +10277,23 @@
             });
 
             btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
                 e.stopPropagation();
             }, { passive: false });
-
-            // Mettre à jour l'icône lors des changements de plein écran
-            document.addEventListener('fullscreenchange', updateFullscreenIcon);
-            document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
         }
 
+        let _fsToggleLock = false;
         function toggleFullscreen() {
+            if (_fsToggleLock) return;
+            _fsToggleLock = true;
+            setTimeout(() => { _fsToggleLock = false; }, 400);
+
             if (document.fullscreenElement || document.webkitFullscreenElement) {
                 if (document.exitFullscreen) document.exitFullscreen();
                 else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
             } else {
                 const el = document.documentElement;
-                if (el.requestFullscreen) el.requestFullscreen();
+                if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
                 else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
             }
         }
