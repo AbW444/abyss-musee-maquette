@@ -1579,6 +1579,34 @@
             flex-shrink: 0;
         }
 
+        /* Gyroscope debug overlay */
+        #gyro-debug-overlay {
+            position: fixed;
+            top: calc(10px + env(safe-area-inset-top));
+            left: 10px;
+            z-index: 99999;
+            background: rgba(0,0,0,0.85);
+            border: 1px solid rgba(100,150,255,0.4);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #fff;
+            line-height: 1.6;
+            pointer-events: none;
+            max-width: 260px;
+        }
+        #gyro-debug-overlay .dbg-label {
+            color: rgba(100,150,255,0.8);
+        }
+        #gyro-debug-overlay .dbg-val {
+            color: #0f0;
+            font-weight: 600;
+        }
+        #gyro-debug-overlay .dbg-dim {
+            color: rgba(255,255,255,0.4);
+        }
+
         /* Gyroscope permission button */
         #gyro-permission-btn {
             display: none;
@@ -1972,6 +2000,11 @@
             </svg>
             <span>Joystick pour se déplacer</span>
         </div>
+    </div>
+
+    <!-- Gyroscope Debug Overlay (mobile only) -->
+    <div id="gyro-debug-overlay" style="display:none;">
+        <div id="gyro-debug-content"></div>
     </div>
 
     <!-- Gyroscope Permission Request (iOS) -->
@@ -9542,14 +9575,16 @@
                 videoElement.muted = true;
                 videoElement.loop = true;
                 videoElement.playsInline = true;
+                videoElement.preload = 'auto';
                 videoElement.setAttribute('playsinline', '');
                 videoElement.setAttribute('webkit-playsinline', '');
                 videoElement.style.display = 'none';
                 document.body.appendChild(videoElement);
 
-                // Try to load panoramic video with fallback
-                const videoPaths = ['videos/ecran_panorama_v2.webm', 'videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
-                let currentPathIndex = 0;
+                // On mobile, start with smallest file; on desktop, start with best quality
+                const videoPaths = isMobile
+                    ? ['videos/panorama_opti.webm', 'videos/ecran_panorama.webm', 'videos/ecran_panorama_v2.webm']
+                    : ['videos/ecran_panorama_v2.webm', 'videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
 
                 function tryLoadVideo(pathIndex) {
                     if (pathIndex >= videoPaths.length) {
@@ -9561,14 +9596,16 @@
 
                     const videoPath = videoPaths[pathIndex];
                     console.log('Tentative chargement:', videoPath);
-                    videoElement.src = videoPath;
-                    videoElement.load();
 
                     let videoReady = false;
-                    videoElement.oncanplaythrough = function() {
+
+                    // Use loadeddata instead of canplaythrough — fires when first frame
+                    // is decoded, much more reliable on mobile browsers
+                    function onVideoReady() {
                         if (videoReady) return;
                         videoReady = true;
-                        videoElement.oncanplaythrough = null;
+                        videoElement.onloadeddata = null;
+                        videoElement.oncanplay = null;
                         videoElement.onerror = null;
 
                         console.log('Vidéo panoramique chargée:', videoPath,
@@ -9585,26 +9622,42 @@
                                 resolve(true);
                             }, 100);
                         }).catch(() => {
-                            console.log('Mode panoramique activé');
+                            // play() failed (mobile gesture restriction) — still usable
+                            console.log('Mode panoramique activé (play différé)');
                             resolve(true);
                         });
-                    };
+                    }
+
+                    videoElement.onloadeddata = onVideoReady;
+                    videoElement.oncanplay = onVideoReady;
 
                     videoElement.onerror = function() {
                         console.log('Vidéo non trouvée:', videoPath);
+                        videoElement.onloadeddata = null;
+                        videoElement.oncanplay = null;
                         tryLoadVideo(pathIndex + 1);
                     };
+
+                    videoElement.src = videoPath;
+                    videoElement.load();
+
+                    // On mobile, force a play() attempt to trigger loading
+                    if (isMobile) {
+                        videoElement.play().then(() => {
+                            videoElement.pause();
+                        }).catch(() => {});
+                    }
                 }
 
                 tryLoadVideo(0);
 
-                // Timeout fallback
+                // Timeout fallback (longer on mobile for slow connections)
                 setTimeout(() => {
                     if (!panoramicVideo) {
                         console.log('Timeout chargement vidéo panoramique');
                         resolve(false);
                     }
-                }, 15000);
+                }, isMobile ? 25000 : 15000);
             });
         }
 
@@ -9672,11 +9725,8 @@
         // Variables globales mobile
         let gyroEnabled = false;
         let gyroPermissionGranted = false;
-        let initialAlpha = null;
-        let initialBeta = null;
-        let initialGamma = null;
-        let baseYaw = 0;
-        let basePitch = 0;
+        let initialAlpha = null; // Yaw reference (set once on first gyro event)
+        let baseYaw = 0;         // Camera yaw at moment of yaw reference capture
         let joystickActive = false;
         let joystickData = { x: 0, y: 0 };
         let mobileSpeedMultiplier = 0; // Analog joystick multiplier (0-1)
@@ -9685,10 +9735,22 @@
         let lastTouchX = 0;
         let lastTouchY = 0;
 
+        // Gyroscope calibration — FIXED values, never change at runtime
+        // BETA_NEUTRAL = beta value when phone is perpendicular to ground ("droit devant")
+        // This will be calibrated via the debug overlay
+        const GYRO_BETA_NEUTRAL = 90; // degrees — phone upright = looking straight ahead
+        const GYRO_YAW_SENSITIVITY = 0.025;
+        const GYRO_PITCH_SENSITIVITY = 0.020;
+        const GYRO_DEAD_ZONE = 1.5; // degrees — filter hand tremor
+        const GYRO_SMOOTH_FACTOR = 12; // higher = more responsive
+
         // Professional mobile control state
         let _gyroFilteredYaw = 0;
         let _gyroFilteredPitch = 0;
         let _gyroLastTimestamp = 0;
+        let _gyroRawAlpha = 0;
+        let _gyroRawBeta = 0;
+        let _gyroRawGamma = 0;
         let _touchVelocityX = 0;
         let _touchVelocityY = 0;
         let _touchLastMoveTime = 0;
@@ -9875,64 +9937,63 @@
         }
 
         function handleDeviceOrientation(event) {
-            if (!fpsMode || isPaused || !gyroEnabled || touchDragEnabled) return;
+            const alpha = event.alpha || 0; // Compass heading (0-360)
+            const beta = event.beta || 0;   // Front-back tilt (-180 to 180)
+            const gamma = event.gamma || 0; // Left-right tilt (-90 to 90)
 
-            const alpha = event.alpha || 0; // Compass/yaw (Z rotation)
-            const beta = event.beta || 0;   // Pitch (X tilt front/back)
-            const gamma = event.gamma || 0; // Roll (Y tilt left/right)
+            // Store raw values for debug overlay (always, even when not in gyro mode)
+            _gyroRawAlpha = alpha;
+            _gyroRawBeta = beta;
+            _gyroRawGamma = gamma;
+
+            // Update debug overlay
+            updateGyroDebug();
+
+            // Only apply to camera when in gyro mode
+            if (!fpsMode || isPaused || !gyroEnabled || touchDragEnabled) return;
 
             // Time-based smoothing for frame-rate independence
             const now = performance.now();
             const dt = _gyroLastTimestamp ? Math.min((now - _gyroLastTimestamp) / 1000, 0.1) : 0.016;
             _gyroLastTimestamp = now;
 
-            // Initialize reference on first event
+            // ── YAW (horizontal rotation) ── relative to initial compass heading
             if (initialAlpha === null) {
                 initialAlpha = alpha;
-                initialBeta = beta;
-                initialGamma = gamma;
                 baseYaw = cameraYaw;
-                basePitch = cameraPitch;
-                _gyroFilteredYaw = 0;
-                _gyroFilteredPitch = 0;
-                return;
+                _gyroFilteredYaw = cameraYaw;
+                _gyroFilteredPitch = cameraPitch;
             }
 
-            // Compute deltas from reference orientation
             let deltaAlpha = alpha - initialAlpha;
             if (deltaAlpha > 180) deltaAlpha -= 360;
             if (deltaAlpha < -180) deltaAlpha += 360;
 
-            let deltaBeta = beta - initialBeta;
+            // Dead zone for yaw
+            if (Math.abs(deltaAlpha) < GYRO_DEAD_ZONE) deltaAlpha = 0;
+            else deltaAlpha -= Math.sign(deltaAlpha) * GYRO_DEAD_ZONE;
 
-            // Dead zone: filter micro-movements from hand tremor (1.5 degrees)
-            const DEAD_ZONE = 1.5;
-            if (Math.abs(deltaAlpha) < DEAD_ZONE) deltaAlpha = 0;
-            else deltaAlpha = (deltaAlpha - Math.sign(deltaAlpha) * DEAD_ZONE);
+            const rawTargetYaw = baseYaw + deltaAlpha * GYRO_YAW_SENSITIVITY;
 
-            if (Math.abs(deltaBeta) < DEAD_ZONE) deltaBeta = 0;
-            else deltaBeta = (deltaBeta - Math.sign(deltaBeta) * DEAD_ZONE);
+            // ── PITCH (vertical rotation) ── ABSOLUTE from beta
+            // beta = 90° when phone is perpendicular to ground (upright)
+            // deltaBeta > 0 → phone tilted back → look up
+            // deltaBeta < 0 → phone tilted forward → look down
+            let deltaBeta = beta - GYRO_BETA_NEUTRAL;
 
-            // Tuned sensitivity - higher for responsive feel
-            const yawSensitivity = 0.028;
-            const pitchSensitivity = 0.022;
+            // Dead zone for pitch
+            if (Math.abs(deltaBeta) < GYRO_DEAD_ZONE) deltaBeta = 0;
+            else deltaBeta -= Math.sign(deltaBeta) * GYRO_DEAD_ZONE;
 
-            // Calibration: offset pitch down ~70° so perpendicular phone = looking forward
-            const GYRO_PITCH_OFFSET = -(70 * Math.PI / 180); // -1.22 radians
-
-            // Target orientation (yaw inverted for correct left/right)
-            const rawTargetYaw = baseYaw + (deltaAlpha * yawSensitivity);
-            const rawTargetPitch = basePitch + (deltaBeta * pitchSensitivity) + GYRO_PITCH_OFFSET;
+            const rawTargetPitch = deltaBeta * GYRO_PITCH_SENSITIVITY;
 
             // Low-pass filter (exponential moving average, frame-rate independent)
-            // Higher SMOOTH_FACTOR = more responsive, lower = smoother
-            const SMOOTH_FACTOR = 10;
-            const filterAlpha = 1 - Math.exp(-SMOOTH_FACTOR * dt);
+            const filterCoeff = 1 - Math.exp(-GYRO_SMOOTH_FACTOR * dt);
 
-            _gyroFilteredYaw += (rawTargetYaw - _gyroFilteredYaw) * filterAlpha;
-            _gyroFilteredPitch += (rawTargetPitch - _gyroFilteredPitch) * filterAlpha;
+            _gyroFilteredYaw += (rawTargetYaw - _gyroFilteredYaw) * filterCoeff;
+            _gyroFilteredPitch += (rawTargetPitch - _gyroFilteredPitch) * filterCoeff;
 
-            // Clamp pitch (wider range to accommodate calibration offset)
+            // Clamp pitch
             const maxPitch = Math.PI / 2;
             _gyroFilteredPitch = Math.max(-maxPitch, Math.min(maxPitch, _gyroFilteredPitch));
 
@@ -9940,13 +10001,30 @@
             cameraPitch = _gyroFilteredPitch;
         }
 
-        // Reset gyroscope reference orientation
+        // Debug overlay update
+        function updateGyroDebug() {
+            const overlay = document.getElementById('gyro-debug-overlay');
+            if (!overlay || overlay.style.display === 'none') return;
+            const content = document.getElementById('gyro-debug-content');
+            if (!content) return;
+
+            const pitchDeg = (cameraPitch * 180 / Math.PI).toFixed(1);
+            const yawDeg = (cameraYaw * 180 / Math.PI).toFixed(1);
+
+            content.innerHTML =
+                '<span class="dbg-label">alpha</span> <span class="dbg-val">' + _gyroRawAlpha.toFixed(1) + '</span><span class="dbg-dim">°</span><br>' +
+                '<span class="dbg-label">beta </span> <span class="dbg-val">' + _gyroRawBeta.toFixed(1) + '</span><span class="dbg-dim">°</span><br>' +
+                '<span class="dbg-label">gamma</span> <span class="dbg-val">' + _gyroRawGamma.toFixed(1) + '</span><span class="dbg-dim">°</span><br>' +
+                '<span class="dbg-dim">───────────</span><br>' +
+                '<span class="dbg-label">BETA_NEUTRAL</span> <span class="dbg-val">' + GYRO_BETA_NEUTRAL + '</span><span class="dbg-dim">°</span><br>' +
+                '<span class="dbg-label">pitch</span> <span class="dbg-val">' + pitchDeg + '</span><span class="dbg-dim">°</span><br>' +
+                '<span class="dbg-label">yaw  </span> <span class="dbg-val">' + yawDeg + '</span><span class="dbg-dim">°</span>';
+        }
+
+        // Reset gyroscope yaw reference only (pitch is absolute, never resets)
         function resetGyroReference() {
             initialAlpha = null;
-            initialBeta = null;
-            initialGamma = null;
             baseYaw = cameraYaw;
-            basePitch = cameraPitch;
             _gyroFilteredYaw = cameraYaw;
             _gyroFilteredPitch = cameraPitch;
             _gyroLastTimestamp = 0;
@@ -10470,6 +10548,10 @@
                 }
                 // Appliquer le mode initial (manuel par défaut)
                 setControlMode(touchDragEnabled ? 'manual' : 'gyro');
+
+                // Show gyroscope debug overlay
+                const gyroDebug = document.getElementById('gyro-debug-overlay');
+                if (gyroDebug) gyroDebug.style.display = 'block';
 
                 // Afficher instructions après un délai
                 setTimeout(() => {
