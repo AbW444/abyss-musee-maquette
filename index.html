@@ -36,7 +36,7 @@
             --color-bg: #000;
             --color-panel: rgba(0,0,0,0.92);
             --color-panel-light: rgba(0,0,0,0.88);
-            --color-overlay: rgba(0,0,0,0.80);
+            --color-overlay: rgba(0,0,0,0.88);
             --color-surface: rgba(255,255,255,0.03);
             --color-surface-hover: rgba(255,255,255,0.06);
             --color-surface-active: rgba(255,255,255,0.12);
@@ -1147,7 +1147,7 @@
             align-items: center;
             gap: var(--space-sm);
         }
-        .persistent-instructions .key, .game-instructions .key, .pause-instructions .key {
+        .game-instructions .key, .pause-instructions .key {
             display: inline-block;
             background: var(--color-accent-hover);
             padding: 5px 7px;
@@ -1987,7 +1987,7 @@
             <span class="key">ALT</span>
             <span>Infos</span>
         </div>
-        <div class="instruction-row">
+        <div class="instruction-row" id="esc-fullscreen-instruction" style="display:none;">
             <span class="key">ESC</span>
             <span>Plein écran</span>
         </div>
@@ -2104,7 +2104,7 @@
                 <span class="key">ALT</span>
                 <span>Infos</span>
             </div>
-            <div class="instruction-row">
+            <div class="instruction-row" id="pause-esc-fullscreen-instruction" style="display:none;">
                 <span class="key">ESC</span>
                 <span>Plein écran</span>
             </div>
@@ -10206,9 +10206,9 @@
                 const screenScale = 400 / Math.min(window.innerWidth, window.innerHeight);
                 const sensitivity = baseSensitivity * screenScale;
 
-                // Apply rotation (inverted for natural touch feel)
+                // Apply rotation (Y-axis inverted: drag up → look down)
                 cameraYaw += deltaX * sensitivity;
-                cameraPitch -= deltaY * sensitivity;
+                cameraPitch += deltaY * sensitivity;
 
                 // Clamp pitch
                 const maxPitch = Math.PI / 2.2;
@@ -10258,7 +10258,7 @@
                     _touchVelocityY *= FRICTION;
 
                     cameraYaw += _touchVelocityX;
-                    cameraPitch -= _touchVelocityY;
+                    cameraPitch += _touchVelocityY;
 
                     const maxPitch = Math.PI / 2.2;
                     cameraPitch = Math.max(-maxPitch, Math.min(maxPitch, cameraPitch));
@@ -10315,17 +10315,15 @@
                 e.stopPropagation();
                 toggleFullscreen();
             });
-
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleFullscreen();
-            }, { passive: false });
         }
 
         let _fsPending = false;
+        let _fsLastToggle = 0;
         function toggleFullscreen() {
             if (_fsPending) return;
+            const now = performance.now();
+            if (now - _fsLastToggle < 400) return;
+            _fsLastToggle = now;
             _fsPending = true;
 
             const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
@@ -10365,13 +10363,16 @@
         }
 
         function handlePauseFullscreenClick() {
-            playClickSound();
             toggleFullscreen();
             // Ne ferme PAS le panneau info — seulement basculer le plein écran
         }
 
         function updateEscInstructionVisibility() {
-            // ESC instruction is now always visible in persistent-instructions (no toggle needed)
+            const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            const escInstr = document.getElementById('esc-fullscreen-instruction');
+            if (escInstr) escInstr.style.display = isFS ? '' : 'none';
+            const pauseEscInstr = document.getElementById('pause-esc-fullscreen-instruction');
+            if (pauseEscInstr) pauseEscInstr.style.display = isFS ? '' : 'none';
         }
 
         // ═══════════════════════════════════════════════════════════════
