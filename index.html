@@ -250,20 +250,26 @@
             background: var(--slider-bg); outline: none;
             -webkit-appearance: none; appearance: none; margin: var(--space-sm) 0;
         }
-        .slider::-webkit-slider-thumb, .volume-slider::-webkit-slider-thumb, .fps-param input[type="range"]::-webkit-slider-thumb {
+        .slider::-webkit-slider-thumb, .volume-slider::-webkit-slider-thumb {
             -webkit-appearance: none; appearance: none;
             width: var(--slider-thumb); height: var(--slider-thumb); border-radius: var(--radius-round);
             background: var(--slider-thumb-color); cursor: pointer;
             box-shadow: var(--slider-thumb-shadow);
-            transition: transform var(--transition-fast);
         }
-        .slider::-moz-range-thumb, .volume-slider::-moz-range-thumb, .fps-param input[type="range"]::-moz-range-thumb {
+        .slider::-moz-range-thumb, .volume-slider::-moz-range-thumb {
             width: var(--slider-thumb); height: var(--slider-thumb); border-radius: var(--radius-round);
             background: var(--slider-thumb-color); cursor: pointer; border: none;
             box-shadow: var(--slider-thumb-shadow);
         }
-        .slider:hover::-webkit-slider-thumb, .fps-param input[type="range"]:hover::-webkit-slider-thumb {
-            transform: scale(1.15);
+        /* FPS panel sliders: green accent distinctif */
+        .fps-param input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: var(--slider-thumb); height: var(--slider-thumb); border-radius: var(--radius-round);
+            background: var(--color-fps-ok); cursor: pointer;
+        }
+        .fps-param input[type="range"]::-moz-range-thumb {
+            width: var(--slider-thumb); height: var(--slider-thumb); border-radius: var(--radius-round);
+            background: var(--color-fps-ok); cursor: pointer; border: none;
         }
 
         .value { font-family: var(--font-mono); font-weight: 700; font-size: var(--text-md);
@@ -615,7 +621,7 @@
         .fps-param-value {
             display: inline-block;
             float: right;
-            color: var(--color-text);
+            color: var(--color-fps-ok);
             font-family: var(--font-mono);
             font-weight: 600;
             font-size: var(--text-sm);
@@ -624,10 +630,10 @@
             margin-top: var(--space-md);
             width: 100%;
             padding: var(--space-sm) var(--space-md);
-            background: rgba(255,255,255,0.06);
-            border: 1px solid var(--color-border);
+            background: rgba(0,255,136,0.1);
+            border: 1px solid rgba(0,255,136,0.3);
             border-radius: var(--radius-md);
-            color: var(--color-text);
+            color: var(--color-fps-ok);
             font-size: var(--text-sm);
             font-weight: 600;
             cursor: pointer;
@@ -635,7 +641,7 @@
             letter-spacing: 0.5px;
         }
         #fps-export-btn:hover {
-            background: var(--color-surface-active);
+            background: rgba(0,255,136,0.2);
         }
 
         /* Video Paused Indicator */
@@ -1087,19 +1093,19 @@
         /* Game & Pause Instructions (shared) */
         .game-instructions, .pause-instructions {
             position: fixed;
-            top: 20px;
-            left: 20px;
-            padding: 18px 22px;
-            font-size: var(--text-2xl);
+            top: 12px;
+            left: 12px;
+            padding: 9px 11px;
+            font-size: var(--text-md);
             color: var(--color-text);
             z-index: var(--z-ui);
             opacity: 1;
             pointer-events: none;
             font-weight: 400;
-            letter-spacing: 0.4px;
+            letter-spacing: 0.3px;
             display: flex;
             flex-direction: column;
-            gap: var(--space-lg);
+            gap: var(--space-sm);
         }
         .pause-instructions {
             z-index: var(--z-pause-controls);
@@ -1117,8 +1123,8 @@
             display: grid;
             grid-template-columns: auto 1fr;
             align-items: center;
-            gap: var(--space-lg);
-            line-height: 1.35;
+            gap: var(--space-sm);
+            line-height: 1.25;
         }
         .keys-group {
             display: flex;
@@ -1128,11 +1134,11 @@
         .game-instructions .key, .pause-instructions .key {
             display: inline-block;
             background: var(--color-accent-hover);
-            padding: 10px 14px;
-            border-radius: var(--radius-lg);
+            padding: 5px 7px;
+            border-radius: var(--radius-md);
             border: none;
             font-family: var(--font-mono);
-            font-size: var(--text-xl);
+            font-size: var(--text-sm);
             color: #fff;
             font-weight: 600;
             white-space: nowrap;
@@ -1144,8 +1150,8 @@
             gap: 2px;
         }
         .arrows-grid .key {
-            padding: 6px 10px;
-            font-size: 12px;
+            padding: 3px 5px;
+            font-size: 9px;
             line-height: 1;
         }
         .arrows-grid .key:nth-child(1) { grid-column: 2; grid-row: 1; }
@@ -1153,7 +1159,7 @@
         .arrows-grid .key:nth-child(3) { grid-column: 2; grid-row: 2; }
         .arrows-grid .key:nth-child(4) { grid-column: 3; grid-row: 2; }
         .or-text {
-            font-size: var(--text-lg);
+            font-size: var(--text-sm);
             color: var(--color-text-secondary);
             font-style: italic;
         }
@@ -1209,6 +1215,17 @@
             height: var(--logoSize);
             opacity: 0.9;
             object-fit: contain;
+            will-change: transform, opacity;
+            transform: translateZ(0);
+        }
+
+        @keyframes loading-pulse {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 0.55; }
+        }
+
+        #loading-screen.active .loading-video {
+            animation: loading-pulse 2s ease-in-out infinite;
         }
 
         /* Panel Close Button (X) */
@@ -9083,9 +9100,13 @@
                 await sleep(300);
 
                 // Step 3: Apply settings
+                // Yield to browser so loading video/animation stays alive before heavy work
                 console.log('⚙️ AUTO-LOAD: Application des paramètres...');
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
                 applySettings();
-                await sleep(500);
+                // Yield again after heavy work to let compositor recover
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+                await sleep(300);
 
                 // Step 4: Synchroniser et lancer toutes les vidéos ensemble
                 console.log('🔄 AUTO-LOAD: Synchronisation des vidéos...');
