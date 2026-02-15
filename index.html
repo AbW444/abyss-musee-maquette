@@ -1950,9 +1950,9 @@
             <span class="key">ALT</span>
             <span>Infos</span>
         </div>
-        <div class="instruction-row">
+        <div class="instruction-row" id="esc-fullscreen-instruction" style="display:none;">
             <span class="key">ESC</span>
-            <span>Plein écran</span>
+            <span>Sortie pleine écran</span>
         </div>
     </div>
 
@@ -2067,9 +2067,9 @@
                 <span class="key">ALT</span>
                 <span>Infos</span>
             </div>
-            <div class="instruction-row">
+            <div class="instruction-row" id="pause-esc-fullscreen-instruction" style="display:none;">
                 <span class="key">ESC</span>
-                <span>Plein écran</span>
+                <span>Sortie pleine écran</span>
             </div>
             <div class="instruction-row">
                 <span class="key">Souris</span>
@@ -3113,26 +3113,13 @@
                 }
             }
 
-            // Escape: Toggle fullscreen in FPS mode, OR deselect in Admin mode
+            // Escape: browser exits fullscreen natively; in Admin mode, deselect
             if (e.code === 'Escape') {
-                e.preventDefault();
-                if (fpsMode) {
-                    const now = performance.now();
-                    // If fullscreen was just exited (<300ms ago by browser's native ESC handling),
-                    // don't re-enter — the user wanted to exit
-                    if (now - lastFullscreenExitTime < 300) {
-                        // Browser just exited fullscreen via ESC — do nothing
-                    } else if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                        // Not in fullscreen and no recent exit: enter fullscreen
-                        const el = document.documentElement;
-                        if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-                        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-                    }
-                    // If currently in fullscreen: browser will exit it natively
-                } else if (selectedScreen) {
-                    // Admin mode: deselect screen
+                if (!fpsMode && selectedScreen) {
+                    e.preventDefault();
                     deselectScreen();
                 }
+                // In FPS mode: browser handles fullscreen exit natively via ESC — no custom action needed
             }
 
             // Delete or Backspace: Delete selected screen
@@ -4794,14 +4781,6 @@
             // PointerLock API setup for FPS-style controls (only in FPS mode)
             renderer.domElement.addEventListener('click', function() {
                 if (!selectedScreen && freeCameraEnabled && fpsMode) {
-                    // Re-enter fullscreen on click if not in fullscreen
-                    // (ESC key cannot trigger requestFullscreen in browsers — security restriction)
-                    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                        const el = document.documentElement;
-                        if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-                        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-                    }
-
                     renderer.domElement.requestPointerLock = renderer.domElement.requestPointerLock ||
                                                              renderer.domElement.mozRequestPointerLock ||
                                                              renderer.domElement.webkitRequestPointerLock;
@@ -9112,12 +9091,14 @@
                         lastFullscreenExitTime = performance.now();
                     }
                     updateFullscreenIcon();
+                    updateEscInstructionVisibility();
                 });
                 document.addEventListener('webkitfullscreenchange', function() {
                     if (!document.webkitFullscreenElement) {
                         lastFullscreenExitTime = performance.now();
                     }
                     updateFullscreenIcon();
+                    updateEscInstructionVisibility();
                 });
 
                 autoLoadSequence();
@@ -9180,13 +9161,6 @@
             }
 
             // Volume constant - pas de fade
-
-            // Re-enter fullscreen on resume (click IS a valid user gesture for fullscreen)
-            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                const el = document.documentElement;
-                if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-            }
 
             // Request pointer lock (desktop only) — may fail if not triggered by user gesture
             if (fpsMode && renderer && renderer.domElement && !isMobile) {
@@ -10326,6 +10300,14 @@
             setTimeout(() => {
                 resumeExperience();
             }, 100);
+        }
+
+        function updateEscInstructionVisibility() {
+            const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            const escInstr = document.getElementById('esc-fullscreen-instruction');
+            if (escInstr) escInstr.style.display = isFS ? '' : 'none';
+            const pauseEscInstr = document.getElementById('pause-esc-fullscreen-instruction');
+            if (pauseEscInstr) pauseEscInstr.style.display = isFS ? '' : 'none';
         }
 
         // ═══════════════════════════════════════════════════════════════
