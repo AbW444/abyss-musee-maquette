@@ -934,15 +934,15 @@
             display: flex;
         }
         .pause-content {
-            max-width: 680px;
-            max-height: calc(100vh - 80px);
+            max-width: 640px;
+            max-height: calc(100vh - 120px);
             overflow-y: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
             background: var(--color-overlay);
             border: none;
             border-radius: var(--radius-2xl);
-            padding: 36px 50px;
+            padding: 30px 42px;
             text-align: left;
             box-shadow: none;
             pointer-events: all;
@@ -963,7 +963,7 @@
         }
         .pause-text {
             font-family: var(--font-sans);
-            font-size: 13.5px;
+            font-size: 14.5px;
             font-weight: 300;
             color: var(--color-text-secondary);
             line-height: 1.75;
@@ -978,7 +978,7 @@
         /* Liste conceptuelle - sans décoration */
         .pause-conceptual-list {
             font-family: var(--font-sans);
-            font-size: 13.5px;
+            font-size: 14.5px;
             font-weight: 300;
             color: var(--color-text-secondary);
             line-height: 1.9;
@@ -1097,8 +1097,8 @@
             position: fixed;
             top: 12px;
             left: 12px;
-            padding: 9px 11px;
-            font-size: 11.3px;
+            padding: 14px 17px;
+            font-size: 17px;
             color: var(--color-text);
             z-index: var(--z-ui);
             pointer-events: none;
@@ -1106,7 +1106,13 @@
             letter-spacing: 0.3px;
             display: flex;
             flex-direction: column;
-            gap: var(--space-sm);
+            gap: 12px;
+        }
+        .persistent-instructions .key {
+            background: rgba(255,255,255,0.13) !important;
+            border: 1px solid rgba(255,255,255,0.22) !important;
+            padding: 7px 11px !important;
+            font-size: 15px !important;
         }
 
         /* Game & Pause Instructions (shared base) */
@@ -1538,6 +1544,29 @@
             background: rgba(100,150,255,0.18);
         }
 
+        /* Fullscreen: marge fixe identique avec le bord de l'écran actif
+           En mode plein écran, on supprime les safe-area-inset pour conserver
+           la même marge visuelle (base) avec le bord physique de l'écran. */
+        body.is-fullscreen #mobile-pause-btn {
+            top: 10px;
+            left: 20px;
+        }
+        body.is-fullscreen #mobile-fullscreen-btn {
+            top: 10px;
+            right: 20px;
+        }
+        body.is-fullscreen #gyro-toggle-btn {
+            bottom: 50px;
+            left: 20px;
+        }
+        body.is-fullscreen #manual-toggle-btn {
+            bottom: 50px;
+            right: 20px;
+        }
+        body.is-fullscreen #mobile-joystick {
+            bottom: 50px;
+        }
+
         /* Mobile Instructions */
         #mobile-instructions {
             display: none;
@@ -1805,23 +1834,23 @@
             .pause-content {
                 max-width: 85vw;
                 width: auto;
-                padding: 22px 20px;
+                padding: 20px 18px;
                 margin: 15px;
-                max-height: calc(100dvh - 140px);
+                max-height: calc(100dvh - 160px);
                 overflow-y: auto;
                 font-size: 13px;
             }
             .pause-title {
                 font-size: clamp(15px, 4vw, 18px);
-                margin-bottom: 18px;
+                margin-bottom: 16px;
             }
             .pause-text {
-                font-size: clamp(11px, 3vw, 13px);
-                line-height: 1.6;
-                margin-bottom: 14px;
+                font-size: clamp(12px, 3.2vw, 14px);
+                line-height: 1.65;
+                margin-bottom: 12px;
             }
             .pause-conceptual-list {
-                font-size: clamp(11px, 3vw, 13px);
+                font-size: clamp(12px, 3.2vw, 14px);
                 line-height: 1.8;
             }
             .pause-conceptual-list .list-intro {
@@ -9164,16 +9193,16 @@
 
                 // Track fullscreen exits to prevent ESC from re-entering immediately
                 document.addEventListener('fullscreenchange', function() {
-                    if (!document.fullscreenElement) {
-                        lastFullscreenExitTime = performance.now();
-                    }
+                    const isFS = !!document.fullscreenElement;
+                    if (!isFS) lastFullscreenExitTime = performance.now();
+                    document.body.classList.toggle('is-fullscreen', isFS);
                     updateFullscreenIcon();
                     updateEscInstructionVisibility();
                 });
                 document.addEventListener('webkitfullscreenchange', function() {
-                    if (!document.webkitFullscreenElement) {
-                        lastFullscreenExitTime = performance.now();
-                    }
+                    const isFS = !!document.webkitFullscreenElement;
+                    if (!isFS) lastFullscreenExitTime = performance.now();
+                    document.body.classList.toggle('is-fullscreen', isFS);
                     updateFullscreenIcon();
                     updateEscInstructionVisibility();
                 });
@@ -10169,6 +10198,7 @@
         }
 
         // Apply analog joystick movement to camera (MOBILE ONLY)
+        // Uses angle-based axis snapping to prevent lateral drift on cardinal directions
         function applyJoystickMovement() {
             if (!isMobile || !fpsMode || isPaused) return;
 
@@ -10181,13 +10211,46 @@
                 return;
             }
 
-            // Set direction keys based on joystick direction
-            // The speed will be modulated by mobileSpeedMultiplier in the movement system
-            const threshold = 0.01; // Very low since dead zone is already handled
-            cameraKeys.forward = joystickData.y < -threshold;
-            cameraKeys.backward = joystickData.y > threshold;
-            cameraKeys.left = joystickData.x < -threshold;
-            cameraKeys.right = joystickData.x > threshold;
+            const x = joystickData.x;
+            const y = joystickData.y;
+            const mag = Math.sqrt(x * x + y * y);
+
+            if (mag < 0.01) {
+                cameraKeys.forward = false;
+                cameraKeys.backward = false;
+                cameraKeys.left = false;
+                cameraKeys.right = false;
+                return;
+            }
+
+            // Angle-based axis snapping: within ±30° of cardinal → pure axis movement
+            const angle = Math.atan2(y, x);
+            const absAngle = Math.abs(angle);
+            const SNAP_ANGLE = Math.PI / 6; // 30°
+
+            const isNearHorizontal = absAngle < SNAP_ANGLE || absAngle > (Math.PI - SNAP_ANGLE);
+            const isNearVertical = Math.abs(absAngle - Math.PI / 2) < SNAP_ANGLE ||
+                                   Math.abs(absAngle + Math.PI / 2) < SNAP_ANGLE;
+
+            if (isNearVertical) {
+                // Pure forward/backward — no lateral drift
+                cameraKeys.forward = y < 0;
+                cameraKeys.backward = y > 0;
+                cameraKeys.left = false;
+                cameraKeys.right = false;
+            } else if (isNearHorizontal) {
+                // Pure strafe — no forward/backward drift
+                cameraKeys.forward = false;
+                cameraKeys.backward = false;
+                cameraKeys.left = x < 0;
+                cameraKeys.right = x > 0;
+            } else {
+                // Diagonal zone — allow both axes
+                cameraKeys.forward = y < -0.01;
+                cameraKeys.backward = y > 0.01;
+                cameraKeys.left = x < -0.01;
+                cameraKeys.right = x > 0.01;
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -10253,7 +10316,7 @@
             let touchActive = false;
 
             // Sensitivity tuned for natural feel (relative to screen size)
-            const baseSensitivity = 0.004;
+            const baseSensitivity = 0.0025;
 
             document.addEventListener('touchstart', (e) => {
                 if (!touchDragEnabled || !fpsMode || isPaused) return;
@@ -10571,9 +10634,9 @@
                 // Appliquer le mode initial (manuel par défaut)
                 setControlMode(touchDragEnabled ? 'manual' : 'gyro');
 
-                // Show gyroscope debug overlay
-                const gyroDebug = document.getElementById('gyro-debug-overlay');
-                if (gyroDebug) gyroDebug.style.display = 'block';
+                // Gyroscope debug overlay — hidden in production
+                // const gyroDebug = document.getElementById('gyro-debug-overlay');
+                // if (gyroDebug) gyroDebug.style.display = 'block';
 
                 // Afficher instructions après un délai
                 setTimeout(() => {
