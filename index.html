@@ -9074,11 +9074,18 @@
             document.body.classList.add('clickedPlay');
 
             // Phase 2: Après le fondu du texte (320ms), faire disparaître le logo PNG
+            // et activer l'icône animée de chargement
             const fadeMs = 350; // Légèrement après --clickFadeMs (320ms)
             setTimeout(() => {
                 const logoStatic = document.getElementById('welcome-logo');
+                const logoVideo = document.getElementById('welcome-logo-video');
                 if (logoStatic) {
                     logoStatic.style.opacity = '0'; // Fade out (200ms CSS transition)
+                }
+                // Activer l'icône animée de chargement (remplace le logo statique)
+                if (logoVideo) {
+                    logoVideo.play().catch(() => {});
+                    logoVideo.classList.add('active');
                 }
 
                 // Phase 3: Attendre que le logo soit totalement invisible, puis lancer le loading screen
@@ -9583,8 +9590,8 @@
 
                 // On mobile, start with smallest file; on desktop, start with best quality
                 const videoPaths = isMobile
-                    ? ['videos/panorama_opti.webm', 'videos/ecran_panorama.webm', 'videos/ecran_panorama_v2.webm']
-                    : ['videos/ecran_panorama_v2.webm', 'videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
+                    ? ['videos/panorama_opti.webm', 'videos/ecran_panorama.webm', 'videos/ecran_panorama_v2_opti.webm']
+                    : ['videos/ecran_panorama_v2_opti.webm', 'videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
 
                 function tryLoadVideo(pathIndex) {
                     if (pathIndex >= videoPaths.length) {
