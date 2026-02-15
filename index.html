@@ -1815,7 +1815,7 @@
                 width: auto;
                 padding: 20px 18px;
                 margin: 15px;
-                max-height: calc(100dvh - 160px);
+                max-height: calc(95dvh - 160px);
                 overflow-y: auto;
                 font-size: 13px;
             }
@@ -9243,11 +9243,20 @@
 
             // Mobile: cacher contrôles et instructions, transformer bouton info en croix
             if (isMobile) {
+                // Stopper l'auto-hide pendant que le panneau info est ouvert
+                if (window.mobileAutoHide) window.mobileAutoHide.stop();
+
                 document.getElementById('gyro-toggle-btn')?.classList.add('hidden');
                 document.getElementById('manual-toggle-btn')?.classList.add('hidden');
                 document.getElementById('mobile-joystick')?.classList.add('hidden');
                 document.getElementById('mobile-fullscreen-btn')?.classList.add('hidden');
                 document.getElementById('mobile-pause-btn')?.classList.add('active-infos');
+                // Garder le bouton X visible (forcer opacity à 1)
+                const pauseBtn = document.getElementById('mobile-pause-btn');
+                if (pauseBtn) {
+                    pauseBtn.style.opacity = '1';
+                    pauseBtn.style.pointerEvents = '';
+                }
                 const mobileInstr = document.getElementById('mobile-instructions');
                 if (mobileInstr) mobileInstr.classList.add('hidden');
             }
@@ -9284,6 +9293,8 @@
                     fsBtn.classList.remove('hidden');
                     fsBtn.style.display = 'flex';
                 }
+                // Réafficher toutes les icônes en fondu et relancer l'auto-hide
+                if (window.mobileAutoHide) window.mobileAutoHide.show();
             }
 
             // Volume constant - pas de fade
@@ -10675,6 +10686,94 @@
 
                         // Afficher les instructions mobiles aussi en fondu
                         showMobileInstructions();
+
+                        // ═══════════════════════════════════════════════════
+                        // AUTO-HIDE des icônes mobiles (sauf joystick)
+                        // ═══════════════════════════════════════════════════
+                        const hideableIds = [
+                            'mobile-pause-btn',
+                            'mobile-fullscreen-btn',
+                            'gyro-toggle-btn',
+                            'manual-toggle-btn'
+                        ];
+                        let controlsVisible = true;
+                        let autoHideTimer = null;
+
+                        function fadeMobileCtrls(show) {
+                            controlsVisible = show;
+                            hideableIds.forEach(id => {
+                                const el = document.getElementById(id);
+                                if (!el) return;
+                                // Ne pas cacher le bouton X quand le panneau info est ouvert
+                                if (id === 'mobile-pause-btn' && isPaused) return;
+                                el.style.opacity = show ? '1' : '0';
+                                el.style.pointerEvents = show ? '' : 'none';
+                            });
+                        }
+
+                        function resetAutoHide() {
+                            clearTimeout(autoHideTimer);
+                            if (!isPaused) {
+                                autoHideTimer = setTimeout(() => {
+                                    fadeMobileCtrls(false);
+                                }, 5000);
+                            }
+                        }
+
+                        function stopAutoHide() {
+                            clearTimeout(autoHideTimer);
+                        }
+
+                        // API globale pour showPauseScreen / resumeExperience
+                        window.mobileAutoHide = {
+                            show: function() {
+                                fadeMobileCtrls(true);
+                                resetAutoHide();
+                            },
+                            stop: stopAutoHide
+                        };
+
+                        // Reset du timer quand on tape sur une icône
+                        hideableIds.forEach(id => {
+                            const el = document.getElementById(id);
+                            if (el) {
+                                el.addEventListener('touchstart', () => {
+                                    if (controlsVisible) resetAutoHide();
+                                }, { passive: true });
+                            }
+                        });
+
+                        // Double-tap pour afficher/masquer les icônes
+                        let lastTapTime = 0;
+                        document.addEventListener('touchend', (e) => {
+                            if (isPaused || !fpsMode) return;
+
+                            // Ignorer les taps sur les boutons et le joystick
+                            if (e.target.closest('#mobile-pause-btn, #mobile-fullscreen-btn, #gyro-toggle-btn, #manual-toggle-btn, #mobile-joystick')) {
+                                if (controlsVisible) resetAutoHide();
+                                lastTapTime = 0;
+                                return;
+                            }
+
+                            const now = Date.now();
+                            if (now - lastTapTime < 300) {
+                                // Double-tap détecté
+                                if (controlsVisible) {
+                                    fadeMobileCtrls(false);
+                                    stopAutoHide();
+                                } else {
+                                    fadeMobileCtrls(true);
+                                    resetAutoHide();
+                                }
+                                lastTapTime = 0;
+                            } else {
+                                lastTapTime = now;
+                            }
+                        }, { passive: true });
+
+                        // Démarrer le premier auto-hide
+                        resetAutoHide();
+
                     }, 200);
                 });
             }
