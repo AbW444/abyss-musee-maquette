@@ -20,20 +20,102 @@
     <!-- Version 1.3.1 - Video projection with luminance-based depth -->
     <style>
         :root {
+            /* ─── Layout Welcome Screen ─── */
             --textLeft: 240px;
             --textColW: 580px;
             --textTop: 150px;
-
             --logoSize: 104px;
-
             --playRight: 240px;
             --playBottom: 150px;
-
             --hoverTextShift: 90px;
-
             --clickTextExitX: 320px;
             --clickFadeMs: 320ms;
             --logoMoveMs: 420ms;
+
+            /* ─── Colors ─── */
+            --color-bg: #000;
+            --color-panel: rgba(0,0,0,0.92);
+            --color-panel-light: rgba(0,0,0,0.88);
+            --color-overlay: rgba(0,0,0,0.80);
+            --color-surface: rgba(255,255,255,0.03);
+            --color-surface-hover: rgba(255,255,255,0.06);
+            --color-surface-active: rgba(255,255,255,0.12);
+
+            --color-border: rgba(255,255,255,0.15);
+            --color-border-hover: rgba(255,255,255,0.25);
+            --color-border-strong: rgba(255,255,255,0.3);
+
+            --color-text: rgba(255,255,255,0.95);
+            --color-text-secondary: rgba(255,255,255,0.7);
+            --color-text-dim: rgba(255,255,255,0.45);
+            --color-text-hint: rgba(255,255,255,0.3);
+
+            --color-accent: rgba(100,150,255,0.5);
+            --color-accent-bg: rgba(100,150,255,0.08);
+            --color-accent-hover: rgba(100,150,255,0.2);
+            --color-accent-strong: rgba(100,150,255,0.4);
+
+            --color-success: rgba(100,200,100,0.25);
+            --color-success-border: rgba(100,200,100,0.4);
+            --color-success-hover: rgba(100,200,100,0.35);
+
+            --color-danger: rgba(255,80,80,0.7);
+            --color-danger-hover: rgba(255,80,80,1);
+
+            --color-warning: rgba(255,100,0,0.95);
+            --color-fps-ok: #00ff88;
+            --color-fps-low: #ff6400;
+            --color-fps-critical: #ff0000;
+
+            /* ─── Typography ─── */
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+            --text-xs: 9px;
+            --text-sm: 10px;
+            --text-md: 11px;
+            --text-lg: 13px;
+            --text-xl: 14px;
+            --text-2xl: 16px;
+
+            /* ─── Spacing ─── */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 24px;
+            --space-2xl: 32px;
+
+            /* ─── Border Radius ─── */
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --radius-xl: 12px;
+            --radius-2xl: 28px;
+            --radius-round: 50%;
+
+            /* ─── Transitions ─── */
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.25s ease;
+
+            /* ─── Slider ─── */
+            --slider-thumb: 16px;
+            --slider-track: 4px;
+            --slider-bg: rgba(255,255,255,0.15);
+            --slider-thumb-color: #fff;
+            --slider-thumb-shadow: 0 2px 4px rgba(0,0,0,0.3);
+
+            /* ─── Z-Index Layers ─── */
+            --z-canvas: 1;
+            --z-ui: 100;
+            --z-indicator: 200;
+            --z-fps: 300;
+            --z-overlay: 1000;
+            --z-pause: 5000;
+            --z-pause-controls: 5001;
+            --z-welcome: 6000;
+            --z-loading: 6001;
+            --z-mobile-controls: 7000;
+            --z-permission: 8000;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -48,8 +130,8 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #000;
+            font-family: var(--font-sans);
+            background: var(--color-bg);
             color: #fff;
             overflow: hidden;
             /* Anti tap highlight */
@@ -71,99 +153,141 @@
             touch-action: manipulation;
         }
 
-        /* Focus sans outline intrusif */
+        /* Focus: accessible visible outline */
         button:focus, *:focus {
             outline: none;
         }
-        button:focus-visible {
-            outline: 2px solid rgba(255,255,255,0.3);
+        button:focus-visible, *:focus-visible {
+            outline: 2px solid var(--color-accent);
             outline-offset: 2px;
         }
 
-        #canvas { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1; }
+        #canvas { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: var(--z-canvas); }
         #canvas canvas { display: block; }
 
+        /* ─── Shared Admin Panel Base ─── */
+        #ui, #screen-manager-panel, #fps-settings-panel {
+            background: var(--color-panel);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            font-family: var(--font-sans);
+            color: #fff;
+            cursor: move;
+            user-select: none;
+        }
+        #ui, #screen-manager-panel, #fps-settings-panel {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.2) transparent;
+        }
+        #ui::-webkit-scrollbar, #screen-manager-panel::-webkit-scrollbar, #fps-settings-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        #ui::-webkit-scrollbar-track, #screen-manager-panel::-webkit-scrollbar-track, #fps-settings-panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #ui::-webkit-scrollbar-thumb, #screen-manager-panel::-webkit-scrollbar-thumb, #fps-settings-panel::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.15);
+            border-radius: 3px;
+        }
+        #ui::-webkit-scrollbar-thumb:hover, #screen-manager-panel::-webkit-scrollbar-thumb:hover, #fps-settings-panel::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
         #ui { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-              z-index: 100; background: rgba(0,0,0,0.92);
-              padding: 24px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
-              max-width: 420px; width: 90%; transition: transform 0.4s ease, top 0.4s ease, bottom 0.4s ease, max-width 0.4s ease, padding 0.4s ease;
+              z-index: var(--z-ui);
+              padding: var(--space-xl); max-width: 420px; width: 90%;
+              transition: transform 0.4s ease, top 0.4s ease, bottom 0.4s ease, max-width 0.4s ease, padding 0.4s ease;
               max-height: 85vh; max-height: 85dvh; overflow-y: auto; }
 
         #ui.loaded { top: auto; bottom: 20px; left: auto; right: 20px;
-                     transform: none; max-width: 320px; width: auto; padding: 16px;
-                     max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; cursor: move; user-select: none; }
+                     transform: none; max-width: 280px; width: auto; padding: var(--space-md);
+                     max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; }
 
-        #title-link { position: fixed; top: 20px; left: 20px; z-index: 100;
-                      text-decoration: none; color: #fff; transition: opacity 0.2s; }
+        #title-link { position: fixed; top: 20px; left: 20px; z-index: var(--z-ui);
+                      text-decoration: none; color: #fff; transition: opacity var(--transition-fast); }
         #title-link:hover { opacity: 1 !important; }
 
         #title { font-size: 22px; font-weight: 600; opacity: 0.7;
                  text-transform: uppercase; letter-spacing: 2px; }
 
-        #subtitle { font-size: 11px; font-weight: 400; opacity: 0.5;
-                    margin-top: 4px; letter-spacing: 0.5px;
+        #subtitle { font-size: var(--text-md); font-weight: 400; opacity: 0.5;
+                    margin-top: var(--space-xs); letter-spacing: 0.5px;
                     text-transform: none; }
 
-        button { display: block; width: 100%; margin: 8px 0; padding: 14px;
-                 background: rgba(255,255,255,0.1); color: #fff;
-                 border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
-                 cursor: pointer; font-size: 12px; font-weight: 600;
-                 transition: background 0.15s, transform 0.1s; text-transform: uppercase; letter-spacing: 1px; }
-        button:hover { background: rgba(255,255,255,0.2); }
-        button:active { transform: scale(0.98); }
+        button { display: block; width: 100%; margin: var(--space-sm) 0; padding: var(--space-sm) var(--space-md);
+                 background: rgba(255,255,255,0.08); color: #fff;
+                 border: 1px solid var(--color-border); border-radius: var(--radius-md);
+                 cursor: pointer; font-size: var(--text-sm); font-weight: 600;
+                 transition: background var(--transition-fast), transform var(--transition-fast);
+                 text-transform: uppercase; letter-spacing: 0.8px; }
+        button:hover { background: var(--color-surface-active); }
+        button:active { transform: scale(0.97); }
 
-        button.small { padding: 8px; font-size: 10px; opacity: 0.7; }
+        button.small { padding: var(--space-sm); font-size: var(--text-sm); opacity: 0.7; }
         button.small:hover { opacity: 1; }
 
-        .preview { width: 100%; aspect-ratio: 1; border-radius: 6px; margin: 8px 0;
+        .preview { width: 100%; aspect-ratio: 1; border-radius: var(--radius-md); margin: var(--space-sm) 0;
                    display: flex; align-items: center; justify-content: center;
-                   background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
-                   overflow: hidden; font-size: 10px; opacity: 0.4; }
+                   background: var(--color-surface); border: 1px solid rgba(255,255,255,0.1);
+                   overflow: hidden; font-size: var(--text-sm); opacity: 0.4; }
         .preview video { max-width: 100%; max-height: 100%; object-fit: contain; }
 
         .preview.loaded { opacity: 1; }
 
         input[type="file"] { display: none; }
 
-        label { font-size: 11px; font-weight: 600; margin-top: 16px; display: block;
-                text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.7; }
+        label { font-size: var(--text-md); font-weight: 600; margin-top: var(--space-lg); display: block;
+                text-transform: uppercase; letter-spacing: 0.8px; color: var(--color-text-secondary); }
 
         .hidden { display: none !important; }
 
-        #controls { margin-top: 16px; padding-top: 16px;
-                    border-top: 1px solid rgba(255,255,255,0.15); }
+        #controls { margin-top: var(--space-lg); padding-top: var(--space-lg);
+                    border-top: 1px solid var(--color-border); }
 
-        .slider { width: 100%; height: 4px; border-radius: 2px;
-                  background: rgba(255,255,255,0.15); outline: none;
-                  -webkit-appearance: none; margin: 10px 0; }
-        .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
-                                         width: 18px; height: 18px; border-radius: 50%;
-                                         background: #fff; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        .slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%;
-                                     background: #fff; cursor: pointer; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        /* ─── Unified Slider Style ─── */
+        .slider, .volume-slider, .fps-param input[type="range"] {
+            width: 100%; height: var(--slider-track); border-radius: 2px;
+            background: var(--slider-bg); outline: none;
+            -webkit-appearance: none; appearance: none; margin: var(--space-sm) 0;
+        }
+        .slider::-webkit-slider-thumb, .volume-slider::-webkit-slider-thumb, .fps-param input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: var(--slider-thumb); height: var(--slider-thumb); border-radius: var(--radius-round);
+            background: var(--slider-thumb-color); cursor: pointer;
+            box-shadow: var(--slider-thumb-shadow);
+            transition: transform var(--transition-fast);
+        }
+        .slider::-moz-range-thumb, .volume-slider::-moz-range-thumb, .fps-param input[type="range"]::-moz-range-thumb {
+            width: var(--slider-thumb); height: var(--slider-thumb); border-radius: var(--radius-round);
+            background: var(--slider-thumb-color); cursor: pointer; border: none;
+            box-shadow: var(--slider-thumb-shadow);
+        }
+        .slider:hover::-webkit-slider-thumb, .fps-param input[type="range"]:hover::-webkit-slider-thumb {
+            transform: scale(1.15);
+        }
 
-        .value { font-family: 'Courier New', monospace; font-weight: 700; font-size: 11px;
-                 cursor: pointer; padding: 2px 6px; border-radius: 3px;
-                 transition: background 0.2s; }
+        .value { font-family: var(--font-mono); font-weight: 700; font-size: var(--text-md);
+                 cursor: pointer; padding: 2px 6px; border-radius: var(--radius-sm);
+                 transition: background var(--transition-fast); }
         .value:hover { background: rgba(255,255,255,0.1); }
-        .value-input { font-family: 'Courier New', monospace; font-weight: 700; font-size: 11px;
-                       background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
-                       color: #fff; padding: 2px 6px; border-radius: 3px; width: 60px;
+        .value-input { font-family: var(--font-mono); font-weight: 700; font-size: var(--text-md);
+                       background: rgba(255,255,255,0.15); border: 1px solid var(--color-border-strong);
+                       color: #fff; padding: 2px 6px; border-radius: var(--radius-sm); width: 60px;
                        text-align: center; }
 
-        .param-row { margin-bottom: 14px; }
+        .param-row { margin-bottom: var(--space-md); }
         .param-header { display: flex; justify-content: space-between; align-items: center;
-                        margin-bottom: 8px; }
+                        margin-bottom: var(--space-xs); }
         .param-header label { margin: 0; }
-        .param-controls { display: flex; gap: 4px; align-items: center; }
+        .param-controls { display: flex; gap: var(--space-xs); align-items: center; }
 
-        .arrow-btn { width: 20px; height: 20px; padding: 0; margin: 0;
-                     background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-                     border-radius: 4px; color: #fff; font-size: 10px; cursor: pointer;
+        .arrow-btn { width: 22px; height: 22px; padding: 0; margin: 0;
+                     background: rgba(255,255,255,0.08); border: 1px solid var(--color-border);
+                     border-radius: var(--radius-sm); color: #fff; font-size: var(--text-xs); cursor: pointer;
                      display: flex; align-items: center; justify-content: center;
-                     transition: background 0.1s, transform 0.1s; line-height: 1; }
-        .arrow-btn:hover { background: rgba(255,255,255,0.2); }
-        .arrow-btn:active { background: rgba(255,255,255,0.3); transform: scale(0.95); }
+                     transition: background var(--transition-fast), transform var(--transition-fast); line-height: 1; }
+        .arrow-btn:hover { background: var(--color-surface-active); }
+        .arrow-btn:active { background: rgba(255,255,255,0.2); transform: scale(0.92); }
 
         .slider-wrapper { position: relative; }
         .slider-wrapper .slider { margin: 0; }
@@ -171,78 +295,73 @@
                        width: 2px; height: 12px; background: rgba(255,255,255,0.4);
                        pointer-events: none; border-radius: 1px; }
 
-        .hint { font-size: 9px; opacity: 0.3; margin-top: 10px; text-align: center;
+        .hint { font-size: var(--text-xs); color: var(--color-text-dim); margin-top: var(--space-sm); text-align: center;
                 font-style: italic; }
 
-        /* Custom scrollbar for UI */
-        #ui::-webkit-scrollbar { width: 8px; }
-        #ui::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
-        #ui::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-        #ui::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+        #shape-selector { position: fixed; top: 20px; right: 20px; z-index: var(--z-ui);
+                          display: flex; gap: var(--space-sm); background: var(--color-panel-light);
+                          padding: var(--space-sm); border-radius: var(--radius-lg);
+                          border: 1px solid var(--color-border); }
 
-        #shape-selector { position: fixed; top: 20px; right: 20px; z-index: 100;
-                          display: flex; gap: 8px; background: rgba(0,0,0,0.88);
-                          padding: 8px; border-radius: 8px;
-                          border: 1px solid rgba(255,255,255,0.2); }
-
-        .shape-btn { width: 40px; height: 40px; background: rgba(255,255,255,0.1);
-                     border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
-                     color: #fff; font-size: 20px; cursor: pointer; transition: background 0.15s, transform 0.1s;
+        .shape-btn { width: 40px; height: 40px; background: rgba(255,255,255,0.06);
+                     border: 1px solid var(--color-border); border-radius: var(--radius-md);
+                     color: #fff; font-size: 20px; cursor: pointer;
+                     transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
                      display: flex; align-items: center; justify-content: center;
                      padding: 0; margin: 0; }
-        .shape-btn:hover { background: rgba(255,255,255,0.2); transform: none; }
-        .shape-btn.active { background: rgba(255,255,255,0.3);
-                            border-color: rgba(255,255,255,0.5); }
+        .shape-btn:hover { background: var(--color-surface-active); }
+        .shape-btn.active { background: rgba(255,255,255,0.2);
+                            border-color: var(--color-accent); }
 
-        #mode-3d-btn { width: auto; padding: 0 12px; font-size: 10px; margin-left: 8px;
-                       border-left: 1px solid rgba(255,255,255,0.3); }
+        #mode-3d-btn { width: auto; padding: 0 var(--space-md); font-size: var(--text-sm); margin-left: var(--space-sm);
+                       border-left: 1px solid var(--color-border-strong); }
 
         /* Version selector */
-        #version-selector { position: fixed; bottom: 20px; left: 20px; z-index: 100;
-                           background: rgba(0,0,0,0.88);
-                           padding: 8px 12px; border-radius: 6px;
-                           border: 1px solid rgba(255,255,255,0.2);
-                           font-size: 10px; cursor: pointer; transition: background 0.15s; }
-        #version-selector:hover { background: rgba(0,0,0,0.85); }
+        #version-selector { position: fixed; bottom: 20px; left: 20px; z-index: var(--z-ui);
+                           background: var(--color-panel-light);
+                           padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md);
+                           border: 1px solid var(--color-border);
+                           font-size: var(--text-sm); cursor: pointer; transition: background var(--transition-fast); }
+        #version-selector:hover { background: rgba(255,255,255,0.06); }
 
-        #version-menu { position: fixed; bottom: 60px; left: 20px; z-index: 99;
-                       background: rgba(0,0,0,0.95);
-                       padding: 8px; border-radius: 6px;
-                       border: 1px solid rgba(255,255,255,0.2);
+        #version-menu { position: fixed; bottom: 60px; left: 20px; z-index: var(--z-ui);
+                       background: var(--color-panel);
+                       padding: var(--space-sm); border-radius: var(--radius-md);
+                       border: 1px solid var(--color-border);
                        display: none; }
         #version-menu.show { display: block; }
 
-        .version-item { padding: 8px 12px; cursor: pointer; font-size: 10px;
-                       border-radius: 4px; margin: 2px 0; transition: background 0.15s;
+        .version-item { padding: var(--space-sm) var(--space-md); cursor: pointer; font-size: var(--text-sm);
+                       border-radius: var(--radius-sm); margin: 2px 0; transition: background var(--transition-fast);
                        white-space: nowrap; }
-        .version-item:hover { background: rgba(255,255,255,0.1); }
-        .version-item.current { background: rgba(255,255,255,0.15); font-weight: 600; }
+        .version-item:hover { background: rgba(255,255,255,0.08); }
+        .version-item.current { background: var(--color-surface-active); font-weight: 600; }
 
         /* Video controls */
-        .video-controls { margin-top: 12px; }
-        .video-control-btn { padding: 8px 12px; font-size: 10px; margin: 0; width: 100%; }
+        .video-controls { margin-top: var(--space-md); }
+        .video-control-btn { padding: var(--space-sm) var(--space-md); font-size: var(--text-sm); margin: 0; width: 100%; }
 
-        .video-timeline { margin-top: 8px; }
+        .video-timeline { margin-top: var(--space-sm); }
         .timeline-container {
             position: relative;
             width: 100%;
             height: 6px;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.08);
             border-radius: 3px;
             cursor: pointer;
-            margin-bottom: 6px;
+            margin-bottom: var(--space-sm);
         }
         .timeline-progress {
             position: absolute;
             left: 0;
             top: 0;
             height: 100%;
-            background: rgba(255,255,255,0.5);
+            background: var(--color-accent);
             border-radius: 3px;
-            transition: background 0.2s;
+            transition: background var(--transition-fast);
         }
         .timeline-container:hover .timeline-progress {
-            background: rgba(255,255,255,0.7);
+            background: rgba(100,150,255,0.7);
         }
         .timeline-thumb {
             position: absolute;
@@ -251,80 +370,78 @@
             width: 12px;
             height: 12px;
             background: #fff;
-            border-radius: 50%;
+            border-radius: var(--radius-round);
             opacity: 0;
-            transition: opacity 0.2s;
+            transition: opacity var(--transition-fast);
         }
         .timeline-container:hover .timeline-thumb {
             opacity: 1;
         }
         .video-time {
-            font-size: 9px;
-            color: rgba(255,255,255,0.5);
+            font-size: var(--text-xs);
+            color: var(--color-text-dim);
             text-align: center;
-            font-family: 'Courier New', monospace;
+            font-family: var(--font-mono);
         }
 
         /* Hidden video element */
         .hidden-video { position: absolute; left: -9999px; }
 
-        /* Screen Management UI - Sobre et professionnel */
+        /* Screen Management UI */
         #screen-manager-panel {
             position: fixed;
             top: 20px;
             left: 20px;
-            z-index: 100;
-            background: rgba(0,0,0,0.92);
-            padding: 16px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.2);
+            z-index: var(--z-ui);
+            padding: var(--space-lg);
             max-width: 300px;
             width: 300px;
             max-height: calc(100vh - 40px);
             max-height: calc(100dvh - 40px);
             overflow-y: auto;
-            cursor: move;
-            user-select: none;
         }
         #screen-manager-panel.hidden { display: none; }
         #screen-manager-panel h2 {
-            font-size: 11px;
+            font-size: var(--text-md);
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            opacity: 0.7;
-            margin-bottom: 12px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-md);
             font-weight: 600;
         }
         .screen-list {
             max-height: 600px;
             overflow-y: auto;
-            margin-bottom: 12px;
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE/Edge */
+            margin-bottom: var(--space-md);
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.15) transparent;
         }
         .screen-list::-webkit-scrollbar {
-            width: 0px;
-            background: transparent;
+            width: 4px;
+        }
+        .screen-list::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.15);
+            border-radius: 2px;
         }
         .screen-item {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 6px;
-            padding: 8px;
-            margin-bottom: 6px;
+            background: var(--color-surface);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: var(--radius-md);
+            padding: var(--space-sm);
+            margin-bottom: var(--space-sm);
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            transition: background 0.15s;
+            gap: var(--space-sm);
+            transition: background var(--transition-fast), border-color var(--transition-fast);
             cursor: pointer;
         }
         .screen-item:hover {
-            background: rgba(255,255,255,0.06);
-            border-color: rgba(255,255,255,0.2);
+            background: var(--color-surface-hover);
+            border-color: var(--color-border);
         }
         .screen-item.selected {
-            border-color: rgba(100,150,255,0.5);
-            background: rgba(100,150,255,0.08);
+            border-color: var(--color-accent);
+            background: var(--color-accent-bg);
         }
         .screen-header {
             display: flex;
@@ -333,8 +450,8 @@
         }
         .screen-header .screen-num {
             font-weight: 600;
-            font-size: 11px;
-            color: rgba(255,255,255,0.9);
+            font-size: var(--text-md);
+            color: var(--color-text);
         }
         .screen-header .screen-delete {
             background: transparent;
@@ -342,18 +459,18 @@
             padding: 0;
             width: 24px;
             height: 24px;
-            font-size: 20px;
-            line-height: 20px;
+            font-size: 18px;
+            line-height: 1;
             cursor: pointer;
-            transition: color 0.15s, transform 0.1s;
-            color: rgba(255,80,80,0.7);
+            transition: color var(--transition-fast), transform var(--transition-fast);
+            color: var(--color-danger);
             font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         .screen-header .screen-delete:hover {
-            color: rgba(255,80,80,1);
+            color: var(--color-danger-hover);
             transform: scale(1.15);
         }
         .screen-type-selector {
@@ -361,97 +478,97 @@
         }
         .screen-type-btn {
             flex: 1;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 4px;
-            padding: 6px;
-            font-size: 9px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            padding: var(--space-sm);
+            font-size: var(--text-xs);
             cursor: pointer;
-            transition: background 0.15s;
+            transition: background var(--transition-fast), border-color var(--transition-fast);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: 600;
         }
         .screen-type-btn.active {
-            background: rgba(100,150,255,0.2);
-            border-color: rgba(100,150,255,0.5);
-            color: rgba(255,255,255,1);
+            background: var(--color-accent-hover);
+            border-color: var(--color-accent);
+            color: var(--color-text);
         }
         .screen-type-btn:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.08);
         }
         .color-section {
-            margin-top: 8px;
+            margin-top: var(--space-sm);
         }
         .color-section h4 {
-            font-size: 9px;
+            font-size: var(--text-xs);
             text-transform: uppercase;
-            opacity: 0.6;
-            margin-bottom: 8px;
+            color: var(--color-text-dim);
+            margin-bottom: var(--space-sm);
             letter-spacing: 0.5px;
         }
         .color-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
+            gap: var(--space-sm);
         }
         .color-option {
             width: 100%;
             aspect-ratio: 1;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             cursor: pointer;
-            border: 2px solid rgba(255,255,255,0.1);
-            transition: transform 0.15s, border-color 0.15s;
+            border: 2px solid rgba(255,255,255,0.08);
+            transition: transform var(--transition-fast), border-color var(--transition-fast);
             position: relative;
         }
         .color-option:hover {
-            transform: scale(1.05);
-            border-color: rgba(255,255,255,0.3);
+            transform: scale(1.08);
+            border-color: var(--color-border-hover);
         }
         .color-option.active {
-            border-color: rgba(100,150,255,0.9);
-            transform: scale(1.05);
+            border-color: var(--color-accent);
+            transform: scale(1.08);
         }
         .color-custom {
-            margin-top: 12px;
+            margin-top: var(--space-md);
             display: flex;
-            gap: 8px;
+            gap: var(--space-sm);
             align-items: center;
         }
         .color-custom input[type="color"] {
-            width: 50px;
+            width: 44px;
             height: 32px;
-            border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(255,255,255,0.05);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
             cursor: pointer;
         }
         .color-custom input[type="text"] {
             flex: 1;
-            padding: 6px 10px;
-            border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(255,255,255,0.05);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
             color: #fff;
-            font-size: 10px;
-            font-family: 'Courier New', monospace;
+            font-size: var(--text-sm);
+            font-family: var(--font-mono);
         }
         .add-screen-btn {
-            background: rgba(100,200,100,0.25);
-            border: 1px solid rgba(100,200,100,0.4);
-            margin-top: 8px;
-            padding: 10px;
+            background: var(--color-success);
+            border: 1px solid var(--color-success-border);
+            margin-top: var(--space-sm);
+            padding: var(--space-sm) var(--space-md);
             width: 100%;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             cursor: pointer;
-            font-size: 10px;
+            font-size: var(--text-sm);
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            transition: background 0.15s, border-color 0.15s;
+            transition: background var(--transition-fast), border-color var(--transition-fast);
         }
         .add-screen-btn:hover {
-            background: rgba(100,200,100,0.35);
+            background: var(--color-success-hover);
             border-color: rgba(100,200,100,0.6);
         }
         .screen-manager-hint {
@@ -463,98 +580,62 @@
             display: none !important;
         }
 
-        /* Réduire taille interface réglages */
-        #ui.loaded {
-            max-width: 280px;
-            padding: 12px;
-        }
-
-        /* FPS Settings Panel - Bottom Right (avoid overlap) */
+        /* FPS Settings Panel */
         #fps-settings-panel {
             position: fixed;
             bottom: 20px;
             right: 360px;
-            z-index: 100;
-            background: rgba(0,0,0,0.92);
-            padding: 16px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.2);
-            max-width: 350px;
-            width: 350px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            color: white;
-            font-size: 11px;
-            cursor: move;
+            z-index: var(--z-ui);
+            padding: var(--space-lg);
+            max-width: 320px;
+            width: 320px;
+            font-size: var(--text-md);
         }
         #fps-settings-panel.hidden { display: none !important; }
         #fps-settings-panel h3 {
-            margin: 0 0 12px 0;
-            font-size: 11px;
+            margin: 0 0 var(--space-md) 0;
+            font-size: var(--text-md);
             font-weight: 600;
-            color: rgba(255,255,255,0.7);
+            color: var(--color-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.8px;
             padding-right: 25px;
         }
         .fps-param {
-            margin-bottom: 5px;
+            margin-bottom: var(--space-sm);
         }
         .fps-param label {
             display: block;
-            font-size: 10px;
-            color: rgba(255,255,255,0.7);
-            margin-bottom: 4px;
+            font-size: var(--text-sm);
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-xs);
             text-transform: uppercase;
             letter-spacing: 0.3px;
-        }
-        .fps-param input[type="range"] {
-            width: 100%;
-            height: 4px;
-            border-radius: 2px;
-            background: rgba(255,255,255,0.1);
-            outline: none;
-            -webkit-appearance: none;
-        }
-        .fps-param input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: #00ff88;
-            cursor: pointer;
-        }
-        .fps-param input[type="range"]::-moz-range-thumb {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: #00ff88;
-            cursor: pointer;
-            border: none;
         }
         .fps-param-value {
             display: inline-block;
             float: right;
-            color: #00ff88;
+            color: var(--color-text);
+            font-family: var(--font-mono);
             font-weight: 600;
-            font-size: 11px;
+            font-size: var(--text-sm);
         }
         #fps-export-btn {
-            margin-top: 10px;
+            margin-top: var(--space-md);
             width: 100%;
-            padding: 8px;
-            background: rgba(0,255,136,0.15);
-            border: 1px solid #00ff88;
-            border-radius: 4px;
-            color: #00ff88;
-            font-size: 11px;
+            padding: var(--space-sm) var(--space-md);
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            color: var(--color-text);
+            font-size: var(--text-sm);
             font-weight: 600;
             cursor: pointer;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         #fps-export-btn:hover {
-            background: rgba(0,255,136,0.25);
+            background: var(--color-surface-active);
         }
 
         /* Video Paused Indicator */
@@ -563,17 +644,17 @@
             top: 80px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 200;
-            background: rgba(255, 100, 0, 0.95);
-            padding: 12px 24px;
-            border-radius: 8px;
+            z-index: var(--z-indicator);
+            background: var(--color-warning);
+            padding: var(--space-md) var(--space-xl);
+            border-radius: var(--radius-lg);
             border: 1px solid rgba(255, 150, 0, 0.8);
-            font-size: 13px;
+            font-size: var(--text-lg);
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity var(--transition-normal);
             pointer-events: none;
         }
         #video-paused-indicator.visible {
@@ -589,7 +670,7 @@
             height: 100vh;
             height: 100dvh;
             background: #000;
-            z-index: 10001;
+            z-index: var(--z-welcome);
             transition: opacity 0.6s ease;
             overflow: hidden;
         }
@@ -662,38 +743,38 @@
             transform: translateY(-50%) translateX(var(--clickTextExitX));
         }
         .welcome-project-name {
-            font-family: 'Inter', sans-serif;
+            font-family: var(--font-sans);
             font-size: 64px;
             font-weight: 700;
             letter-spacing: 8px;
             margin-bottom: 2px;
-            color: rgba(255,255,255,0.98);
+            color: var(--color-text);
             line-height: 1.1;
             text-transform: uppercase;
             display: block;
         }
         .welcome-title {
-            font-family: 'Inter', sans-serif;
+            font-family: var(--font-sans);
             font-size: 22px;
             font-weight: 500;
             letter-spacing: 1.5px;
             margin-bottom: 28px;
-            color: rgba(255,255,255,0.95);
+            color: var(--color-text);
             line-height: 1.4;
             text-transform: uppercase;
         }
         .welcome-subtitle-inline {
-            font-size: 13px;
+            font-size: var(--text-lg);
             font-weight: 300;
             letter-spacing: 1px;
-            color: rgba(255,255,255,0.60);
+            color: var(--color-text-dim);
             text-transform: none;
         }
-        .welcome-text {
-            font-family: 'Inter', sans-serif;
+        .welcome-text, .welcome-manifesto {
+            font-family: var(--font-sans);
             font-size: 15px;
             font-weight: 300;
-            color: rgba(255,255,255,0.70);
+            color: var(--color-text-secondary);
             line-height: 1.9;
             margin-bottom: 20px;
             letter-spacing: 0.3px;
@@ -703,26 +784,15 @@
             font-weight: 400;
             color: rgba(255,255,255,0.85);
         }
-        /* Phrase manifeste - style aligné sur le texte courant */
-        .welcome-manifesto {
-            font-family: 'Inter', sans-serif;
-            font-size: 15px;
-            font-weight: 300;
-            color: rgba(255,255,255,0.70);
-            line-height: 1.9;
-            margin-bottom: 20px;
-            letter-spacing: 0.3px;
-            text-align: justify;
-        }
         .welcome-context {
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: var(--font-mono);
             font-size: 12px;
             font-weight: 300;
-            color: rgba(255,255,255,0.45);
+            color: var(--color-text-dim);
             line-height: 1.7;
             margin-top: 50px;
             padding-top: 25px;
-            border-top: 1px solid rgba(255,255,255,0.15);
+            border-top: 1px solid var(--color-border);
             letter-spacing: 0.3px;
         }
         .play-button-container {
@@ -850,7 +920,7 @@
             justify-content: center;
             padding: 60px 0;
             box-sizing: border-box;
-            z-index: 9999;
+            z-index: var(--z-pause);
             cursor: pointer;
             transition: opacity 0.4s ease;
         }
@@ -861,11 +931,11 @@
             max-width: 850px;
             max-height: calc(100vh - 120px);
             overflow-y: auto;
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE/Edge */
-            background: rgba(0,0,0,0.80);
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            background: var(--color-overlay);
             border: none;
-            border-radius: 28px;
+            border-radius: var(--radius-2xl);
             padding: 60px 70px;
             text-align: left;
             box-shadow: none;
@@ -876,19 +946,19 @@
             display: none; /* Chrome/Safari */
         }
         .pause-title {
-            font-family: 'Inter', sans-serif;
+            font-family: var(--font-sans);
             font-size: 26px;
             font-weight: 500;
-            color: rgba(255,255,255,0.95);
+            color: var(--color-text);
             margin-bottom: 35px;
             letter-spacing: 1.2px;
             text-transform: uppercase;
         }
         .pause-text {
-            font-family: 'Inter', sans-serif;
+            font-family: var(--font-sans);
             font-size: 17px;
             font-weight: 300;
-            color: rgba(255,255,255,0.70);
+            color: var(--color-text-secondary);
             line-height: 1.9;
             margin-bottom: 22px;
             letter-spacing: 0.3px;
@@ -899,10 +969,10 @@
         }
         /* Liste conceptuelle - sans décoration */
         .pause-conceptual-list {
-            font-family: 'Inter', sans-serif;
+            font-family: var(--font-sans);
             font-size: 17px;
             font-weight: 300;
-            color: rgba(255,255,255,0.70);
+            color: var(--color-text-secondary);
             line-height: 2.2;
             margin: 22px 0;
             letter-spacing: 0.3px;
@@ -917,14 +987,14 @@
             color: rgba(255,255,255,0.80);
         }
         .pause-meta {
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: var(--font-mono);
             font-size: 12px;
             font-weight: 300;
-            color: rgba(255,255,255,0.45);
+            color: var(--color-text-dim);
             line-height: 1.7;
             margin-top: 35px;
             padding-top: 25px;
-            border-top: 1px solid rgba(255,255,255,0.15);
+            border-top: 1px solid var(--color-border);
             letter-spacing: 0.3px;
         }
         .pause-controls {
@@ -934,8 +1004,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 16px;
-            z-index: 10000;
+            gap: var(--space-lg);
+            z-index: var(--z-pause-controls);
         }
         .volume-control {
             display: flex;
@@ -960,116 +1030,79 @@
             opacity: 1;
         }
         .volume-label {
-            font-size: 12px;
-            color: rgba(255,255,255,0.7);
+            font-size: var(--text-sm);
+            color: var(--color-text-secondary);
             text-transform: uppercase;
             letter-spacing: 1px;
         }
         .volume-slider {
             width: 120px;
-            height: 4px;
-            border-radius: 2px;
-            background: rgba(255,255,255,0.2);
-            outline: none;
-            -webkit-appearance: none;
-            appearance: none;
             transform: rotate(-90deg);
             transform-origin: center;
         }
-        .volume-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #ffffff;
-            cursor: pointer;
-        }
-        .volume-slider::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #ffffff;
-            cursor: pointer;
-            border: none;
-        }
-        .mute-button {
-            background: rgba(0,0,0,0.75);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: #ffffff;
+        /* ─── Circle Buttons (mute, close, mobile) ─── */
+        .mute-button, .pause-close-btn {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid var(--color-border);
+            color: #fff;
             padding: 0;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-round);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.15s, transform 0.1s;
+            transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
         }
-        .mute-button:hover {
+        .mute-button:hover, .pause-close-btn:hover {
             background: rgba(255,255,255,0.1);
+            transform: scale(1.05);
         }
-        .mute-button:active {
-            background: rgba(100,150,255,0.4);
-            transform: scale(0.95);
+        .mute-button:active, .pause-close-btn:active {
+            background: var(--color-accent-strong);
+            transform: scale(0.93);
         }
         .mute-button.muted {
-            border-color: rgba(255,100,100,0.4);
+            border-color: var(--color-danger);
         }
         .pause-credits {
             position: absolute;
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 11px;
-            color: rgba(255,255,255,0.3);
+            font-size: var(--text-md);
+            color: var(--color-text-hint);
             font-style: italic;
         }
 
-        /* Bouton X fermer le mode pause (desktop, haut droite) */
+        /* Pause close button positioning */
         .pause-close-btn {
             position: fixed;
             top: 30px;
             right: 30px;
-            z-index: 10001;
-            width: 50px;
-            height: 50px;
-            background: rgba(0,0,0,0.75);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
-            color: #fff;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.15s, transform 0.1s;
-        }
-        .pause-close-btn:hover {
-            background: rgba(255,255,255,0.1);
-            transform: scale(1.08);
-            transform-origin: center center;
-        }
-        .pause-close-btn:active {
-            background: rgba(100,150,255,0.4);
-            transform: scale(0.95);
+            z-index: var(--z-pause-controls);
         }
 
-        /* Game Instructions (top-left) */
-        .game-instructions {
+        /* Game & Pause Instructions (shared) */
+        .game-instructions, .pause-instructions {
             position: fixed;
             top: 20px;
             left: 20px;
             padding: 18px 22px;
-            font-size: 16px;
-            color: rgba(255,255,255,0.95);
-            z-index: 100;
+            font-size: var(--text-2xl);
+            color: var(--color-text);
+            z-index: var(--z-ui);
             opacity: 1;
             pointer-events: none;
             font-weight: 400;
             letter-spacing: 0.4px;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: var(--space-lg);
+        }
+        .pause-instructions {
+            z-index: var(--z-pause-controls);
         }
         .game-instructions .instruction-row {
             transition: opacity 0.6s ease;
@@ -1084,23 +1117,23 @@
             display: grid;
             grid-template-columns: auto 1fr;
             align-items: center;
-            gap: 16px;
+            gap: var(--space-lg);
             line-height: 1.35;
         }
         .keys-group {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--space-sm);
         }
-        .game-instructions .key {
+        .game-instructions .key, .pause-instructions .key {
             display: inline-block;
-            background: rgba(100,150,255,0.3);
+            background: var(--color-accent-hover);
             padding: 10px 14px;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             border: none;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            color: rgba(255,255,255,1);
+            font-family: var(--font-mono);
+            font-size: var(--text-xl);
+            color: #fff;
             font-weight: 600;
             white-space: nowrap;
         }
@@ -1115,103 +1148,17 @@
             font-size: 12px;
             line-height: 1;
         }
-        .arrows-grid .key:nth-child(1) {
-            grid-column: 2;
-            grid-row: 1;
-        }
-        .arrows-grid .key:nth-child(2) {
-            grid-column: 1;
-            grid-row: 2;
-        }
-        .arrows-grid .key:nth-child(3) {
-            grid-column: 2;
-            grid-row: 2;
-        }
-        .arrows-grid .key:nth-child(4) {
-            grid-column: 3;
-            grid-row: 2;
-        }
+        .arrows-grid .key:nth-child(1) { grid-column: 2; grid-row: 1; }
+        .arrows-grid .key:nth-child(2) { grid-column: 1; grid-row: 2; }
+        .arrows-grid .key:nth-child(3) { grid-column: 2; grid-row: 2; }
+        .arrows-grid .key:nth-child(4) { grid-column: 3; grid-row: 2; }
         .or-text {
-            font-size: 13px;
-            opacity: 0.7;
+            font-size: var(--text-lg);
+            color: var(--color-text-secondary);
             font-style: italic;
         }
 
-        /* Instructions in pause screen - positioned like game-instructions */
-        .pause-instructions {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            padding: 18px 22px;
-            font-size: 16px;
-            color: rgba(255,255,255,0.95);
-            z-index: 10001;
-            opacity: 1;
-            pointer-events: none;
-            font-weight: 400;
-            letter-spacing: 0.4px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-        .pause-instructions .instruction-row {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            align-items: center;
-            gap: 16px;
-            line-height: 1.35;
-        }
-        .pause-instructions .keys-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .pause-instructions .key {
-            display: inline-block;
-            background: rgba(100,150,255,0.3);
-            padding: 10px 14px;
-            border-radius: 8px;
-            border: none;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            color: rgba(255,255,255,1);
-            font-weight: 600;
-            white-space: nowrap;
-        }
-        .pause-instructions .arrows-grid {
-            display: inline-grid;
-            grid-template-columns: repeat(3, auto);
-            grid-template-rows: repeat(2, auto);
-            gap: 2px;
-        }
-        .pause-instructions .arrows-grid .key {
-            padding: 6px 10px;
-            font-size: 12px;
-            line-height: 1;
-        }
-        .pause-instructions .arrows-grid .key:nth-child(1) {
-            grid-column: 2;
-            grid-row: 1;
-        }
-        .pause-instructions .arrows-grid .key:nth-child(2) {
-            grid-column: 1;
-            grid-row: 2;
-        }
-        .pause-instructions .arrows-grid .key:nth-child(3) {
-            grid-column: 2;
-            grid-row: 2;
-        }
-        .pause-instructions .arrows-grid .key:nth-child(4) {
-            grid-column: 3;
-            grid-row: 2;
-        }
-        .pause-instructions .or-text {
-            font-size: 13px;
-            opacity: 0.7;
-            font-style: italic;
-        }
-
-        /* Initial Page Loader - visible immediately */
+        /* Initial Page Loader */
         #initial-loader {
             position: fixed;
             top: 0;
@@ -1219,8 +1166,8 @@
             width: 100vw;
             height: 100vh;
             height: 100dvh;
-            background: #000000;
-            z-index: 99999;
+            background: var(--color-bg);
+            z-index: var(--z-loading);
             opacity: 1;
             transition: opacity 0.3s ease;
         }
@@ -1238,12 +1185,12 @@
             width: 100vw;
             height: 100vh;
             height: 100dvh;
-            background: #000000;
+            background: var(--color-bg);
             display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 10002;
+            z-index: var(--z-loading);
             opacity: 1;
             transition: opacity 0.5s ease;
         }
@@ -1267,13 +1214,13 @@
         /* Panel Close Button (X) */
         .panel-close-btn {
             position: absolute;
-            top: 12px;
-            right: 12px;
-            width: 20px;
-            height: 20px;
+            top: var(--space-md);
+            right: var(--space-md);
+            width: 22px;
+            height: 22px;
             background: transparent;
             border: none;
-            color: rgba(255,255,255,0.5);
+            color: var(--color-text-dim);
             font-size: 18px;
             line-height: 1;
             cursor: pointer;
@@ -1281,12 +1228,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: color 0.15s, transform 0.1s;
+            transition: color var(--transition-fast), transform var(--transition-fast);
             z-index: 10;
         }
         .panel-close-btn:hover {
-            color: rgba(255,255,255,0.9);
-            transform: scale(1.1);
+            color: var(--color-text);
+            transform: scale(1.15);
         }
 
         /* FPS Counter */
@@ -1294,38 +1241,38 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            z-index: 9999;
-            background: rgba(0, 0, 0, 0.88);
-            padding: 12px 20px;
-            border-radius: 8px;
-            border: 1px solid rgba(0, 255, 136, 0.3);
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
+            z-index: var(--z-fps);
+            background: var(--color-panel-light);
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            font-family: var(--font-mono);
+            font-size: var(--text-xl);
             font-weight: 600;
-            color: #00ff88;
-            min-width: 100px;
+            color: var(--color-fps-ok);
+            min-width: 90px;
             text-align: center;
         }
         #fps-counter .fps-value {
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 700;
             display: block;
             line-height: 1;
-            margin-bottom: 4px;
+            margin-bottom: var(--space-xs);
         }
         #fps-counter .fps-label {
-            font-size: 10px;
+            font-size: var(--text-sm);
             text-transform: uppercase;
             letter-spacing: 1px;
             opacity: 0.7;
         }
         #fps-counter.low-fps {
-            border-color: rgba(255, 100, 0, 0.5);
-            color: #ff6400;
+            border-color: rgba(255, 100, 0, 0.4);
+            color: var(--color-fps-low);
         }
         #fps-counter.critical-fps {
-            border-color: rgba(255, 0, 0, 0.5);
-            color: #ff0000;
+            border-color: rgba(255, 0, 0, 0.4);
+            color: var(--color-fps-critical);
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -1338,10 +1285,10 @@
             top: 0;
             left: 50%;
             transform: translateX(-50%) translateY(-100%);
-            z-index: 100000;
-            background: rgba(0,0,0,0.75);
-            padding: 12px 24px;
-            border-radius: 0 0 12px 12px;
+            z-index: var(--z-mobile-controls);
+            background: rgba(0,0,0,0.7);
+            padding: var(--space-md) var(--space-xl);
+            border-radius: 0 0 var(--radius-xl) var(--radius-xl);
             font-size: 12px;
             color: rgba(255,255,255,0.8);
             transition: transform 0.3s ease;
@@ -1376,12 +1323,12 @@
             position: fixed;
             top: calc(20px + env(safe-area-inset-top));
             left: calc(20px + env(safe-area-inset-left));
-            z-index: 10000;
+            z-index: var(--z-mobile-controls);
             width: 44px;
             height: 44px;
-            background: rgba(0,0,0,0.75);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-round);
             color: #fff;
             font-size: 18px;
             cursor: pointer;
@@ -1420,8 +1367,8 @@
             transform: translate(-50%, -50%) rotate(0deg);
         }
         #mobile-pause-btn:active {
-            background: rgba(100,150,255,0.4);
-            transform: scale(0.95);
+            background: var(--color-accent-strong);
+            transform: scale(0.93);
         }
 
         /* Mobile Fullscreen Button */
@@ -1430,12 +1377,12 @@
             position: fixed;
             top: calc(20px + env(safe-area-inset-top));
             right: calc(20px + env(safe-area-inset-right));
-            z-index: 10000;
+            z-index: var(--z-mobile-controls);
             width: 44px;
             height: 44px;
-            background: rgba(0,0,0,0.75);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-round);
             color: #fff;
             cursor: pointer;
             align-items: center;
@@ -1444,8 +1391,8 @@
             touch-action: manipulation;
         }
         #mobile-fullscreen-btn:active {
-            background: rgba(100,150,255,0.4);
-            transform: scale(0.95);
+            background: var(--color-accent-strong);
+            transform: scale(0.93);
         }
 
         /* Mobile Joystick */
@@ -1455,7 +1402,7 @@
             bottom: calc(50px + env(safe-area-inset-bottom));
             left: 50%;
             transform: translateX(-50%);
-            z-index: 9998;
+            z-index: var(--z-mobile-controls);
             width: 120px;
             height: 120px;
             touch-action: none;
@@ -1464,17 +1411,17 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-round);
         }
         #mobile-joystick .joystick-thumb {
             position: absolute;
             width: 50px;
             height: 50px;
-            background: rgba(255,255,255,0.25);
-            border: 1px solid rgba(255,255,255,0.4);
-            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid var(--color-border-strong);
+            border-radius: var(--radius-round);
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
@@ -1490,12 +1437,12 @@
             position: fixed;
             bottom: calc(50px + env(safe-area-inset-bottom));
             left: calc(20px + env(safe-area-inset-left));
-            z-index: 9999;
+            z-index: var(--z-mobile-controls);
             width: 48px;
             height: 48px;
-            background: rgba(0,0,0,0.75);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-round);
             color: #fff;
             cursor: pointer;
             padding: 0;
@@ -1506,8 +1453,8 @@
             transition: background 0.15s, transform 0.1s;
         }
         #gyro-toggle-btn:active {
-            background: rgba(100,150,255,0.4);
-            transform: scale(0.95);
+            background: var(--color-accent-strong);
+            transform: scale(0.93);
         }
         #gyro-toggle-btn .gyro-icon,
         #gyro-toggle-btn .touch-icon {
@@ -1520,17 +1467,17 @@
             display: block !important;
         }
 
-        /* Mobile Instructions (remplace desktop instructions) */
+        /* Mobile Instructions */
         #mobile-instructions {
             display: none;
             position: fixed;
             top: calc(80px + env(safe-area-inset-top));
             left: 50%;
             transform: translateX(-50%);
-            z-index: 100;
+            z-index: var(--z-ui);
             background: rgba(0,0,0,0.85);
-            padding: 14px 20px;
-            border-radius: 10px;
+            padding: var(--space-lg);
+            border-radius: var(--radius-xl);
             border: 1px solid rgba(255,255,255,0.08);
             text-align: left;
             font-size: 12px;
@@ -1568,11 +1515,11 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 100001;
-            background: rgba(0,0,0,0.95);
-            padding: 30px 40px;
-            border-radius: 16px;
-            border: 1px solid rgba(255,255,255,0.2);
+            z-index: var(--z-permission);
+            background: var(--color-panel);
+            padding: var(--space-2xl) 40px;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--color-border);
             text-align: center;
         }
         #gyro-permission-btn h3 {
@@ -2503,9 +2450,9 @@
             console.log = function() {};
         }
 
-        _log('═══════════════════════════════════════════════════════');
-        _log('🚀 SCRIPT DÉMARRÉ - DEBUG_MODE:', DEBUG_MODE);
-        _log('═══════════════════════════════════════════════════════');
+        if (DEBUG_MODE) {
+            _log('Script démarré - DEBUG_MODE:', DEBUG_MODE);
+        }
 
         let scene, camera, renderer, particles;
         let geometry, material;
@@ -2645,7 +2592,7 @@
         const MIN_SPEED = 0;
 
         // FPS Settings Object (accessible globalement)
-        var fpsSettings = {
+        const fpsSettings = {
             fpsCameraHeight: -96,       // Hauteur de spawn de la caméra
             fpsGravity: -1.5,           // Gravité
             fpsPlayerHeight: 25,        // Hauteur des yeux du joueur au-dessus du sol
@@ -3323,10 +3270,10 @@
 
         // Transform control functions
         function selectScreen(num) {
-            if (!allScreens[num]) {
-                console.log(`Écran ${num} n'existe pas`);
-                return;
-            }
+            if (!allScreens[num]) return;
+
+            // Deselect previous first to prevent listener leaks
+            if (selectedScreen !== null) deselectScreen();
 
             selectedScreen = num;
             transformControls.attach(allScreens[num]);
@@ -3335,22 +3282,12 @@
             document.addEventListener('keydown', onShiftChange);
             document.addEventListener('keyup', onShiftChange);
 
-            console.log(`=== ÉCRAN ${num} SÉLECTIONNÉ ===`);
-            console.log('Commandes:');
-            console.log('  G = Mode Translation');
-            console.log('  R = Mode Rotation');
-            console.log('  E = Mode Scale (classique, affecte depth spread)');
-            console.log('  S = Mode Redimensionnement (modifie positions, préserve depth)');
-            console.log('  Maj enfoncé = rotation 15°, translation 1000');
-            console.log('  Échap = Désélectionner');
-            console.log('  Ctrl+C = Copier | Ctrl+V = Coller (dupliquer)');
-            console.log('  Ctrl+Z = Annuler | Ctrl+Shift+Z = Refaire');
-            console.log('  Magnétisme auto : 0/90/180/270°');
+            console.log('Écran ' + num + ' sélectionné — G/R/E/S pour transformer, Échap pour désélectionner');
         }
 
         function deselectScreen() {
-            if (selectedScreen) {
-                console.log(`Écran ${selectedScreen} désélectionné`);
+            if (selectedScreen !== null) {
+                console.log('Écran ' + selectedScreen + ' désélectionné');
                 transformControls.detach();
                 selectedScreen = null;
 
@@ -3361,11 +3298,8 @@
 
         // Toggle all interfaces (touche N) - ONLY accessible in Admin mode
         function toggleAllInterfaces() {
-            // CRITICAL: Only allow in Admin mode (not FPS/Spectator mode)
-            if (fpsMode) {
-                console.log('⚠️ Interfaces disponibles uniquement en mode Admin (appuyez sur B)');
-                return;
-            }
+            // Only allow in Admin mode (not FPS/Spectator mode)
+            if (fpsMode) return;
 
             const ui = document.getElementById('ui');
             const screenManager = document.getElementById('screen-manager-panel');
@@ -3388,18 +3322,15 @@
                 shapeSelector.classList.add('hidden');
                 fpsSettings.classList.add('hidden');
                 fpsCounter.classList.add('hidden');
-                console.log('🙈 Interfaces cachées (N pour afficher)');
             } else {
                 ui.classList.remove('hidden');
                 screenManager.classList.remove('hidden');
                 shapeSelector.classList.remove('hidden');
                 fpsSettings.classList.remove('hidden');
                 fpsCounter.classList.remove('hidden');
-                // CRITICAL: Show controls if video is loaded
                 if (currentVideo) {
                     document.getElementById('controls')?.classList.remove('hidden');
                 }
-                console.log('👁️ Interfaces affichées (N pour cacher)');
             }
         }
 
@@ -3732,7 +3663,7 @@
             const screenList = document.getElementById('screen-list');
             if (!screenList) return;
 
-            screenList.innerHTML = '';
+            screenList.textContent = '';
 
             // Separate screens into two categories
             const videoScreens = [];
@@ -3796,19 +3727,34 @@
                 // Header with number and delete button
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'screen-header';
-                headerDiv.innerHTML = `
-                    <span class="screen-num">Écran ${num}</span>
-                    <button class="screen-delete" onclick="event.stopPropagation(); deleteScreen(${num}); updateScreenList();">×</button>
-                `;
+                const numSpan = document.createElement('span');
+                numSpan.className = 'screen-num';
+                numSpan.textContent = 'Écran ' + num;
+                const delBtn = document.createElement('button');
+                delBtn.className = 'screen-delete';
+                delBtn.textContent = '×';
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteScreen(num);
+                    updateScreenList();
+                });
+                headerDiv.appendChild(numSpan);
+                headerDiv.appendChild(delBtn);
                 itemDiv.appendChild(headerDiv);
 
                 // Type selector
                 const typeSelectorDiv = document.createElement('div');
                 typeSelectorDiv.className = 'screen-type-selector';
-                typeSelectorDiv.innerHTML = `
-                    <button class="screen-type-btn ${!isColorSurface ? 'active' : ''}" onclick="setScreenType(${num}, false)">Vidéo</button>
-                    <button class="screen-type-btn ${isColorSurface ? 'active' : ''}" onclick="setScreenType(${num}, true)">Couleur</button>
-                `;
+                const videoBtn = document.createElement('button');
+                videoBtn.className = 'screen-type-btn' + (!isColorSurface ? ' active' : '');
+                videoBtn.textContent = 'Vidéo';
+                videoBtn.addEventListener('click', () => setScreenType(num, false));
+                const colorBtn2 = document.createElement('button');
+                colorBtn2.className = 'screen-type-btn' + (isColorSurface ? ' active' : '');
+                colorBtn2.textContent = 'Couleur';
+                colorBtn2.addEventListener('click', () => setScreenType(num, true));
+                typeSelectorDiv.appendChild(videoBtn);
+                typeSelectorDiv.appendChild(colorBtn2);
                 itemDiv.appendChild(typeSelectorDiv);
 
                 // Color picker (only if color surface)
@@ -3853,19 +3799,26 @@
 
                     colorSection.appendChild(colorGrid);
 
-                    // Custom color picker
+                    // Custom color picker (safe DOM construction)
                     const customDiv = document.createElement('div');
                     customDiv.className = 'color-custom';
-                    customDiv.innerHTML = `
-                        <input type="color" id="color-picker-${num}" value="${'#' + color.toString(16).padStart(6, '0')}" />
-                        <input type="text" id="color-hex-${num}" value="${'#' + color.toString(16).padStart(6, '0').toUpperCase()}" placeholder="#RRGGBB" maxlength="7" />
-                    `;
+                    const colorHex = '#' + color.toString(16).padStart(6, '0');
+                    const picker = document.createElement('input');
+                    picker.type = 'color';
+                    picker.id = 'color-picker-' + num;
+                    picker.value = colorHex;
+                    const hexInput = document.createElement('input');
+                    hexInput.type = 'text';
+                    hexInput.id = 'color-hex-' + num;
+                    hexInput.value = colorHex.toUpperCase();
+                    hexInput.placeholder = '#RRGGBB';
+                    hexInput.maxLength = 7;
+                    customDiv.appendChild(picker);
+                    customDiv.appendChild(hexInput);
                     colorSection.appendChild(customDiv);
 
                     // Add event listeners for custom color
                     setTimeout(() => {
-                        const picker = document.getElementById(`color-picker-${num}`);
-                        const hexInput = document.getElementById(`color-hex-${num}`);
 
                         if (picker) {
                             picker.addEventListener('input', (e) => {
@@ -3922,19 +3875,34 @@
                     // Header with number and delete button
                     const headerDiv = document.createElement('div');
                     headerDiv.className = 'screen-header';
-                    headerDiv.innerHTML = `
-                        <span class="screen-num">Forme ${num}</span>
-                        <button class="screen-delete" onclick="event.stopPropagation(); deleteScreen(${num}); updateScreenList();">×</button>
-                    `;
+                    const numSpan2 = document.createElement('span');
+                    numSpan2.className = 'screen-num';
+                    numSpan2.textContent = 'Forme ' + num;
+                    const delBtn2 = document.createElement('button');
+                    delBtn2.className = 'screen-delete';
+                    delBtn2.textContent = '×';
+                    delBtn2.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteScreen(num);
+                        updateScreenList();
+                    });
+                    headerDiv.appendChild(numSpan2);
+                    headerDiv.appendChild(delBtn2);
                     itemDiv.appendChild(headerDiv);
 
                     // Type selector
                     const typeSelectorDiv = document.createElement('div');
                     typeSelectorDiv.className = 'screen-type-selector';
-                    typeSelectorDiv.innerHTML = `
-                        <button class="screen-type-btn ${!isColorSurface ? 'active' : ''}" onclick="setScreenType(${num}, false)">Vidéo</button>
-                        <button class="screen-type-btn ${isColorSurface ? 'active' : ''}" onclick="setScreenType(${num}, true)">Couleur</button>
-                    `;
+                    const videoBtn2 = document.createElement('button');
+                    videoBtn2.className = 'screen-type-btn' + (!isColorSurface ? ' active' : '');
+                    videoBtn2.textContent = 'Vidéo';
+                    videoBtn2.addEventListener('click', () => setScreenType(num, false));
+                    const colorBtn3 = document.createElement('button');
+                    colorBtn3.className = 'screen-type-btn' + (isColorSurface ? ' active' : '');
+                    colorBtn3.textContent = 'Couleur';
+                    colorBtn3.addEventListener('click', () => setScreenType(num, true));
+                    typeSelectorDiv.appendChild(videoBtn2);
+                    typeSelectorDiv.appendChild(colorBtn3);
                     itemDiv.appendChild(typeSelectorDiv);
 
                     // Color picker
@@ -3978,19 +3946,26 @@
 
                     colorSection.appendChild(colorGrid);
 
-                    // Custom color picker
+                    // Custom color picker (safe DOM construction)
                     const customDiv = document.createElement('div');
                     customDiv.className = 'color-custom';
-                    customDiv.innerHTML = `
-                        <input type="color" id="color-picker-${num}" value="${'#' + color.toString(16).padStart(6, '0')}" />
-                        <input type="text" id="color-hex-${num}" value="${'#' + color.toString(16).padStart(6, '0').toUpperCase()}" placeholder="#RRGGBB" maxlength="7" />
-                    `;
+                    const colorHex = '#' + color.toString(16).padStart(6, '0');
+                    const picker = document.createElement('input');
+                    picker.type = 'color';
+                    picker.id = 'color-picker-' + num;
+                    picker.value = colorHex;
+                    const hexInput = document.createElement('input');
+                    hexInput.type = 'text';
+                    hexInput.id = 'color-hex-' + num;
+                    hexInput.value = colorHex.toUpperCase();
+                    hexInput.placeholder = '#RRGGBB';
+                    hexInput.maxLength = 7;
+                    customDiv.appendChild(picker);
+                    customDiv.appendChild(hexInput);
                     colorSection.appendChild(customDiv);
 
                     // Add event listeners for custom color
                     setTimeout(() => {
-                        const picker = document.getElementById(`color-picker-${num}`);
-                        const hexInput = document.getElementById(`color-hex-${num}`);
 
                         if (picker) {
                             picker.addEventListener('input', (e) => {
@@ -4842,10 +4817,18 @@
                 const isFirstLoad = (currentVideo === null);
                 currentVideo = videoElement;
 
-                // Show preview
-                document.getElementById('preview').innerHTML = '<video src="' + url + '" muted loop playsinline style="max-width:100%;max-height:100%;"></video>';
-                document.getElementById('preview').classList.add('loaded');
-                document.getElementById('preview').querySelector('video').play();
+                // Show preview (safe DOM construction)
+                const previewEl = document.getElementById('preview');
+                previewEl.textContent = '';
+                const previewVideo = document.createElement('video');
+                previewVideo.src = url;
+                previewVideo.muted = true;
+                previewVideo.loop = true;
+                previewVideo.playsInline = true;
+                previewVideo.style.cssText = 'max-width:100%;max-height:100%';
+                previewEl.appendChild(previewVideo);
+                previewEl.classList.add('loaded');
+                previewVideo.play();
 
                 // Show controls
                 document.getElementById('video-controls').classList.remove('hidden');
@@ -7907,7 +7890,7 @@
 
             animateFrameCount++;
             if (animateFrameCount === 1) {
-                _log('🎬 ANIMATE() - Première frame');
+                if (DEBUG_MODE) _log('ANIMATE() - Première frame');
             }
 
             time += 0.001 * breathSpeed;
@@ -8580,37 +8563,21 @@
         }
 
         function exportFPSSettings() {
-            console.clear();
-            console.log('═════════════════════════════════════════════');
-            console.log('📋 PARAMÈTRES FPS - EXPORT');
-            console.log('═════════════════════════════════════════════');
-            console.log('');
-            console.log('Copie ces valeurs pour intégration:');
-            console.log('');
-            console.log('fpsMaxSpeed = ' + fpsSettings.fpsMaxSpeed + ';');
-            console.log('fpsScrollSpeed = ' + fpsSettings.fpsScrollSpeed + ';');
-            console.log('fpsAcceleration = ' + fpsSettings.fpsAcceleration + ';');
-            console.log('fpsDeceleration = ' + fpsSettings.fpsDeceleration + ';');
-            console.log('fpsCameraHeight = ' + fpsSettings.fpsCameraHeight + ';');
-            console.log('fpsCollisionRadius = ' + fpsSettings.fpsCollisionRadius + ';');
-            console.log('fpsGravity = ' + fpsSettings.fpsGravity + ';');
-            console.log('fpsPlayerHeight = ' + fpsSettings.fpsPlayerHeight + ';');
-            console.log('fpsMouseSensitivity = ' + fpsSettings.fpsMouseSensitivity + ';');
-            console.log('');
-            console.log('═════════════════════════════════════════════');
-            console.log('✅ Paramètres exportés dans la console!');
-            console.log('   Appuie sur Ctrl+S pour ré-exporter');
-            console.log('═════════════════════════════════════════════');
-
-            // Also copy to clipboard
             const exportText = Object.entries(fpsSettings)
-                .map(([key, value]) => `${key} = ${value};`)
+                .map(([key, value]) => key + ' = ' + value + ';')
                 .join('\n');
 
+            // Copy to clipboard with user feedback
             navigator.clipboard.writeText(exportText).then(() => {
-                console.log('📋 Copié dans le presse-papier!');
-            }).catch(err => {
-                console.warn('Impossible de copier dans le presse-papier:', err);
+                const btn = document.getElementById('fps-export-btn');
+                if (btn) {
+                    const original = btn.textContent;
+                    btn.textContent = 'Copié !';
+                    setTimeout(() => { btn.textContent = original; }, 1500);
+                }
+            }).catch(() => {
+                // Fallback: log to console
+                console.log('FPS Settings Export:\n' + exportText);
             });
         }
 
@@ -9168,12 +9135,19 @@
                     console.log('✅ Utilisation de la vidéo panoramique comme vidéo principale');
                     currentVideo = screenVideos[1];
 
-                    // Show preview
+                    // Show preview (safe DOM construction)
                     const previewSrc = screenVideos[1].src;
-                    document.getElementById('preview').innerHTML = '<video src="' + previewSrc + '" muted loop playsinline style="max-width:100%;max-height:100%;"></video>';
-                    document.getElementById('preview').classList.add('loaded');
-                    const previewVideo = document.getElementById('preview').querySelector('video');
-                    if (previewVideo) previewVideo.play();
+                    const prevEl = document.getElementById('preview');
+                    prevEl.textContent = '';
+                    const pvid = document.createElement('video');
+                    pvid.src = previewSrc;
+                    pvid.muted = true;
+                    pvid.loop = true;
+                    pvid.playsInline = true;
+                    pvid.style.cssText = 'max-width:100%;max-height:100%';
+                    prevEl.appendChild(pvid);
+                    prevEl.classList.add('loaded');
+                    pvid.play();
 
                     // Auto-apply
                     console.log('🎬 Apply automatique après chargement vidéo multi-écrans...');
@@ -9205,11 +9179,18 @@
                         console.warn('⚠️ Autoplay vidéo source bloqué:', err);
                     });
 
-                    // Show preview
-                    document.getElementById('preview').innerHTML = '<video src="' + videoPath + '" muted loop playsinline style="max-width:100%;max-height:100%;"></video>';
-                    document.getElementById('preview').classList.add('loaded');
-                    const previewVideo = document.getElementById('preview').querySelector('video');
-                    if (previewVideo) previewVideo.play();
+                    // Show preview (safe DOM construction)
+                    const prevEl2 = document.getElementById('preview');
+                    prevEl2.textContent = '';
+                    const pvid2 = document.createElement('video');
+                    pvid2.src = videoPath;
+                    pvid2.muted = true;
+                    pvid2.loop = true;
+                    pvid2.playsInline = true;
+                    pvid2.style.cssText = 'max-width:100%;max-height:100%';
+                    prevEl2.appendChild(pvid2);
+                    prevEl2.classList.add('loaded');
+                    pvid2.play();
 
                     // Auto-apply after loading
                     console.log('🎬 Apply automatique après chargement vidéo...');
@@ -9331,14 +9312,14 @@
 
                 function tryLoadVideo(pathIndex) {
                     if (pathIndex >= videoPaths.length) {
-                        _log('⚠️ Aucune vidéo panoramique disponible');
+                        console.log('Aucune vidéo panoramique disponible');
                         panoramicVideo = null;
                         resolve(false);
                         return;
                     }
 
                     const videoPath = videoPaths[pathIndex];
-                    _log(`🎬 Tentative chargement: ${videoPath}...`);
+                    console.log('Tentative chargement:', videoPath);
                     videoElement.src = videoPath;
                     videoElement.load();
 
@@ -9349,30 +9330,27 @@
                         videoElement.oncanplaythrough = null;
                         videoElement.onerror = null;
 
-                        _log(`✅ Vidéo panoramique chargée: ${videoPath}`);
-                        _log(`   Dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
-                        _log(`   Attendu: ${PANORAMIC_WIDTH}x${PANORAMIC_HEIGHT}`);
+                        console.log('Vidéo panoramique chargée:', videoPath,
+                            videoElement.videoWidth + 'x' + videoElement.videoHeight);
 
-                        // Store as the panoramic video
                         panoramicVideo = videoElement;
                         screenVideos[1] = videoElement;
 
-                        // Jouer brièvement pour que les pixels soient disponibles
                         videoElement.currentTime = 0.1;
                         videoElement.play().then(() => {
                             setTimeout(() => {
                                 videoElement.pause();
-                                _log('🌅 MODE PANORAMIQUE ACTIVÉ - Pixels prêts');
+                                console.log('Mode panoramique activé');
                                 resolve(true);
                             }, 100);
                         }).catch(() => {
-                            _log('🌅 MODE PANORAMIQUE ACTIVÉ');
+                            console.log('Mode panoramique activé');
                             resolve(true);
                         });
                     };
 
                     videoElement.onerror = function() {
-                        _log(`⚠️ Vidéo non trouvée: ${videoPath}, tentative suivante...`);
+                        console.log('Vidéo non trouvée:', videoPath);
                         tryLoadVideo(pathIndex + 1);
                     };
                 }
@@ -9382,7 +9360,7 @@
                 // Timeout fallback
                 setTimeout(() => {
                     if (!panoramicVideo) {
-                        _log('⏱️ Timeout chargement vidéo panoramique');
+                        console.log('Timeout chargement vidéo panoramique');
                         resolve(false);
                     }
                 }, 15000);
