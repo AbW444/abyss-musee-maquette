@@ -1118,7 +1118,7 @@
         .game-instructions.hidden .instruction-row {
             opacity: 0;
         }
-        .game-instructions.hidden .instruction-esc-infos {
+        .game-instructions.hidden .instruction-always-visible {
             opacity: 1;
         }
         .instruction-row {
@@ -1380,70 +1380,6 @@
         #mobile-pause-btn:active {
             background: var(--color-accent-strong);
             transform: scale(0.93);
-        }
-
-        /* Desktop Info Button (bottom-left) */
-        #desktop-info-btn {
-            display: none;
-            position: fixed;
-            bottom: 30px;
-            left: 30px;
-            z-index: var(--z-pause-controls);
-            width: 44px;
-            height: 44px;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: var(--radius-round);
-            color: #fff;
-            font-size: 18px;
-            cursor: pointer;
-            align-items: center;
-            justify-content: center;
-            transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast), opacity 0.3s ease;
-            opacity: 0.6;
-        }
-        #desktop-info-btn:hover {
-            opacity: 1;
-            background: rgba(255,255,255,0.1);
-            border-color: var(--color-border-hover);
-            transform: scale(1.05);
-        }
-        #desktop-info-btn:active {
-            background: var(--color-accent-strong);
-            transform: scale(0.93);
-        }
-        #desktop-info-btn .btn-icon-info,
-        #desktop-info-btn .btn-icon-close {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(0deg);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-        #desktop-info-btn .btn-icon-info {
-            font-family: 'Georgia', 'Times New Roman', serif;
-            font-style: italic;
-            font-size: 22px;
-            font-weight: 700;
-            color: #fff;
-            line-height: 1;
-            opacity: 1;
-            text-transform: lowercase;
-        }
-        #desktop-info-btn .btn-icon-close {
-            opacity: 0;
-            transform: translate(-50%, -50%) rotate(-90deg);
-        }
-        #desktop-info-btn.active-infos .btn-icon-info {
-            opacity: 0;
-            transform: translate(-50%, -50%) rotate(90deg);
-        }
-        #desktop-info-btn.active-infos .btn-icon-close {
-            opacity: 1;
-            transform: translate(-50%, -50%) rotate(0deg);
-        }
-        #desktop-info-btn.hidden {
-            display: none;
         }
 
         /* Mobile Fullscreen Button */
@@ -1815,9 +1751,6 @@
             .pause-close-btn {
                 display: none !important;
             }
-            #desktop-info-btn {
-                display: none !important;
-            }
 
             /* FPS counter plus discret sur mobile */
             #fps-counter {
@@ -1971,20 +1904,15 @@
         <button onclick="requestGyroPermission()">Activer</button>
     </div>
 
-    <!-- Desktop Info Button (bottom-left, visible in FPS mode on desktop) -->
-    <button id="desktop-info-btn" class="hidden" aria-label="Infos">
-        <span class="btn-icon-info">i</span>
-        <svg class="btn-icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-    </button>
-
     <!-- Game Instructions (top-left, visible when on floor Y=11) -->
     <div class="game-instructions hidden" id="game-instructions">
-        <div class="instruction-row instruction-esc-infos">
-            <span class="key">Clic droit</span>
+        <div class="instruction-row instruction-always-visible">
+            <span class="key">ALT</span>
             <span>Infos</span>
+        </div>
+        <div class="instruction-row instruction-always-visible">
+            <span class="key">ESC</span>
+            <span>Plein écran</span>
         </div>
         <div class="instruction-row">
             <span class="key">Souris</span>
@@ -2083,9 +2011,13 @@
         </button>
 
         <div class="pause-instructions">
-            <div class="instruction-row instruction-esc-infos">
-                <span class="key">Clic droit</span>
+            <div class="instruction-row">
+                <span class="key">ALT</span>
                 <span>Infos</span>
+            </div>
+            <div class="instruction-row">
+                <span class="key">ESC</span>
+                <span>Plein écran</span>
             </div>
             <div class="instruction-row">
                 <span class="key">Souris</span>
@@ -2960,7 +2892,8 @@
                     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',  // Arrow keys
                     'ShiftLeft', 'ShiftRight',  // Sprint
                     'KeyB',  // Toggle to Admin mode
-                    'Escape'  // Exit pointer lock
+                    'Escape',  // Toggle fullscreen
+                    'AltLeft', 'AltRight'  // Toggle info screen
                 ];
 
                 if (!allowedKeys.includes(e.code)) {
@@ -3125,13 +3058,15 @@
                 }
             }
 
-            // Escape: Close pause screen if open, OR deselect in Admin mode
-            // (Info screen is now opened by right-click or info button, not ESC)
+            // Escape: Enter fullscreen if not in fullscreen (browser handles exit natively)
+            // OR deselect in Admin mode
             if (e.code === 'Escape') {
                 e.preventDefault();
-                if (fpsMode && isPaused) {
-                    // Already paused: close pause screen
-                    resumeExperience();
+                if (fpsMode && !document.fullscreenElement && !document.webkitFullscreenElement) {
+                    // Not in fullscreen: enter fullscreen
+                    const el = document.documentElement;
+                    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+                    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
                 } else if (selectedScreen) {
                     // Admin mode: deselect screen
                     deselectScreen();
@@ -8987,34 +8922,19 @@
             document.body.classList.remove('hoverPlay');
             document.body.classList.add('clickedPlay');
 
-            const logoStatic = document.getElementById('welcome-logo');
-            const logoVideo = document.getElementById('welcome-logo-video');
-
-            // Phase 2: Après le fondu du texte (320ms), superposer l'icône de chargement (en pause)
+            // Phase 2: Après le fondu du texte (320ms), faire disparaître le logo PNG
             const fadeMs = 350; // Légèrement après --clickFadeMs (320ms)
             setTimeout(() => {
-                // Afficher l'icône de chargement PAR-DESSUS le logo (les deux sont visibles)
-                if (logoVideo) {
-                    logoVideo.pause();
-                    logoVideo.currentTime = 0;
-                    logoVideo.classList.add('active'); // Rend visible (opacity: 1)
+                const logoStatic = document.getElementById('welcome-logo');
+                if (logoStatic) {
+                    logoStatic.style.opacity = '0'; // Fade out (200ms CSS transition)
                 }
 
-                // Phase 3: Court instant avec les deux superposés (150ms),
-                // puis lancer la vidéo de chargement ET masquer le logo AU MÊME MOMENT
+                // Phase 3: Attendre que le logo soit totalement invisible, puis lancer le loading screen
+                // 250ms = 200ms (transition CSS opacity logo) + 50ms (marge de sécurité)
                 setTimeout(() => {
-                    if (logoVideo) {
-                        logoVideo.play().catch(() => {});
-                    }
-                    if (logoStatic) {
-                        logoStatic.style.opacity = '0'; // Fade out simultané (200ms CSS transition)
-                    }
-
-                    // Phase 4: Lancer startExperience après la transition du logo
-                    setTimeout(() => {
-                        startExperience();
-                    }, 200);
-                }, 150);
+                    startExperience();
+                }, 250);
             }, fadeMs);
         }
 
@@ -9036,16 +8956,14 @@
             const welcomeScreen = document.getElementById('welcome-screen');
             const loadingScreen = document.getElementById('loading-screen');
 
-            // Show loading screen BEHIND the welcome screen first (both briefly coexist)
+            // Hide welcome screen instantly (fade overlay is already black from clickedPlay)
+            welcomeScreen.style.transition = 'none';
+            welcomeScreen.style.opacity = '0';
+            welcomeScreen.style.pointerEvents = 'none';
+
+            // Show loading screen IMMEDIATELY
             loadingScreen.classList.add('active');
             loadingScreen.classList.remove('hidden');
-
-            // Tiny delay to ensure loading screen is rendered, then hide welcome screen
-            requestAnimationFrame(() => {
-                welcomeScreen.style.transition = 'none';
-                welcomeScreen.style.opacity = '0';
-                welcomeScreen.style.pointerEvents = 'none';
-            });
 
             // Immediately hide cursor - user should enter FPS mode directly
             document.body.style.cursor = 'none';
@@ -9069,9 +8987,10 @@
                     }
                 });
 
-                // Right-click (contextmenu) opens info/pause screen
-                document.addEventListener('contextmenu', function(e) {
-                    if (fpsMode) {
+                // Alt key opens/closes info/pause screen
+                document.addEventListener('keydown', function(e) {
+                    if (e.code === 'AltLeft' || e.code === 'AltRight') {
+                        if (!fpsMode) return;
                         e.preventDefault();
                         if (isPaused) {
                             resumeExperience();
@@ -9084,23 +9003,6 @@
                         }
                     }
                 });
-
-                // Desktop info button click handler
-                const desktopInfoBtn = document.getElementById('desktop-info-btn');
-                if (desktopInfoBtn) {
-                    desktopInfoBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (isPaused) {
-                            resumeExperience();
-                        } else {
-                            if (document.exitPointerLock) {
-                                document.exitPointerLock();
-                            }
-                            showPauseScreen();
-                        }
-                    });
-                }
 
                 autoLoadSequence();
             }, 100);
@@ -9127,11 +9029,6 @@
                 document.getElementById('mobile-joystick')?.classList.add('hidden');
                 document.getElementById('mobile-fullscreen-btn')?.classList.add('hidden');
                 document.getElementById('mobile-pause-btn')?.classList.add('active-infos');
-            }
-
-            // Desktop: transformer bouton info en croix
-            if (!isMobile) {
-                document.getElementById('desktop-info-btn')?.classList.add('active-infos');
             }
 
             // Volume constant - pas de fade
@@ -9161,11 +9058,6 @@
                     fsBtn.classList.remove('hidden');
                     fsBtn.style.display = 'flex';
                 }
-            }
-
-            // Desktop: retransformer croix en info
-            if (!isMobile) {
-                document.getElementById('desktop-info-btn')?.classList.remove('active-infos');
             }
 
             // Volume constant - pas de fade
@@ -9267,14 +9159,12 @@
                     loadingScreen.style.display = 'none';
                 }, 500);
 
-                // Show desktop info button (desktop only)
+                // Request fullscreen at the end of loading
                 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
-                if (!isMobileDevice) {
-                    const dib = document.getElementById('desktop-info-btn');
-                    if (dib) {
-                        dib.classList.remove('hidden');
-                        dib.style.display = 'flex';
-                    }
+                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                    const el = document.documentElement;
+                    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+                    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
                 }
 
                 // Request pointer lock — may fail as setTimeout breaks user gesture chain
