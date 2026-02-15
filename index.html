@@ -1147,7 +1147,7 @@
             align-items: center;
             gap: var(--space-sm);
         }
-        .game-instructions .key, .pause-instructions .key {
+        .persistent-instructions .key, .game-instructions .key, .pause-instructions .key {
             display: inline-block;
             background: var(--color-accent-hover);
             padding: 5px 7px;
@@ -2046,11 +2046,19 @@
 
     <!-- Pause Screen (ESC / Infos) -->
     <div id="pause-screen">
-        <!-- Bouton fermer X (desktop) -->
-        <button class="pause-close-btn" id="pause-close-btn" onclick="resumeExperience()">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
+        <!-- Bouton fullscreen (desktop) — entre en plein écran puis ferme le panneau -->
+        <button class="pause-close-btn" id="pause-close-btn" onclick="toggleFullscreenAndResume()">
+            <svg class="fs-enter-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+                <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+                <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+                <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+            </svg>
+            <svg class="fs-exit-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3"></path>
+                <path d="M21 8h-3a2 2 0 0 1-2-2V3"></path>
+                <path d="M3 16h3a2 2 0 0 1 2 2v3"></path>
+                <path d="M16 21v-3a2 2 0 0 1 2-2h3"></path>
             </svg>
         </button>
 
@@ -4118,8 +4126,12 @@
                     screen.visible = false;
 
                 } else {
-                    // For shapes: just change material color
-                    screen.material.color.setHex(color);
+                    // For shapes: change material color (ShaderMaterial or MeshBasicMaterial)
+                    if (screen.material.isShaderMaterial && screen.material.uniforms && screen.material.uniforms.baseColor) {
+                        screen.material.uniforms.baseColor.value.setHex(color);
+                    } else if (screen.material.color) {
+                        screen.material.color.setHex(color);
+                    }
                 }
             } else {
                 // Switch to video
@@ -4152,7 +4164,12 @@
             if (isVolumetric && screen.userData.colorOverlay) {
                 screen.userData.colorOverlay.material.color.setHex(colorValue);
             } else if (screen.material) {
-                screen.material.color.setHex(colorValue);
+                // ShaderMaterial uses uniforms.baseColor, MeshBasicMaterial uses .color
+                if (screen.material.isShaderMaterial && screen.material.uniforms && screen.material.uniforms.baseColor) {
+                    screen.material.uniforms.baseColor.value.setHex(colorValue);
+                } else if (screen.material.color) {
+                    screen.material.color.setHex(colorValue);
+                }
             }
 
             updateScreenList();
@@ -4897,6 +4914,9 @@
             videoElement.onloadeddata = function() {
                 const isFirstLoad = (currentVideo === null);
                 currentVideo = videoElement;
+
+                // Clear panoramic video so generate() uses this manually loaded video
+                panoramicVideo = null;
 
                 // Show preview (safe DOM construction)
                 const previewEl = document.getElementById('preview');
@@ -6753,14 +6773,14 @@
             const width12 = 235.076;
             const height12 = 231.29;
             const geometry12 = new THREE.PlaneGeometry(width12, height12);
-            const material12 = createWallFormMaterial(0x050505); // Shader subtil pour mur-forme
+            const material12 = createWallFormMaterial(0x999999); // Gris clair
             const screen12 = new THREE.Mesh(geometry12, material12);
             screen12.position.set(-348.048, -6.589, 115.234);
             screen12.rotation.set(0, 1.570796, 0);
             screen12.scale.set(1, 1, 1);
             screen12.userData.screenNumber = 12;
             screen12.userData.isColorSurface = true;
-            screen12.userData.color = 0x050505;
+            screen12.userData.color = 0x999999;
             screensGroup.add(screen12);
 
             // ======================
@@ -6821,14 +6841,14 @@
             const width17 = 96.102;
             const height17 = 221.302; // Ajusté: ancien haut (109.529) - sol (-111.773)
             const geometry17 = new THREE.PlaneGeometry(width17, height17);
-            const material17 = createWallFormMaterial(0x0A0A0A); // Noir foncé
+            const material17 = createWallFormMaterial(0x999999); // Gris clair
             const screen17 = new THREE.Mesh(geometry17, material17);
             screen17.position.set(-200.734, -1.122, 47.768); // Y ajusté pour bas = -111.773
             screen17.rotation.set(0, 1.570796, 0);
             screen17.scale.set(1, 1, 1);
             screen17.userData.screenNumber = 16; // Renuméroté: 17 → 16
             screen17.userData.isColorSurface = true;
-            screen17.userData.color = 0x0A0A0A;
+            screen17.userData.color = 0x999999;
             screensGroup.add(screen17);
 
             // ======================
@@ -6838,14 +6858,14 @@
             const width18 = 96.102;
             const height18 = 226.947; // Ajusté: ancien haut (115.174) - sol (-111.773)
             const geometry18 = new THREE.PlaneGeometry(width18, height18);
-            const material18 = createWallFormMaterial(0x0A0A0A); // Noir foncé
+            const material18 = createWallFormMaterial(0x999999); // Gris clair
             const screen18 = new THREE.Mesh(geometry18, material18);
             screen18.position.set(-200.734, 1.7, 178.493); // Y ajusté pour bas = -111.773
             screen18.rotation.set(0, 1.570796, 0);
             screen18.scale.set(1, 1, 1);
             screen18.userData.screenNumber = 17; // Renuméroté: 18 → 17
             screen18.userData.isColorSurface = true;
-            screen18.userData.color = 0x0A0A0A;
+            screen18.userData.color = 0x999999;
             screensGroup.add(screen18);
 
             // ======================
@@ -6854,14 +6874,14 @@
             const width21 = 163.506;
             const height21 = 239.079;
             const geometry21 = new THREE.PlaneGeometry(width21, height21);
-            const material21 = createWallFormMaterial(0x0A0A0A); // Noir foncé
+            const material21 = createWallFormMaterial(0x999999); // Gris clair
             const screen21 = new THREE.Mesh(geometry21, material21);
             screen21.position.set(-200.871, 27.391, 110.392);
             screen21.rotation.set(1.570796, 1.570796, 0);
             screen21.scale.set(1, 1, 1);
             screen21.userData.screenNumber = 18; // Renuméroté: 21 → 18 (après suppression forme 18)
             screen21.userData.isColorSurface = true;
-            screen21.userData.color = 0x0A0A0A;
+            screen21.userData.color = 0x999999;
             screensGroup.add(screen21);
 
             // ======================
@@ -6887,14 +6907,14 @@
             const width20 = 3.246;
             const height20 = 131.518; // Ajusté: ancien haut (19.745) - sol (-111.773)
             const geometry20 = new THREE.PlaneGeometry(width20, height20);
-            const material20 = createWallFormMaterial(0x0A0A0A); // Noir foncé
+            const material20 = createWallFormMaterial(0x999999); // Gris clair
             const screen20 = new THREE.Mesh(geometry20, material20);
-            screen20.position.set(-199.153, -46.014, 95.645); // Y ajusté pour bas = -111.773
+            screen20.position.set(-198.905, -46.014, 95.8); // Position mise à jour
             screen20.rotation.set(-3.141593, 0, -3.141593);
             screen20.scale.set(1, 1, 1);
             screen20.userData.screenNumber = 20;
             screen20.userData.isColorSurface = true;
-            screen20.userData.color = 0x0A0A0A;
+            screen20.userData.color = 0x999999;
             screensGroup.add(screen20);
 
             // ======================
@@ -6904,14 +6924,14 @@
             const width21b = 3.576;
             const height21b = 131.518; // Ajusté: ancien haut (19.745) - sol (-111.773)
             const geometry21b = new THREE.PlaneGeometry(width21b, height21b);
-            const material21b = createWallFormMaterial(0x0A0A0A); // Noir foncé
+            const material21b = createWallFormMaterial(0x999999); // Gris clair
             const screen21b = new THREE.Mesh(geometry21b, material21b);
             screen21b.position.set(-198.975, -46.014, 130.621); // Y ajusté pour bas = -111.773
             screen21b.rotation.set(-3.141593, 0, -3.141593);
             screen21b.scale.set(1, 1, 1);
             screen21b.userData.screenNumber = 21;
             screen21b.userData.isColorSurface = true;
-            screen21b.userData.color = 0x0A0A0A;
+            screen21b.userData.color = 0x999999;
             screensGroup.add(screen21b);
 
             // ======================
@@ -6921,14 +6941,14 @@
             const width22 = 235.076;
             const height22 = 60.24; // Ajusté pour bas = -111.773
             const geometry22 = new THREE.PlaneGeometry(width22, height22);
-            const material22 = createWallFormMaterial(0x060606); // Noir foncé
+            const material22 = createWallFormMaterial(0x999999); // Gris clair
             const screen22 = new THREE.Mesh(geometry22, material22);
             screen22.position.set(-315.617, -81.653, 180.248); // Y ajusté
             screen22.rotation.set(-3.141593, 0, -3.141593);
             screen22.scale.set(1, 1, 1);
             screen22.userData.screenNumber = 22;
             screen22.userData.isColorSurface = true;
-            screen22.userData.color = 0x060606;
+            screen22.userData.color = 0x999999;
             screensGroup.add(screen22);
 
             // ======================
@@ -6938,14 +6958,14 @@
             const width23 = 235.076;
             const height23 = 60.24; // Ajusté pour bas = -111.773
             const geometry23 = new THREE.PlaneGeometry(width23, height23);
-            const material23 = createWallFormMaterial(0x060606); // Noir foncé
+            const material23 = createWallFormMaterial(0x999999); // Gris clair
             const screen23 = new THREE.Mesh(geometry23, material23);
             screen23.position.set(-315.617, -81.653, 48.644); // Y ajusté
             screen23.rotation.set(-3.141593, 0, -3.141593);
             screen23.scale.set(1, 1, 1);
             screen23.userData.screenNumber = 23;
             screen23.userData.isColorSurface = true;
-            screen23.userData.color = 0x060606;
+            screen23.userData.color = 0x999999;
             screensGroup.add(screen23);
 
             // ======================
@@ -9085,11 +9105,13 @@
                     if (!document.fullscreenElement) {
                         lastFullscreenExitTime = performance.now();
                     }
+                    updateFullscreenIcon();
                 });
                 document.addEventListener('webkitfullscreenchange', function() {
                     if (!document.webkitFullscreenElement) {
                         lastFullscreenExitTime = performance.now();
                     }
+                    updateFullscreenIcon();
                 });
 
                 autoLoadSequence();
@@ -9110,6 +9132,9 @@
 
             isPaused = true;
             document.getElementById('pause-screen').classList.add('active');
+
+            // Update fullscreen icon in pause panel
+            updateFullscreenIcon();
 
             // Mobile: cacher contrôles, transformer bouton info en croix
             if (isMobile) {
@@ -10155,13 +10180,33 @@
         }
 
         function updateFullscreenIcon() {
+            // Update mobile button
             const btn = document.getElementById('mobile-fullscreen-btn');
-            if (!btn) return;
-            const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
-            const enterIcon = btn.querySelector('.fs-enter-icon');
-            const exitIcon = btn.querySelector('.fs-exit-icon');
-            if (enterIcon) enterIcon.style.display = isFS ? 'none' : 'block';
-            if (exitIcon) exitIcon.style.display = isFS ? 'block' : 'none';
+            if (btn) {
+                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+                const enterIcon = btn.querySelector('.fs-enter-icon');
+                const exitIcon = btn.querySelector('.fs-exit-icon');
+                if (enterIcon) enterIcon.style.display = isFS ? 'none' : 'block';
+                if (exitIcon) exitIcon.style.display = isFS ? 'block' : 'none';
+            }
+            // Update pause panel fullscreen button
+            const pauseBtn = document.getElementById('pause-close-btn');
+            if (pauseBtn) {
+                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+                const enterIcon = pauseBtn.querySelector('.fs-enter-icon');
+                const exitIcon = pauseBtn.querySelector('.fs-exit-icon');
+                if (enterIcon) enterIcon.style.display = isFS ? 'none' : 'block';
+                if (exitIcon) exitIcon.style.display = isFS ? 'block' : 'none';
+            }
+        }
+
+        function toggleFullscreenAndResume() {
+            playClickSound();
+            toggleFullscreen();
+            // Close the info panel after entering fullscreen
+            setTimeout(() => {
+                resumeExperience();
+            }, 100);
         }
 
         // ═══════════════════════════════════════════════════════════════
