@@ -1097,8 +1097,8 @@
             position: fixed;
             top: 12px;
             left: 12px;
-            padding: 14px 17px;
-            font-size: 17px;
+            padding: 9px 11px;
+            font-size: 11.3px;
             color: var(--color-text);
             z-index: var(--z-ui);
             pointer-events: none;
@@ -1106,13 +1106,7 @@
             letter-spacing: 0.3px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
-        }
-        .persistent-instructions .key {
-            background: rgba(255,255,255,0.13) !important;
-            border: 1px solid rgba(255,255,255,0.22) !important;
-            padding: 7px 11px !important;
-            font-size: 15px !important;
+            gap: var(--space-sm);
         }
 
         /* Game & Pause Instructions (shared base) */
@@ -1153,7 +1147,7 @@
             align-items: center;
             gap: var(--space-sm);
         }
-        .instruction-row .key {
+        .game-instructions .key, .pause-instructions .key {
             display: inline-block;
             background: var(--color-accent-hover);
             padding: 5px 7px;
@@ -9601,10 +9595,10 @@
         async function loadVolumetricScreenVideos() {
             console.log('🎬 Tentative de chargement de la vidéo panoramique...');
 
-            // Charger aussi la vidéo du sol en parallèle
-            loadFloorVideo();
+            // Charger la vidéo du sol en parallèle (on attend les deux via Promise.all)
+            const floorPromise = loadFloorVideo();
 
-            return new Promise((resolve) => {
+            const panoramaPromise = new Promise((resolve) => {
                 // Create hidden video element for panoramic video
                 const videoElement = document.createElement('video');
                 videoElement.id = 'video-panorama';
@@ -9695,6 +9689,9 @@
                     }
                 }, isMobile ? 25000 : 15000);
             });
+
+            // Attendre les deux vidéos (panorama + sol) avant de continuer
+            await Promise.all([panoramaPromise, floorPromise]);
         }
 
         // Synchroniser et lancer toutes les vidéos en même temps
