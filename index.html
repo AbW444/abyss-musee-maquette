@@ -1370,7 +1370,7 @@
         #mobile-pause-btn {
             display: none;
             position: fixed;
-            top: calc(20px + env(safe-area-inset-top));
+            top: calc(10px + env(safe-area-inset-top));
             left: calc(20px + env(safe-area-inset-left));
             z-index: var(--z-mobile-controls);
             width: 44px;
@@ -1425,7 +1425,7 @@
         #mobile-fullscreen-btn {
             display: none;
             position: fixed;
-            top: calc(20px + env(safe-area-inset-top));
+            top: calc(10px + env(safe-area-inset-top));
             right: calc(20px + env(safe-area-inset-right));
             z-index: var(--z-mobile-controls);
             width: 44px;
@@ -1481,15 +1481,15 @@
             background: rgba(255,255,255,0.4);
         }
 
-        /* Bouton Toggle Gyroscope */
+        /* Bouton Gyroscope (bas gauche) */
         #gyro-toggle-btn {
             display: none;
             position: fixed;
             bottom: calc(50px + env(safe-area-inset-bottom));
             left: calc(20px + env(safe-area-inset-left));
             z-index: var(--z-mobile-controls);
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             background: rgba(0,0,0,0.7);
             border: 1px solid var(--color-border);
             border-radius: var(--radius-round);
@@ -1500,28 +1500,49 @@
             justify-content: center;
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
-            transition: background 0.15s, transform 0.1s;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
         }
         #gyro-toggle-btn:active {
-            background: rgba(255,255,255,0.15);
             transform: scale(0.93);
         }
-        #gyro-toggle-btn .gyro-icon,
-        #gyro-toggle-btn .touch-icon {
-            display: block;
-        }
-        #gyro-toggle-btn.touch-mode .gyro-icon {
+
+        /* Bouton Manuel (bas droite) */
+        #manual-toggle-btn {
             display: none;
+            position: fixed;
+            bottom: calc(50px + env(safe-area-inset-bottom));
+            right: calc(20px + env(safe-area-inset-right));
+            z-index: var(--z-mobile-controls);
+            width: 44px;
+            height: 44px;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-round);
+            color: #fff;
+            cursor: pointer;
+            padding: 0;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
         }
-        #gyro-toggle-btn.touch-mode .touch-icon {
-            display: block !important;
+        #manual-toggle-btn:active {
+            transform: scale(0.93);
+        }
+
+        /* Mode actif = sélection bleue */
+        #gyro-toggle-btn.mode-active,
+        #manual-toggle-btn.mode-active {
+            border-color: rgba(100,150,255,0.6);
+            background: rgba(100,150,255,0.18);
         }
 
         /* Mobile Instructions */
         #mobile-instructions {
             display: none;
             position: fixed;
-            top: calc(80px + env(safe-area-inset-top));
+            top: calc(65px + env(safe-area-inset-top));
             left: 50%;
             transform: translateX(-50%);
             z-index: var(--z-ui);
@@ -1737,6 +1758,9 @@
             #mobile-instructions {
                 display: block;
             }
+            #manual-toggle-btn {
+                display: flex;
+            }
 
             /* Cacher UI desktop */
             .persistent-instructions,
@@ -1745,10 +1769,10 @@
                 display: none !important;
             }
 
-            /* Pause screen mobile - compact, remonté */
+            /* Pause screen mobile - centré verticalement */
             #pause-screen {
-                justify-content: flex-start;
-                padding-top: calc(70px + env(safe-area-inset-top));
+                justify-content: center;
+                padding-top: 0;
             }
             .pause-content {
                 max-width: 85vw;
@@ -1897,8 +1921,8 @@
         <div class="joystick-thumb"></div>
     </div>
 
-    <!-- Bouton Toggle Gyroscope (bas gauche) -->
-    <button id="gyro-toggle-btn" class="hidden" aria-label="Toggle Gyroscope">
+    <!-- Bouton Gyroscope (bas gauche) -->
+    <button id="gyro-toggle-btn" class="hidden" aria-label="Mode Gyroscope">
         <svg class="gyro-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"></circle>
             <circle cx="12" cy="12" r="3"></circle>
@@ -1907,7 +1931,11 @@
             <line x1="2" y1="12" x2="6" y2="12"></line>
             <line x1="18" y1="12" x2="22" y2="12"></line>
         </svg>
-        <svg class="touch-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+    </button>
+
+    <!-- Bouton Manuel (bas droite) -->
+    <button id="manual-toggle-btn" class="hidden" aria-label="Mode Manuel">
+        <svg class="touch-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v5"></path>
             <path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v6"></path>
             <path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"></path>
@@ -1928,12 +1956,21 @@
             </svg>
             <span>Inclinez pour regarder</span>
         </div>
+        <div class="instruction-line">
+            <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v5"></path>
+                <path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v6"></path>
+                <path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"></path>
+                <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path>
+            </svg>
+            <span>Toucher pour orienté</span>
+        </div>
         <div class="instruction-line secondary">
             <svg class="instruction-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <circle cx="12" cy="12" r="10"></circle>
                 <circle cx="12" cy="12" r="4"></circle>
             </svg>
-            <span>Joystick pour se deplacer</span>
+            <span>Joystick pour se déplacer</span>
         </div>
     </div>
 
@@ -9123,12 +9160,15 @@
             // Update fullscreen icon in pause panel
             updateFullscreenIcon();
 
-            // Mobile: cacher contrôles, transformer bouton info en croix
+            // Mobile: cacher contrôles et instructions, transformer bouton info en croix
             if (isMobile) {
                 document.getElementById('gyro-toggle-btn')?.classList.add('hidden');
+                document.getElementById('manual-toggle-btn')?.classList.add('hidden');
                 document.getElementById('mobile-joystick')?.classList.add('hidden');
                 document.getElementById('mobile-fullscreen-btn')?.classList.add('hidden');
                 document.getElementById('mobile-pause-btn')?.classList.add('active-infos');
+                const mobileInstr = document.getElementById('mobile-instructions');
+                if (mobileInstr) mobileInstr.classList.add('hidden');
             }
 
             // Volume constant - pas de fade
@@ -9151,6 +9191,11 @@
                 if (gyroToggle) {
                     gyroToggle.classList.remove('hidden');
                     gyroToggle.style.display = 'flex';
+                }
+                const manualToggle = document.getElementById('manual-toggle-btn');
+                if (manualToggle) {
+                    manualToggle.classList.remove('hidden');
+                    manualToggle.style.display = 'flex';
                 }
                 document.getElementById('mobile-joystick')?.classList.remove('hidden');
                 const fsBtn = document.getElementById('mobile-fullscreen-btn');
@@ -9418,7 +9463,9 @@
                 videoElement.id = 'video-floor';
                 videoElement.muted = true;
                 videoElement.loop = true;
-                videoElement.playsinline = true;
+                videoElement.playsInline = true;
+                videoElement.setAttribute('playsinline', '');
+                videoElement.setAttribute('webkit-playsinline', '');
                 videoElement.style.display = 'none';
                 document.body.appendChild(videoElement);
 
@@ -9494,7 +9541,9 @@
                 videoElement.id = 'video-panorama';
                 videoElement.muted = true;
                 videoElement.loop = true;
-                videoElement.playsinline = true;
+                videoElement.playsInline = true;
+                videoElement.setAttribute('playsinline', '');
+                videoElement.setAttribute('webkit-playsinline', '');
                 videoElement.style.display = 'none';
                 document.body.appendChild(videoElement);
 
@@ -9868,9 +9917,12 @@
             const yawSensitivity = 0.028;
             const pitchSensitivity = 0.022;
 
-            // Target orientation
-            const rawTargetYaw = baseYaw - (deltaAlpha * yawSensitivity);
-            const rawTargetPitch = basePitch + (deltaBeta * pitchSensitivity);
+            // Calibration: offset pitch down ~70° so perpendicular phone = looking forward
+            const GYRO_PITCH_OFFSET = -(70 * Math.PI / 180); // -1.22 radians
+
+            // Target orientation (yaw inverted for correct left/right)
+            const rawTargetYaw = baseYaw + (deltaAlpha * yawSensitivity);
+            const rawTargetPitch = basePitch + (deltaBeta * pitchSensitivity) + GYRO_PITCH_OFFSET;
 
             // Low-pass filter (exponential moving average, frame-rate independent)
             // Higher SMOOTH_FACTOR = more responsive, lower = smoother
@@ -9880,8 +9932,8 @@
             _gyroFilteredYaw += (rawTargetYaw - _gyroFilteredYaw) * filterAlpha;
             _gyroFilteredPitch += (rawTargetPitch - _gyroFilteredPitch) * filterAlpha;
 
-            // Clamp pitch
-            const maxPitch = Math.PI / 2.5;
+            // Clamp pitch (wider range to accommodate calibration offset)
+            const maxPitch = Math.PI / 2;
             _gyroFilteredPitch = Math.max(-maxPitch, Math.min(maxPitch, _gyroFilteredPitch));
 
             cameraYaw = _gyroFilteredYaw;
@@ -10044,35 +10096,48 @@
         function initGyroToggle() {
             if (!isMobile) return;
 
-            const toggleBtn = document.getElementById('gyro-toggle-btn');
-            if (!toggleBtn) return;
+            const gyroBtn = document.getElementById('gyro-toggle-btn');
+            const manualBtn = document.getElementById('manual-toggle-btn');
 
-            toggleBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleGyroMode();
-            });
+            if (gyroBtn) {
+                gyroBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setControlMode('gyro');
+                });
+                gyroBtn.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                }, { passive: false });
+            }
 
-            toggleBtn.addEventListener('touchstart', (e) => {
-                e.stopPropagation();
-            }, { passive: false });
+            if (manualBtn) {
+                manualBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setControlMode('manual');
+                });
+                manualBtn.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                }, { passive: false });
+            }
         }
 
-        function toggleGyroMode() {
-            touchDragEnabled = !touchDragEnabled;
-            const toggleBtn = document.getElementById('gyro-toggle-btn');
+        function setControlMode(mode) {
+            const gyroBtn = document.getElementById('gyro-toggle-btn');
+            const manualBtn = document.getElementById('manual-toggle-btn');
 
-            if (touchDragEnabled) {
-                // Mode tap-and-drag active
-                toggleBtn.classList.add('touch-mode');
-                // Reinitialiser la reference gyroscope pour quand on reactivera
+            if (mode === 'gyro') {
+                touchDragEnabled = false;
+                gyroBtn?.classList.add('mode-active');
+                manualBtn?.classList.remove('mode-active');
                 resetGyroReference();
-                console.log('Mode tactile active');
+                console.log('Mode gyroscope activé');
             } else {
-                // Mode gyroscope active
-                toggleBtn.classList.remove('touch-mode');
+                touchDragEnabled = true;
+                manualBtn?.classList.add('mode-active');
+                gyroBtn?.classList.remove('mode-active');
                 resetGyroReference();
-                console.log('Mode gyroscope active');
+                console.log('Mode manuel activé');
             }
         }
 
@@ -10099,6 +10164,7 @@
                     e.target.closest('#mobile-pause-btn') ||
                     e.target.closest('#mobile-fullscreen-btn') ||
                     e.target.closest('#gyro-toggle-btn') ||
+                    e.target.closest('#manual-toggle-btn') ||
                     e.target.closest('.pause-controls')) return;
 
                 const touch = e.changedTouches[0];
@@ -10140,9 +10206,9 @@
                 const screenScale = 400 / Math.min(window.innerWidth, window.innerHeight);
                 const sensitivity = baseSensitivity * screenScale;
 
-                // Apply rotation
-                cameraYaw -= deltaX * sensitivity;
-                cameraPitch += deltaY * sensitivity;
+                // Apply rotation (inverted for natural touch feel)
+                cameraYaw += deltaX * sensitivity;
+                cameraPitch -= deltaY * sensitivity;
 
                 // Clamp pitch
                 const maxPitch = Math.PI / 2.2;
@@ -10191,8 +10257,8 @@
                     _touchVelocityX *= FRICTION;
                     _touchVelocityY *= FRICTION;
 
-                    cameraYaw -= _touchVelocityX;
-                    cameraPitch += _touchVelocityY;
+                    cameraYaw += _touchVelocityX;
+                    cameraPitch -= _touchVelocityY;
 
                     const maxPitch = Math.PI / 2.2;
                     cameraPitch = Math.max(-maxPitch, Math.min(maxPitch, cameraPitch));
@@ -10253,6 +10319,7 @@
             btn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                toggleFullscreen();
             }, { passive: false });
         }
 
@@ -10303,6 +10370,7 @@
         }
 
         function updateEscInstructionVisibility() {
+            if (isMobile) return; // Never show ESC instructions on mobile
             const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
             const escInstr = document.getElementById('esc-fullscreen-instruction');
             if (escInstr) escInstr.style.display = isFS ? '' : 'none';
@@ -10397,11 +10465,14 @@
                 if (gyroToggle) {
                     gyroToggle.classList.remove('hidden');
                     gyroToggle.style.display = 'flex';
-                    // Mode manuel par défaut
-                    if (touchDragEnabled) {
-                        gyroToggle.classList.add('touch-mode');
-                    }
                 }
+                const manualToggle = document.getElementById('manual-toggle-btn');
+                if (manualToggle) {
+                    manualToggle.classList.remove('hidden');
+                    manualToggle.style.display = 'flex';
+                }
+                // Appliquer le mode initial (manuel par défaut)
+                setControlMode(touchDragEnabled ? 'manual' : 'gyro');
 
                 // Afficher instructions après un délai
                 setTimeout(() => {
