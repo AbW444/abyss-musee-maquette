@@ -1226,6 +1226,31 @@
             opacity: 0;
         }
 
+        /* Fade-from-black overlay: sits behind loading screen, reveals 3D scene smoothly */
+        #scene-reveal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            background: var(--color-bg);
+            z-index: calc(var(--z-loading) - 1);
+            opacity: 1;
+            pointer-events: none;
+            display: none;
+            transition: opacity 1.2s ease;
+        }
+
+        #scene-reveal-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        #scene-reveal-overlay.revealed {
+            opacity: 0;
+        }
+
         .loading-video {
             width: var(--logoSize);
             height: var(--logoSize);
@@ -2107,6 +2132,9 @@
 
         <div class="pause-credits">Musique : Teimo (schluss) par Thomas Köner</div>
     </div>
+
+    <!-- Fade-from-black overlay (reveals 3D scene smoothly after loading) -->
+    <div id="scene-reveal-overlay"></div>
 
     <!-- Loading Screen -->
     <div id="loading-screen">
@@ -4747,6 +4775,14 @@
             // PointerLock API setup for FPS-style controls (only in FPS mode)
             renderer.domElement.addEventListener('click', function() {
                 if (!selectedScreen && freeCameraEnabled && fpsMode) {
+                    // Re-enter fullscreen on click if not in fullscreen
+                    // (ESC key cannot trigger requestFullscreen in browsers — security restriction)
+                    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                        const el = document.documentElement;
+                        if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+                        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                    }
+
                     renderer.domElement.requestPointerLock = renderer.domElement.requestPointerLock ||
                                                              renderer.domElement.mozRequestPointerLock ||
                                                              renderer.domElement.webkitRequestPointerLock;
@@ -9114,6 +9150,13 @@
 
             // Volume constant - pas de fade
 
+            // Re-enter fullscreen on resume (click IS a valid user gesture for fullscreen)
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                const el = document.documentElement;
+                if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            }
+
             // Request pointer lock (desktop only) — may fail if not triggered by user gesture
             if (fpsMode && renderer && renderer.domElement && !isMobile) {
                 const p = renderer.domElement.requestPointerLock();
@@ -9158,16 +9201,30 @@
             }
         };
 
+        // Helper: keep loading video alive during heavy JS work
+        function ensureLoadingVideoPlaying() {
+            const loadingVideo = document.querySelector('#loading-screen .loading-video');
+            if (loadingVideo && loadingVideo.paused) {
+                loadingVideo.play().catch(() => {});
+            }
+        }
+
         // Auto-load sequence: Load default video → Activate FPS → Show UI → Apply
         async function autoLoadSequence() {
             const loadingScreen = document.getElementById('loading-screen');
+            const revealOverlay = document.getElementById('scene-reveal-overlay');
+
+            // Activate reveal overlay (solid black behind loading screen)
+            revealOverlay.classList.add('active');
 
             try {
                 // Step 1: Load videos for all volumetric screens
                 console.log('🎬 AUTO-LOAD: Chargement des vidéos multi-écrans...');
+                ensureLoadingVideoPlaying();
                 await loadVolumetricScreenVideos();
 
                 // Fallback: also load default video for backward compatibility
+                ensureLoadingVideoPlaying();
                 await loadDefaultVideo();
                 await sleep(500);
 
@@ -9184,32 +9241,48 @@
 
                 // Play background music in Spectator mode
                 playAudio();
+                ensureLoadingVideoPlaying();
                 await sleep(300);
 
                 // Step 3: Apply settings
                 // Yield to browser so loading video/animation stays alive before heavy work
                 console.log('⚙️ AUTO-LOAD: Application des paramètres...');
+                ensureLoadingVideoPlaying();
                 await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
                 applySettings();
                 // Yield again after heavy work to let compositor recover
                 await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+                // Force re-play loading video after heavy applySettings work
+                ensureLoadingVideoPlaying();
                 await sleep(300);
 
                 // Step 4: Synchroniser et lancer toutes les vidéos ensemble
                 console.log('🔄 AUTO-LOAD: Synchronisation des vidéos...');
+                ensureLoadingVideoPlaying();
                 syncStartAllVideos();
                 await sleep(200);
 
-                // Step 5: Hide loading screen
+                // Step 5: Wait for first frame to render before hiding loading screen
                 console.log('✅ AUTO-LOAD: Séquence terminée!');
-                await sleep(500);
+                // Let the 3D scene render a few frames before revealing
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))));
+                await sleep(300);
 
+                // Step 6: Hide loading screen (reveal overlay stays black behind it)
                 loadingScreen.classList.add('hidden');
 
-                // Remove from DOM after transition
+                // After loading screen fades out (500ms), trigger the fade-from-black reveal
                 setTimeout(() => {
                     loadingScreen.style.display = 'none';
-                }, 500);
+
+                    // Now fade the black overlay to transparent — smooth reveal of 3D scene
+                    revealOverlay.classList.add('revealed');
+
+                    // Remove overlay from DOM after transition completes (1200ms)
+                    setTimeout(() => {
+                        revealOverlay.style.display = 'none';
+                    }, 1300);
+                }, 550);
 
                 // Fullscreen is already requested from handlePlayClick (user gesture)
 
@@ -9227,12 +9300,16 @@
             } catch (error) {
                 console.error('❌ AUTO-LOAD: Erreur:', error);
 
-                // Hide loading screen anyway after 2s
+                // Hide loading screen anyway after 2s with fade-from-black reveal
                 setTimeout(() => {
                     loadingScreen.classList.add('hidden');
                     setTimeout(() => {
                         loadingScreen.style.display = 'none';
-                    }, 500);
+                        revealOverlay.classList.add('revealed');
+                        setTimeout(() => {
+                            revealOverlay.style.display = 'none';
+                        }, 1300);
+                    }, 550);
                 }, 2000);
             }
         }
