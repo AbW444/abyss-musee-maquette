@@ -939,7 +939,7 @@
             overflow-y: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
-            background: var(--color-overlay);
+            background: rgba(0,0,0,0.916);
             border: none;
             border-radius: var(--radius-2xl);
             padding: 30px 42px;
@@ -1371,7 +1371,7 @@
             display: none;
             position: fixed;
             top: calc(10px + env(safe-area-inset-top));
-            left: calc(20px + env(safe-area-inset-left));
+            right: calc(20px + env(safe-area-inset-right));
             z-index: var(--z-mobile-controls);
             width: 44px;
             height: 44px;
@@ -1426,7 +1426,7 @@
             display: none;
             position: fixed;
             top: calc(10px + env(safe-area-inset-top));
-            right: calc(20px + env(safe-area-inset-right));
+            left: calc(20px + env(safe-area-inset-left));
             z-index: var(--z-mobile-controls);
             width: 44px;
             height: 44px;
@@ -1538,28 +1538,6 @@
             background: rgba(100,150,255,0.18);
         }
 
-        /* Fullscreen: marge fixe identique avec le bord de l'écran actif
-           En mode plein écran, on supprime les safe-area-inset pour conserver
-           la même marge visuelle (base) avec le bord physique de l'écran. */
-        body.is-fullscreen #mobile-pause-btn {
-            top: 10px;
-            left: 20px;
-        }
-        body.is-fullscreen #mobile-fullscreen-btn {
-            top: 10px;
-            right: 20px;
-        }
-        body.is-fullscreen #gyro-toggle-btn {
-            bottom: 50px;
-            left: 20px;
-        }
-        body.is-fullscreen #manual-toggle-btn {
-            bottom: 50px;
-            right: 20px;
-        }
-        body.is-fullscreen #mobile-joystick {
-            bottom: 50px;
-        }
 
         /* Mobile Instructions */
         #mobile-instructions {
@@ -1823,7 +1801,7 @@
             /* Pause screen mobile - centré verticalement */
             #pause-screen {
                 justify-content: center;
-                padding-top: 0;
+                padding: 0;
             }
             .pause-content {
                 max-width: 85vw;
@@ -5245,7 +5223,9 @@
         // Global reference to GPU materials for uniform updates
         let gpuVolumeMaterials = [];
         let gpuVideoTexture = null;
+        let gpuFloorVideoTexture = null; // Separate texture for floor video (ecran_06.webm)
         let lastVideoTime = -1; // Track video frame changes for texture update optimization
+        let lastFloorVideoTime = -1; // Track floor video frame changes
 
         // Create GPU volumetric ShaderMaterial
         function createGPUVolumeMaterial(videoTexture, portionOffset, portionWidth, options) {
@@ -6260,9 +6240,27 @@
                 }
             }
 
-            // GPU material for screen 6 (sol) — uses screen 1's panoramic portion
-            const screen6SolMaterial = createGPUVolumeMaterial(gpuVideoTexture,
-                screen1PortionOffset, screen1PortionWidth,
+            // GPU material for screen 6 (sol) — uses dedicated floor video (ecran_06.webm)
+            // Create a separate VideoTexture for the floor video if available
+            let screen6Texture = gpuVideoTexture; // fallback to panoramic
+            let screen6PortionOffset = screen1PortionOffset;
+            let screen6PortionWidth = screen1PortionWidth;
+            if (floorVideo && floorVideo.videoWidth > 0) {
+                if (!gpuFloorVideoTexture || gpuFloorVideoTexture.image !== floorVideo) {
+                    if (gpuFloorVideoTexture) gpuFloorVideoTexture.dispose();
+                    gpuFloorVideoTexture = new THREE.VideoTexture(floorVideo);
+                    gpuFloorVideoTexture.minFilter = THREE.LinearFilter;
+                    gpuFloorVideoTexture.magFilter = THREE.LinearFilter;
+                    gpuFloorVideoTexture.format = THREE.RGBFormat;
+                    gpuFloorVideoTexture.flipY = false;
+                    lastFloorVideoTime = -1;
+                }
+                screen6Texture = gpuFloorVideoTexture;
+                screen6PortionOffset = 0.0; // Full video, no panoramic portion
+                screen6PortionWidth = 1.0;
+            }
+            const screen6SolMaterial = createGPUVolumeMaterial(screen6Texture,
+                screen6PortionOffset, screen6PortionWidth,
                 { depthSpread: depthSpreadForShader, shapeTexture: is3DMode ? null : getShapeTexture(currentShape) });
 
             let screen3;
@@ -8116,6 +8114,15 @@
                 if (currentVideoTime !== lastVideoTime) {
                     gpuVideoTexture.needsUpdate = true;
                     lastVideoTime = currentVideoTime;
+                }
+            }
+
+            // GPU PIPELINE: Update floor video texture separately (ecran_06.webm)
+            if (gpuFloorVideoTexture && floorVideo && !floorVideo.paused) {
+                const currentFloorTime = floorVideo.currentTime;
+                if (currentFloorTime !== lastFloorVideoTime) {
+                    gpuFloorVideoTexture.needsUpdate = true;
+                    lastFloorVideoTime = currentFloorTime;
                 }
             }
 
