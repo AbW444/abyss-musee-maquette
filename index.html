@@ -1007,8 +1007,8 @@
         }
         .pause-controls {
             position: fixed;
-            bottom: 30px;
-            right: 30px;
+            bottom: 16px;
+            right: 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -1076,7 +1076,7 @@
         }
         .pause-credits {
             position: absolute;
-            bottom: 30px;
+            bottom: 16px;
             left: 50%;
             transform: translateX(-50%);
             font-size: var(--text-md);
@@ -1087,98 +1087,120 @@
         /* Pause close button positioning */
         .pause-close-btn {
             position: fixed;
-            top: 30px;
-            right: 30px;
+            top: 16px;
+            right: 16px;
             z-index: var(--z-pause-controls);
         }
 
         /* Persistent Instructions (ALT + ESC — always visible in FPS mode) */
-        .persistent-instructions {
-            position: fixed;
-            top: 12px;
-            left: 12px;
-            padding: 9px 11px;
-            font-size: 11.3px;
-            color: var(--color-text);
-            z-index: var(--z-ui);
+        /* ═══════════════════════════════════════════════════════════════
+           INSTRUCTION SYSTEM — Unified grid for desktop & mobile
+           ═══════════════════════════════════════════════════════════════ */
+
+        /* Shared instruction card base — glassmorphic panel */
+        .persistent-instructions,
+        .game-instructions,
+        .pause-instructions {
+            background: rgba(0,0,0,0.85);
+            padding: var(--space-lg);
+            border-radius: var(--radius-xl);
+            border: 1px solid rgba(255,255,255,0.08);
+            font-size: 12px;
+            color: rgba(255,255,255,0.85);
             pointer-events: none;
-            font-weight: 400;
-            letter-spacing: 0.3px;
+            z-index: var(--z-ui);
             display: flex;
             flex-direction: column;
-            gap: var(--space-sm);
+            gap: 10px;
         }
 
-        /* Game & Pause Instructions (shared base) */
-        .game-instructions, .pause-instructions {
+        .persistent-instructions {
             position: fixed;
-            left: 12px;
-            padding: 9px 11px;
-            font-size: 11.3px;
-            color: var(--color-text);
-            z-index: var(--z-ui);
-            opacity: 1;
-            pointer-events: none;
-            font-weight: 400;
-            letter-spacing: 0.3px;
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-sm);
+            top: 16px;
+            left: 16px;
+            min-width: 160px;
         }
+
         .game-instructions {
-            top: 60px; /* Below persistent-instructions */
+            position: fixed;
+            top: 100px;
+            left: 16px;
+            min-width: 200px;
+            opacity: 1;
         }
-        .pause-instructions {
-            top: 12px;
-            z-index: var(--z-pause-controls);
-        }
-        .game-instructions .instruction-row {
+        .game-instructions .instruction-line {
             transition: opacity 0.6s ease;
         }
-        .instruction-row {
+
+        .pause-instructions {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: var(--z-pause-controls);
+            min-width: 200px;
+        }
+
+        /* Unified instruction line — CSS Grid for pixel-perfect alignment */
+        .instruction-line {
             display: grid;
-            grid-template-columns: auto 1fr;
+            grid-template-columns: 24px 1fr;
             align-items: center;
-            gap: var(--space-sm);
-            line-height: 1.25;
+            gap: 10px;
+            line-height: 1.35;
         }
-        .keys-group {
-            display: flex;
+        .instruction-line.secondary {
+            font-size: 11px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* SVG icons in instruction lines */
+        .instruction-line .instruction-svg {
+            opacity: 0.7;
+            justify-self: center;
+            flex-shrink: 0;
+        }
+
+        /* Key badges inside instruction lines */
+        .instruction-line .key {
+            display: inline-flex;
             align-items: center;
-            gap: var(--space-sm);
-        }
-        .game-instructions .key, .pause-instructions .key {
-            display: inline-block;
-            background: var(--color-accent-hover);
-            padding: 5px 7px;
-            border-radius: var(--radius-md);
-            border: none;
+            justify-content: center;
+            background: rgba(100,150,255,0.15);
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(100,150,255,0.25);
             font-family: var(--font-mono);
-            font-size: var(--text-sm);
-            color: #fff;
+            font-size: 10px;
+            color: rgba(255,255,255,0.9);
             font-weight: 600;
             white-space: nowrap;
-        }
-        .arrows-grid {
-            display: inline-grid;
-            grid-template-columns: repeat(3, auto);
-            grid-template-rows: repeat(2, auto);
-            gap: 2px;
-        }
-        .arrows-grid .key {
-            padding: 3px 5px;
-            font-size: 9px;
             line-height: 1;
+            min-width: 24px;
+            justify-self: center;
         }
-        .arrows-grid .key:nth-child(1) { grid-column: 2; grid-row: 1; }
-        .arrows-grid .key:nth-child(2) { grid-column: 1; grid-row: 2; }
-        .arrows-grid .key:nth-child(3) { grid-column: 2; grid-row: 2; }
-        .arrows-grid .key:nth-child(4) { grid-column: 3; grid-row: 2; }
+
+        /* Inline key badges (within text flow) */
+        .key-inline {
+            display: inline-block;
+            background: rgba(100,150,255,0.12);
+            padding: 2px 5px;
+            border-radius: 3px;
+            border: 1px solid rgba(100,150,255,0.2);
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: rgba(255,255,255,0.8);
+            font-weight: 600;
+            white-space: nowrap;
+            line-height: 1;
+            vertical-align: middle;
+        }
+
         .or-text {
-            font-size: var(--text-sm);
+            font-size: 10px;
             color: var(--color-text-secondary);
             font-style: italic;
         }
+
 
         /* Initial Page Loader */
         #initial-loader {
@@ -1539,9 +1561,11 @@
         }
 
 
-        /* Mobile Instructions */
+        /* Mobile Instructions — shares design tokens with desktop instruction cards */
         #mobile-instructions {
             display: none;
+            flex-direction: column;
+            gap: 10px;
             position: fixed;
             top: calc(65px + env(safe-area-inset-top));
             left: 50%;
@@ -1561,23 +1585,6 @@
         #mobile-instructions.hidden {
             opacity: 0;
             pointer-events: none;
-        }
-        #mobile-instructions .instruction-line {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        #mobile-instructions .instruction-line:last-child {
-            margin-bottom: 0;
-        }
-        #mobile-instructions .instruction-line.secondary {
-            font-size: 11px;
-            color: rgba(255,255,255,0.6);
-        }
-        #mobile-instructions .instruction-svg {
-            opacity: 0.7;
-            flex-shrink: 0;
         }
 
         /* Gyroscope debug overlay */
@@ -1785,7 +1792,7 @@
                 display: block;
             }
             #mobile-instructions {
-                display: block;
+                display: flex;
             }
             #manual-toggle-btn {
                 display: flex;
@@ -2017,11 +2024,11 @@
 
     <!-- Persistent Instructions (ALT + ESC — always visible in FPS mode) -->
     <div class="persistent-instructions" id="persistent-instructions" style="display:none;">
-        <div class="instruction-row">
+        <div class="instruction-line">
             <span class="key">ALT</span>
             <span>Infos</span>
         </div>
-        <div class="instruction-row" id="esc-fullscreen-instruction" style="display:none;">
+        <div class="instruction-line" id="esc-fullscreen-instruction" style="display:none;">
             <span class="key">ESC</span>
             <span>Plein écran</span>
         </div>
@@ -2029,25 +2036,27 @@
 
     <!-- Game Instructions (top-left, visible when on floor Y=11, hides after movement) -->
     <div class="game-instructions hidden" id="game-instructions">
-        <div class="instruction-row">
-            <span class="key">Souris</span>
+        <div class="instruction-line">
+            <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="7" y="2" width="10" height="20" rx="5"></rect>
+                <line x1="12" y1="6" x2="12" y2="10"></line>
+            </svg>
             <span>Regarder autour</span>
         </div>
-        <div class="instruction-row">
-            <div class="keys-group">
-                <span class="key">ZQSD</span>
-                <span class="or-text">ou</span>
-                <div class="arrows-grid">
-                    <span class="key">↑</span>
-                    <span class="key">←</span>
-                    <span class="key">↓</span>
-                    <span class="key">→</span>
-                </div>
-            </div>
-            <span>Se déplacer</span>
+        <div class="instruction-line">
+            <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="6" width="20" height="14" rx="2"></rect>
+                <path d="M7 10h2 M11 10h2 M15 10h2"></path>
+                <path d="M9 14h6"></path>
+            </svg>
+            <span><span class="key-inline">ZQSD</span> <span class="or-text">ou</span> <span class="key-inline">↑←↓→</span> Se déplacer</span>
         </div>
-        <div class="instruction-row">
-            <span class="key">Molette</span>
+        <div class="instruction-line secondary">
+            <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="7" y="2" width="10" height="20" rx="5"></rect>
+                <line x1="12" y1="6" x2="12" y2="10"></line>
+                <path d="M10 16l2 2 2-2"></path>
+            </svg>
             <span>Avancer / Reculer</span>
         </div>
     </div>
@@ -2134,33 +2143,35 @@
         </button>
 
         <div class="pause-instructions">
-            <div class="instruction-row">
+            <div class="instruction-line">
                 <span class="key">ALT</span>
                 <span>Infos</span>
             </div>
-            <div class="instruction-row" id="pause-esc-fullscreen-instruction" style="display:none;">
+            <div class="instruction-line" id="pause-esc-fullscreen-instruction" style="display:none;">
                 <span class="key">ESC</span>
                 <span>Plein écran</span>
             </div>
-            <div class="instruction-row">
-                <span class="key">Souris</span>
+            <div class="instruction-line">
+                <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="7" y="2" width="10" height="20" rx="5"></rect>
+                    <line x1="12" y1="6" x2="12" y2="10"></line>
+                </svg>
                 <span>Regarder autour</span>
             </div>
-            <div class="instruction-row">
-                <div class="keys-group">
-                    <span class="key">ZQSD</span>
-                    <span class="or-text">ou</span>
-                    <div class="arrows-grid">
-                        <span class="key">↑</span>
-                        <span class="key">←</span>
-                        <span class="key">↓</span>
-                        <span class="key">→</span>
-                    </div>
-                </div>
-                <span>Se déplacer</span>
+            <div class="instruction-line">
+                <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="6" width="20" height="14" rx="2"></rect>
+                    <path d="M7 10h2 M11 10h2 M15 10h2"></path>
+                    <path d="M9 14h6"></path>
+                </svg>
+                <span><span class="key-inline">ZQSD</span> <span class="or-text">ou</span> <span class="key-inline">↑←↓→</span> Se déplacer</span>
             </div>
-            <div class="instruction-row">
-                <span class="key">Molette</span>
+            <div class="instruction-line secondary">
+                <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="7" y="2" width="10" height="20" rx="5"></rect>
+                    <line x1="12" y1="6" x2="12" y2="10"></line>
+                    <path d="M10 16l2 2 2-2"></path>
+                </svg>
                 <span>Avancer / Reculer</span>
             </div>
         </div>
@@ -9618,9 +9629,9 @@
                 videoElement.style.display = 'none';
                 document.body.appendChild(videoElement);
 
-                // On mobile, start with smallest file; on desktop, start with best quality
+                // On mobile, start with optimized v2; on desktop, start with best quality
                 const videoPaths = isMobile
-                    ? ['videos/panorama_opti.webm', 'videos/ecran_panorama.webm', 'videos/ecran_panorama_v2_opti.webm']
+                    ? ['videos/ecran_panorama_v2_opti.webm', 'videos/panorama_opti.webm', 'videos/ecran_panorama.webm']
                     : ['videos/ecran_panorama_v2_opti.webm', 'videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
 
                 function tryLoadVideo(pathIndex) {
