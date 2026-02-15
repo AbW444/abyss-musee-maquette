@@ -9412,6 +9412,7 @@
                     // Remove overlay from DOM after transition completes (1200ms)
                     setTimeout(() => {
                         revealOverlay.style.display = 'none';
+                        window.dispatchEvent(new Event('scene-revealed'));
                     }, 1300);
                 }, 550);
 
@@ -9439,6 +9440,7 @@
                         revealOverlay.classList.add('revealed');
                         setTimeout(() => {
                             revealOverlay.style.display = 'none';
+                            window.dispatchEvent(new Event('scene-revealed'));
                         }, 1300);
                     }, 550);
                 }, 2000);
@@ -10628,38 +10630,53 @@
             originalStartExperience();
 
             if (isMobile) {
-                // Afficher les contrôles mobiles
-                document.getElementById('mobile-pause-btn')?.classList.remove('hidden');
-                document.getElementById('mobile-joystick')?.classList.remove('hidden');
-                const fsBtn = document.getElementById('mobile-fullscreen-btn');
-                if (fsBtn) {
-                    fsBtn.classList.remove('hidden');
-                    fsBtn.style.display = 'flex';
-                }
-                const gyroToggle = document.getElementById('gyro-toggle-btn');
-                if (gyroToggle) {
-                    gyroToggle.classList.remove('hidden');
-                    gyroToggle.style.display = 'flex';
-                }
-                const manualToggle = document.getElementById('manual-toggle-btn');
-                if (manualToggle) {
-                    manualToggle.classList.remove('hidden');
-                    manualToggle.style.display = 'flex';
-                }
+                // Liste des contrôles mobiles à faire apparaître en fondu
+                const mobileControlIds = [
+                    'mobile-pause-btn',
+                    'mobile-fullscreen-btn',
+                    'mobile-joystick',
+                    'gyro-toggle-btn',
+                    'manual-toggle-btn'
+                ];
+
+                // Rendre les contrôles visibles dans le DOM mais transparents (opacity: 0)
+                mobileControlIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.classList.remove('hidden');
+                        el.style.opacity = '0';
+                        el.style.transition = 'opacity 0.8s ease';
+                        // Forcer display: flex/block selon l'élément
+                        if (id === 'mobile-joystick') {
+                            el.style.display = 'block';
+                        } else {
+                            el.style.display = 'flex';
+                        }
+                    }
+                });
+
                 // Appliquer le mode initial (manuel par défaut)
                 setControlMode(touchDragEnabled ? 'manual' : 'gyro');
 
-                // Gyroscope debug overlay — hidden in production
-                // const gyroDebug = document.getElementById('gyro-debug-overlay');
-                // if (gyroDebug) gyroDebug.style.display = 'block';
-
-                // Afficher instructions après un délai
-                setTimeout(() => {
-                    showMobileInstructions();
-                }, 2000);
-
                 // Réinitialiser la référence gyroscope
                 resetGyroReference();
+
+                // Après la disparition du chargement et la révélation de la scène,
+                // faire apparaître tous les contrôles mobiles en fondu
+                window.addEventListener('scene-revealed', function onRevealed() {
+                    window.removeEventListener('scene-revealed', onRevealed);
+
+                    // Petit délai pour laisser la scène se stabiliser
+                    setTimeout(() => {
+                        mobileControlIds.forEach(id => {
+                            const el = document.getElementById(id);
+                            if (el) el.style.opacity = '1';
+                        });
+
+                        // Afficher les instructions mobiles aussi en fondu
+                        showMobileInstructions();
+                    }, 200);
+                });
             }
         };
 
