@@ -1147,7 +1147,7 @@
             align-items: center;
             gap: var(--space-sm);
         }
-        .game-instructions .key, .pause-instructions .key {
+        .instruction-row .key {
             display: inline-block;
             background: var(--color-accent-hover);
             padding: 5px 7px;
@@ -9953,8 +9953,17 @@
             _gyroRawBeta = beta;
             _gyroRawGamma = gamma;
 
+            // ── GIMBAL LOCK COMPENSATION ──
+            // When phone is upright (beta ≈ 90°), alpha becomes unstable because
+            // alpha and gamma share the same physical axis (world vertical).
+            // Combine them: compensatedAlpha = alpha + gamma * sin(beta)
+            // - beta = 90° (upright): sin = 1 → compensatedAlpha = alpha + gamma (true heading)
+            // - beta = 0° (flat):     sin = 0 → compensatedAlpha = alpha (already correct)
+            const betaRad = beta * Math.PI / 180;
+            const compensatedAlpha = alpha + gamma * Math.sin(betaRad);
+
             // Update debug overlay
-            updateGyroDebug();
+            updateGyroDebug(compensatedAlpha);
 
             // Only apply to camera when in gyro mode
             if (!fpsMode || isPaused || !gyroEnabled || touchDragEnabled) return;
@@ -9964,15 +9973,15 @@
             const dt = _gyroLastTimestamp ? Math.min((now - _gyroLastTimestamp) / 1000, 0.1) : 0.016;
             _gyroLastTimestamp = now;
 
-            // ── YAW (horizontal rotation) ── relative to initial compass heading
+            // ── YAW (horizontal rotation) ── relative to initial compensated heading
             if (initialAlpha === null) {
-                initialAlpha = alpha;
+                initialAlpha = compensatedAlpha;
                 baseYaw = cameraYaw;
                 _gyroFilteredYaw = cameraYaw;
                 _gyroFilteredPitch = cameraPitch;
             }
 
-            let deltaAlpha = alpha - initialAlpha;
+            let deltaAlpha = compensatedAlpha - initialAlpha;
             if (deltaAlpha > 180) deltaAlpha -= 360;
             if (deltaAlpha < -180) deltaAlpha += 360;
 
@@ -10009,7 +10018,7 @@
         }
 
         // Debug overlay update
-        function updateGyroDebug() {
+        function updateGyroDebug(compensatedAlpha) {
             const overlay = document.getElementById('gyro-debug-overlay');
             if (!overlay || overlay.style.display === 'none') return;
             const content = document.getElementById('gyro-debug-content');
@@ -10017,15 +10026,21 @@
 
             const pitchDeg = (cameraPitch * 180 / Math.PI).toFixed(1);
             const yawDeg = (cameraYaw * 180 / Math.PI).toFixed(1);
+            const compAlpha = (compensatedAlpha !== undefined) ? compensatedAlpha.toFixed(1) : '—';
 
             content.innerHTML =
-                '<span class="dbg-label">alpha</span> <span class="dbg-val">' + _gyroRawAlpha.toFixed(1) + '</span><span class="dbg-dim">°</span><br>' +
-                '<span class="dbg-label">beta </span> <span class="dbg-val">' + _gyroRawBeta.toFixed(1) + '</span><span class="dbg-dim">°</span><br>' +
-                '<span class="dbg-label">gamma</span> <span class="dbg-val">' + _gyroRawGamma.toFixed(1) + '</span><span class="dbg-dim">°</span><br>' +
+                '<span class="dbg-label">Alpha</span> <span class="dbg-val">' + _gyroRawAlpha.toFixed(1) + '</span><span class="dbg-dim">°</span> ' +
+                '<span class="dbg-dim">Rotation autour de l\'axe vertical (Z)</span><br>' +
+                '<span class="dbg-label">Beta </span> <span class="dbg-val">' + _gyroRawBeta.toFixed(1) + '</span><span class="dbg-dim">°</span> ' +
+                '<span class="dbg-dim">Inclinaison avant / arrière</span><br>' +
+                '<span class="dbg-label">Gamma</span> <span class="dbg-val">' + _gyroRawGamma.toFixed(1) + '</span><span class="dbg-dim">°</span> ' +
+                '<span class="dbg-dim">Inclinaison gauche / droite</span><br>' +
                 '<span class="dbg-dim">───────────</span><br>' +
-                '<span class="dbg-label">BETA_NEUTRAL</span> <span class="dbg-val">' + GYRO_BETA_NEUTRAL + '</span><span class="dbg-dim">°</span><br>' +
-                '<span class="dbg-label">pitch</span> <span class="dbg-val">' + pitchDeg + '</span><span class="dbg-dim">°</span><br>' +
-                '<span class="dbg-label">yaw  </span> <span class="dbg-val">' + yawDeg + '</span><span class="dbg-dim">°</span>';
+                '<span class="dbg-label">Beta neutral</span> <span class="dbg-val">' + GYRO_BETA_NEUTRAL + '</span><span class="dbg-dim">°</span><br>' +
+                '<span class="dbg-label">Compensated α</span> <span class="dbg-val">' + compAlpha + '</span><span class="dbg-dim">°</span> ' +
+                '<span class="dbg-dim">α + γ·sin(β)</span><br>' +
+                '<span class="dbg-label">Pitch</span> <span class="dbg-val">' + pitchDeg + '</span><span class="dbg-dim">°</span><br>' +
+                '<span class="dbg-label">Yaw  </span> <span class="dbg-val">' + yawDeg + '</span><span class="dbg-dim">°</span>';
         }
 
         // Reset gyroscope yaw reference only (pitch is absolute, never resets)
