@@ -924,7 +924,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 60px 0;
+            padding: 40px 0;
             box-sizing: border-box;
             z-index: var(--z-pause);
             cursor: pointer;
@@ -934,15 +934,15 @@
             display: flex;
         }
         .pause-content {
-            max-width: 720px;
-            max-height: calc(100vh - 120px);
+            max-width: 680px;
+            max-height: calc(100vh - 80px);
             overflow-y: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
             background: var(--color-overlay);
             border: none;
             border-radius: var(--radius-2xl);
-            padding: 60px 70px;
+            padding: 36px 50px;
             text-align: left;
             box-shadow: none;
             pointer-events: all;
@@ -953,21 +953,21 @@
         }
         .pause-title {
             font-family: var(--font-sans);
-            font-size: 22px;
+            font-size: 19px;
             font-weight: 500;
             color: var(--color-text);
-            margin-bottom: 28px;
+            margin-bottom: 18px;
             letter-spacing: 1.5px;
             text-transform: uppercase;
             line-height: 1.4;
         }
         .pause-text {
             font-family: var(--font-sans);
-            font-size: 15px;
+            font-size: 13.5px;
             font-weight: 300;
             color: var(--color-text-secondary);
-            line-height: 1.9;
-            margin-bottom: 20px;
+            line-height: 1.75;
+            margin-bottom: 14px;
             letter-spacing: 0.3px;
             text-align: justify;
         }
@@ -978,17 +978,17 @@
         /* Liste conceptuelle - sans décoration */
         .pause-conceptual-list {
             font-family: var(--font-sans);
-            font-size: 15px;
+            font-size: 13.5px;
             font-weight: 300;
             color: var(--color-text-secondary);
-            line-height: 2.2;
-            margin: 20px 0;
+            line-height: 1.9;
+            margin: 14px 0;
             letter-spacing: 0.3px;
         }
         .pause-conceptual-list .list-intro {
             display: block;
-            margin-bottom: 12px;
-            line-height: 1.9;
+            margin-bottom: 8px;
+            line-height: 1.75;
         }
         .pause-conceptual-list .list-item {
             display: block;
@@ -996,12 +996,12 @@
         }
         .pause-meta {
             font-family: var(--font-mono);
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 300;
             color: var(--color-text-dim);
-            line-height: 1.7;
-            margin-top: 35px;
-            padding-top: 25px;
+            line-height: 1.6;
+            margin-top: 20px;
+            padding-top: 16px;
             border-top: 1px solid var(--color-border);
             letter-spacing: 0.3px;
         }
@@ -1149,14 +1149,14 @@
         }
         .persistent-instructions .key, .game-instructions .key, .pause-instructions .key {
             display: inline-block;
-            background: rgba(255,255,255,0.08);
+            background: var(--color-accent-hover);
             padding: 5px 7px;
             border-radius: var(--radius-md);
-            border: 1px solid rgba(255,255,255,0.12);
+            border: none;
             font-family: var(--font-mono);
             font-size: var(--text-sm);
-            color: rgba(255,255,255,0.7);
-            font-weight: 500;
+            color: #fff;
+            font-weight: 600;
             white-space: nowrap;
         }
         .arrows-grid {
@@ -1987,9 +1987,9 @@
             <span class="key">ALT</span>
             <span>Infos</span>
         </div>
-        <div class="instruction-row" id="esc-fullscreen-instruction" style="display:none;">
+        <div class="instruction-row">
             <span class="key">ESC</span>
-            <span>Sortie pleine écran</span>
+            <span>Plein écran</span>
         </div>
     </div>
 
@@ -2083,8 +2083,8 @@
 
     <!-- Pause Screen (ESC / Infos) -->
     <div id="pause-screen">
-        <!-- Bouton fullscreen (desktop) — entre en plein écran puis ferme le panneau -->
-        <button class="pause-close-btn" id="pause-close-btn" onclick="toggleFullscreenAndResume()">
+        <!-- Bouton fullscreen (desktop) — bascule le plein écran sans fermer le panneau -->
+        <button class="pause-close-btn" id="pause-close-btn" onclick="handlePauseFullscreenClick()">
             <svg class="fs-enter-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
                 <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
@@ -2104,9 +2104,9 @@
                 <span class="key">ALT</span>
                 <span>Infos</span>
             </div>
-            <div class="instruction-row" id="pause-esc-fullscreen-instruction" style="display:none;">
+            <div class="instruction-row">
                 <span class="key">ESC</span>
-                <span>Sortie pleine écran</span>
+                <span>Plein écran</span>
             </div>
             <div class="instruction-row">
                 <span class="key">Souris</span>
@@ -10323,27 +10323,32 @@
             }, { passive: false });
         }
 
-        let _fsToggleLock = false;
+        let _fsPending = false;
         function toggleFullscreen() {
-            if (_fsToggleLock) return;
-            _fsToggleLock = true;
-            setTimeout(() => { _fsToggleLock = false; }, 400);
+            if (_fsPending) return;
+            _fsPending = true;
 
-            if (document.fullscreenElement || document.webkitFullscreenElement) {
-                if (document.exitFullscreen) document.exitFullscreen();
-                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+            if (isFS) {
+                const p = document.exitFullscreen ? document.exitFullscreen()
+                        : document.webkitExitFullscreen ? (document.webkitExitFullscreen(), Promise.resolve())
+                        : Promise.resolve();
+                Promise.resolve(p).finally(() => { _fsPending = false; });
             } else {
                 const el = document.documentElement;
-                if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                const p = el.requestFullscreen ? el.requestFullscreen()
+                        : el.webkitRequestFullscreen ? (el.webkitRequestFullscreen(), Promise.resolve())
+                        : Promise.resolve();
+                Promise.resolve(p).catch(() => {}).finally(() => { _fsPending = false; });
             }
         }
 
         function updateFullscreenIcon() {
+            const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
             // Update mobile button
             const btn = document.getElementById('mobile-fullscreen-btn');
             if (btn) {
-                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
                 const enterIcon = btn.querySelector('.fs-enter-icon');
                 const exitIcon = btn.querySelector('.fs-exit-icon');
                 if (enterIcon) enterIcon.style.display = isFS ? 'none' : 'block';
@@ -10352,7 +10357,6 @@
             // Update pause panel fullscreen button
             const pauseBtn = document.getElementById('pause-close-btn');
             if (pauseBtn) {
-                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
                 const enterIcon = pauseBtn.querySelector('.fs-enter-icon');
                 const exitIcon = pauseBtn.querySelector('.fs-exit-icon');
                 if (enterIcon) enterIcon.style.display = isFS ? 'none' : 'block';
@@ -10360,22 +10364,14 @@
             }
         }
 
-        function toggleFullscreenAndResume() {
+        function handlePauseFullscreenClick() {
             playClickSound();
             toggleFullscreen();
-            // Close the info panel after entering fullscreen
-            setTimeout(() => {
-                resumeExperience();
-            }, 100);
+            // Ne ferme PAS le panneau info — seulement basculer le plein écran
         }
 
         function updateEscInstructionVisibility() {
-            if (isMobile) return; // Never show ESC instructions on mobile
-            const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
-            const escInstr = document.getElementById('esc-fullscreen-instruction');
-            if (escInstr) escInstr.style.display = isFS ? '' : 'none';
-            const pauseEscInstr = document.getElementById('pause-esc-fullscreen-instruction');
-            if (pauseEscInstr) pauseEscInstr.style.display = isFS ? '' : 'none';
+            // ESC instruction is now always visible in persistent-instructions (no toggle needed)
         }
 
         // ═══════════════════════════════════════════════════════════════
