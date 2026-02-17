@@ -4661,13 +4661,12 @@
 
             console.log('🖼️ Création du renderer...');
             renderer = new THREE.WebGLRenderer({
-                antialias: isMobile, // Enable MSAA on mobile for crisp edges
+                antialias: true, // Enable MSAA on all devices for crisp edges
                 alpha: true,
                 powerPreference: 'high-performance'
             });
-            // Mobile: allow native DPR (up to 3x) for sharp rendering
-            // Desktop: cap at 2x (sufficient with larger screens)
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 3 : 2));
+            // Allow native DPR (up to 3x) for sharp rendering on all devices
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
             renderer.setSize(canvasWidth, canvasHeight);
             // PERFORMANCE: Shadows désactivés (coûteux, pas visibles sur ce projet)
             renderer.shadowMap.enabled = false;
