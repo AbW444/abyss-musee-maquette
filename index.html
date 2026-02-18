@@ -700,7 +700,7 @@
             background: rgba(0,0,0,0.55);
             backdrop-filter: blur(32px);
             -webkit-backdrop-filter: blur(32px);
-            border-radius: 0 28px 28px 0;
+            border-radius: 0 56px 56px 0;
             z-index: 1;
             pointer-events: none;
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--clickFadeMs) ease;
@@ -1869,6 +1869,11 @@
                 transition: opacity 0.35s ease, transform 0.35s ease !important;
             }
 
+            /* Typographie : éviter orphelins, balance de lignes */
+            .welcome-content, .pause-content {
+                text-wrap: pretty;
+            }
+
             /* Textes plus petits */
             .welcome-project-name {
                 font-size: clamp(28px, 8vw, 42px);
@@ -1968,9 +1973,36 @@
                 max-height: calc(100dvh - 150px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
                 overflow-y: auto;
                 font-size: 13px;
+                /* Même fond que welcome-content mobile */
                 background: rgba(0,0,0,0.55);
-                backdrop-filter: blur(32px);
-                -webkit-backdrop-filter: blur(32px);
+                backdrop-filter: blur(24px);
+                -webkit-backdrop-filter: blur(24px);
+                border-radius: 28px;
+            }
+
+            /* ═══ Scroll fade intérieur bas — flou en cloche aplatie ═══
+               Effet de flou par-dessus le texte en bas des blocs scrollables,
+               s'aplatit et disparaît quand on a tout scrollé */
+            .mobile-scroll-fade {
+                position: sticky;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: var(--scroll-fade-h, 45px);
+                margin-top: calc(-1 * var(--scroll-fade-h, 45px));
+                background: linear-gradient(to bottom,
+                    transparent 0%,
+                    rgba(0,0,0,0.08) 20%,
+                    rgba(0,0,0,0.25) 50%,
+                    rgba(0,0,0,0.45) 80%,
+                    rgba(0,0,0,0.55) 100%);
+                backdrop-filter: blur(6px);
+                -webkit-backdrop-filter: blur(6px);
+                pointer-events: none;
+                z-index: 5;
+                border-radius: 0 0 28px 28px;
+                flex-shrink: 0;
+                transition: height 0.15s ease;
             }
             .pause-conceptual-list .list-intro {
                 margin-bottom: 8px;
@@ -2260,7 +2292,7 @@
             <div class="welcome-context" data-fr="Projet de recherche par le design, maquette non définitive. Images issues de sources scientifiques réelles. Traductions visuelles réalisées dans un cadre expérimental." data-en="Design research project, non-definitive prototype. Images from real scientific sources. Visual translations produced in an experimental framework.">
                 Projet de recherche par le design, maquette non définitive.<br>
                 Images issues de sources scientifiques réelles.<br>
-                Traductions visuelles réalisées dans un cadre expérimental.
+                Traductions visuelles réalisées dans un cadre expérimental.<br>
             </div>
           </div>
 
@@ -9200,12 +9232,25 @@
                     this.currentMusicVolume = this.masterVolume;
                 }
 
+                // Empêcher le navigateur d'afficher l'overlay lecteur multimédia
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata = null;
+                    ['play','pause','seekbackward','seekforward','previoustrack','nexttrack','stop'].forEach(function(a) {
+                        try { navigator.mediaSession.setActionHandler(a, function() {}); } catch(e) {}
+                    });
+                }
+
                 console.log('🔊 AudioManager initialized');
             },
 
             // Play background music
             playMusic() {
                 if (!this.music) return;
+
+                // Re-nullifier la MediaSession à chaque lecture (certains navigateurs la réactivent)
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata = null;
+                }
 
                 this.music.play().catch(err => {
                     console.warn('⚠️ Autoplay blocked:', err);
@@ -9788,6 +9833,111 @@
                     welcomeVideo.style.display = 'none';
                 });
             }
+
+            // ═══ Règles typographiques françaises : anti-orphelins ═══
+            // Insère des espaces insécables avant les petits mots pour éviter
+            // les caractères isolés en bout de ligne (règle design)
+            (function applyFrenchTypography() {
+                var smallWords = ['à','y','a','et','en','de','du','le','la','un','ne','ni','ou','au','ce','se','si','on','je','me','te','sa','ma','ta',
+                    'les','des','une','par','sur','qui','que','aux','son','ses','nos','vos','ces','est','pas','mais','car','donc',
+                    'dans','pour','sans','tout','très','plus','bien','avec'];
+                var pattern = new RegExp('\\s(' + smallWords.join('|') + ')(?=\\s)', 'gi');
+
+                function fixOrphans(text) {
+                    // 3 passes pour attraper les cascades (ex: "de la" → "de\u00A0la")
+                    for (var i = 0; i < 3; i++) {
+                        text = text.replace(pattern, '\u00A0$1');
+                    }
+                    return text;
+                }
+
+                function processContainer(container) {
+                    if (!container) return;
+                    // Traiter les data-fr et data-en pour le switch de langue
+                    container.querySelectorAll('[data-fr]').forEach(function(el) {
+                        el.dataset.fr = fixOrphans(el.dataset.fr);
+                        if (el.dataset.en) el.dataset.en = fixOrphans(el.dataset.en);
+                    });
+                    // Traiter les nœuds texte visibles
+                    var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+                    var nodes = [];
+                    while (walker.nextNode()) nodes.push(walker.currentNode);
+                    nodes.forEach(function(node) {
+                        var fixed = fixOrphans(node.textContent);
+                        if (fixed !== node.textContent) node.textContent = fixed;
+                    });
+                }
+
+                processContainer(document.getElementById('welcome-content'));
+                processContainer(document.querySelector('.pause-content'));
+                console.log('📝 Règles typographiques anti-orphelins appliquées');
+            })();
+
+            // ═══ Scroll fade bas mobile : flou intérieur en cloche aplatie ═══
+            // S'aplatit progressivement et disparaît quand on a tout scrollé
+            (function setupMobileScrollFades() {
+                var isMob = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
+                if (!isMob) return;
+
+                function addScrollFade(container) {
+                    if (!container) return;
+                    var fade = document.createElement('div');
+                    fade.className = 'mobile-scroll-fade';
+                    container.appendChild(fade);
+
+                    var MAX_H = 45;
+                    function update() {
+                        var remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
+                        var h = Math.max(0, Math.min(MAX_H, remaining));
+                        container.style.setProperty('--scroll-fade-h', h + 'px');
+                    }
+                    container.addEventListener('scroll', update, { passive: true });
+                    update();
+                    // Re-check après rendu complet
+                    setTimeout(update, 500);
+                    setTimeout(update, 1500);
+                }
+
+                addScrollFade(document.getElementById('welcome-content'));
+                // Le pause-content est dans le DOM mais peut changer — on observe
+                var pauseObs = new MutationObserver(function() {
+                    var pc = document.querySelector('.pause-content');
+                    if (pc && !pc.querySelector('.mobile-scroll-fade')) {
+                        addScrollFade(pc);
+                    }
+                });
+                pauseObs.observe(document.body, { childList: true, subtree: true });
+                // Appliquer aussi si déjà présent
+                var pc = document.querySelector('.pause-content');
+                if (pc) addScrollFade(pc);
+
+                console.log('📜 Scroll fade mobile initialisé');
+            })();
+
+            // ═══ Supprimer overlay MediaSession (notifications lecteur multimédia) ═══
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = null;
+                ['play','pause','seekbackward','seekforward','previoustrack','nexttrack','stop'].forEach(function(action) {
+                    try { navigator.mediaSession.setActionHandler(action, function() {}); } catch(e) {}
+                });
+                console.log('🔇 MediaSession overlay désactivé');
+            }
+            // Nettoyer l'audio à la fermeture/quitte de page
+            window.addEventListener('pagehide', function() {
+                if (typeof AudioManager !== 'undefined' && AudioManager.music) {
+                    AudioManager.music.pause();
+                    AudioManager.music.removeAttribute('src');
+                    AudioManager.music.load();
+                }
+                if (typeof AudioManager !== 'undefined' && AudioManager.audioContext) {
+                    AudioManager.audioContext.close().catch(function() {});
+                }
+            });
+            window.addEventListener('beforeunload', function() {
+                if (typeof AudioManager !== 'undefined' && AudioManager.music) {
+                    AudioManager.music.pause();
+                }
+            });
         };
 
         // Helper: keep loading video alive during heavy JS work
