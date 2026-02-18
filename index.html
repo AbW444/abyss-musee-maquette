@@ -700,7 +700,7 @@
             background: rgba(0,0,0,0.55);
             backdrop-filter: blur(32px);
             -webkit-backdrop-filter: blur(32px);
-            border-radius: 0 56px 56px 0;
+            border-radius: 0 168px 168px 0;
             z-index: 1;
             pointer-events: none;
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--clickFadeMs) ease;
@@ -940,6 +940,7 @@
             left: 0;
             width: 100%;
             height: 100%;
+            object-fit: contain;
             filter: contrast(1.12) brightness(1.08);
         }
 
@@ -1802,39 +1803,6 @@
                 transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
             }
 
-            /* Vidéo arrière-plan mobile: masquée, remplacée par le canvas volumétrique */
-            #welcome-video-bg {
-                z-index: -1;
-            }
-
-            /* Canvas volumétrique mobile: pixelisé façon écran de projection */
-            #welcome-pixel-canvas {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: 0;
-                image-rendering: pixelated;
-                image-rendering: crisp-edges;
-                filter: contrast(1.4) brightness(1.15) saturate(1.3);
-                opacity: 0;
-                transition: opacity 0.5s ease;
-            }
-            #welcome-pixel-canvas.loaded {
-                opacity: 1;
-            }
-            /* Grille LED par-dessus le canvas pixelisé */
-            #welcome-pixel-grid {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: 0;
-                pointer-events: none;
-            }
-
             /* Texte mobile: espace haut réduit, marge basse correcte avec le bouton play */
             .welcome-content {
                 left: 50% !important;
@@ -2474,8 +2442,13 @@
         </div>
 
         <div class="fps-param">
-            <label>Hauteur yeux <span class="fps-param-value" id="val-fps-eye">30</span></label>
-            <input type="range" id="fps-eye" min="5" max="100" step="1" value="30">
+            <label>Hauteur yeux <span class="fps-param-value" id="val-fps-eye">35</span></label>
+            <input type="range" id="fps-eye" min="5" max="100" step="1" value="35">
+        </div>
+
+        <div class="fps-param">
+            <label>Angle de vue (FOV) <span class="fps-param-value" id="val-fps-fov">75</span></label>
+            <input type="range" id="fps-fov" min="30" max="120" step="1" value="75">
         </div>
 
         <div class="fps-param">
@@ -2940,7 +2913,7 @@
         const HEAD_BOB_SPEED = 0.12;
         const HEAD_BOB_AMOUNT = 0.5;
         const HEAD_BOB_SIDE_AMOUNT = 0.25;
-        const DEFAULT_FOV = 75;
+        let DEFAULT_FOV = 75;
         const SPRINT_FOV_INCREASE = 5;
         let currentFOV = DEFAULT_FOV;
         let targetFOV = DEFAULT_FOV;
@@ -2965,7 +2938,8 @@
         const fpsSettings = {
             fpsCameraHeight: -91,       // Hauteur de spawn de la caméra
             fpsGravity: -1.5,           // Gravité
-            fpsPlayerHeight: 30,        // Hauteur des yeux du joueur au-dessus du sol
+            fpsPlayerHeight: 35,        // Hauteur des yeux du joueur au-dessus du sol
+            fpsFOV: 75,                 // Angle de vue de la caméra (degrés)
             fpsMaxSpeed: 1.125,         // Vitesse maximale (divisée par 2)
             fpsAcceleration: 0.1,       // Vitesse d'accélération
             fpsDeceleration: 0.3,       // Vitesse de décélération
@@ -8996,6 +8970,15 @@
                 'fps-height': { var: 'fpsCameraHeight', display: 'val-fps-height', decimals: 0 },
                 'fps-gravity': { var: 'fpsGravity', display: 'val-fps-gravity', decimals: 2 },
                 'fps-eye': { var: 'fpsPlayerHeight', display: 'val-fps-eye', decimals: 0 },
+                'fps-fov': { var: 'fpsFOV', display: 'val-fps-fov', decimals: 0, callback: function() {
+                    DEFAULT_FOV = fpsSettings.fpsFOV;
+                    targetFOV = DEFAULT_FOV;
+                    currentFOV = DEFAULT_FOV;
+                    if (camera) {
+                        camera.fov = DEFAULT_FOV;
+                        camera.updateProjectionMatrix();
+                    }
+                }},
                 'fps-mouse': { var: 'fpsMouseSensitivity', display: 'val-fps-mouse', decimals: 4 },
                 'fps-hitbox-width': { var: 'fpsHitboxWidth', display: 'val-fps-hitbox-width', decimals: 1 },
                 'fps-hitbox-height': { var: 'fpsHitboxHeight', display: 'val-fps-hitbox-height', decimals: 0 },
@@ -9736,79 +9719,12 @@
             // Handle background video loading
             const welcomeVideo = document.getElementById('welcome-video-bg');
             if (welcomeVideo) {
-                // Mobile: use optimized mobile background video + volumetric pixel canvas
+                // Mobile: use optimized mobile background video
                 const isMobileBg = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
                 if (isMobileBg) {
                     welcomeVideo.src = 'videos/background_mobile.webm';
                     welcomeVideo.load();
                     console.log('📱 Vidéo d\'arrière-plan mobile: background_mobile.webm');
-
-                    // Volumetric pixel canvas: pixelise la vidéo façon écran de projection LED
-                    function setupMobilePixelCanvas() {
-                        const welcomeScreen = document.getElementById('welcome-screen');
-                        if (!welcomeScreen) return;
-
-                        // Taille pixel ~6-7px visible sur écran mobile
-                        const PIXEL_SIZE = 6;
-                        const cols = Math.ceil(window.innerWidth / PIXEL_SIZE);
-                        const rows = Math.ceil(window.innerHeight / PIXEL_SIZE);
-
-                        // Canvas principal basse résolution
-                        const pixelCanvas = document.createElement('canvas');
-                        pixelCanvas.id = 'welcome-pixel-canvas';
-                        pixelCanvas.width = cols;
-                        pixelCanvas.height = rows;
-                        const pCtx = pixelCanvas.getContext('2d');
-                        pCtx.imageSmoothingEnabled = false;
-
-                        // Grille LED overlay
-                        const gridOverlay = document.createElement('div');
-                        gridOverlay.id = 'welcome-pixel-grid';
-                        const pw = window.innerWidth / cols;
-                        const ph = window.innerHeight / rows;
-                        const gap = 0.8;
-                        gridOverlay.style.background =
-                            'repeating-linear-gradient(to right, transparent 0px, transparent ' + (pw - gap) + 'px, rgba(0,0,0,0.45) ' + (pw - gap) + 'px, rgba(0,0,0,0.45) ' + pw + 'px),' +
-                            'repeating-linear-gradient(to bottom, transparent 0px, transparent ' + (ph - gap) + 'px, rgba(0,0,0,0.45) ' + (ph - gap) + 'px, rgba(0,0,0,0.45) ' + ph + 'px)';
-
-                        // Insérer dans le welcome screen après la vidéo
-                        welcomeVideo.after(pixelCanvas);
-                        pixelCanvas.after(gridOverlay);
-
-                        // Object-fit: cover en canvas (vidéo 16:9, écran portrait)
-                        function drawCover() {
-                            if (welcomeVideo.readyState < 2) return;
-                            const vw = welcomeVideo.videoWidth;
-                            const vh = welcomeVideo.videoHeight;
-                            const scale = Math.max(cols / vw, rows / vh);
-                            const sw = cols / scale;
-                            const sh = rows / scale;
-                            const sx = (vw - sw) / 2;
-                            const sy = (vh - sh) / 2;
-                            pCtx.drawImage(welcomeVideo, sx, sy, sw, sh, 0, 0, cols, rows);
-                        }
-
-                        let pixelRafId = 0;
-                        function renderPixelFrame() {
-                            drawCover();
-                            if (!document.body.classList.contains('clickedPlay')) {
-                                pixelRafId = requestAnimationFrame(renderPixelFrame);
-                            }
-                        }
-
-                        // Démarrer dès que la vidéo est prête
-                        if (welcomeVideo.readyState >= 2) {
-                            pixelCanvas.classList.add('loaded');
-                            renderPixelFrame();
-                        } else {
-                            welcomeVideo.addEventListener('canplaythrough', function() {
-                                pixelCanvas.classList.add('loaded');
-                                renderPixelFrame();
-                            }, { once: true });
-                        }
-                        console.log('🎬 Canvas volumétrique mobile: ' + cols + 'x' + rows + ' pixels (' + PIXEL_SIZE + 'px/pixel)');
-                    }
-                    setupMobilePixelCanvas();
                 }
                 if (welcomeVideo.readyState >= 3) {
                     welcomeVideo.classList.add('loaded');
