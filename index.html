@@ -1903,11 +1903,30 @@
                 background: rgba(0,0,0,0.7) !important;
                 border-color: var(--color-border) !important;
             }
+            .mute-button:hover {
+                background: rgba(0,0,0,0.7) !important;
+                transform: none !important;
+            }
+            .mute-button:active {
+                background: rgba(100,150,255,0.25) !important;
+                border-color: rgba(100,150,255,0.6) !important;
+            }
             .mute-button.active-state {
                 background: rgba(100,150,255,0.35) !important;
                 border-color: rgba(100,150,255,0.8) !important;
             }
-            /* Bouton fullscreen mobile : sombre par défaut, bleu quand plein écran actif */
+
+            /* Tous les boutons mobile : bleu au clic + bleu quand mode actif */
+            #mobile-pause-btn:active,
+            #mobile-fullscreen-btn:active {
+                background: rgba(100,150,255,0.25) !important;
+                border-color: rgba(100,150,255,0.6) !important;
+                transform: scale(0.93);
+            }
+            #mobile-pause-btn.active-infos {
+                background: rgba(100,150,255,0.35);
+                border-color: rgba(100,150,255,0.8);
+            }
             #mobile-fullscreen-btn.active-state {
                 background: rgba(100,150,255,0.35);
                 border-color: rgba(100,150,255,0.8);
