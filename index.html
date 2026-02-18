@@ -1660,10 +1660,11 @@
         }
         #mobile-instructions .instruction-separator {
             text-align: center;
-            font-size: 11px;
+            font-size: 10px;
             color: rgba(255,255,255,0.4);
             font-style: italic;
-            margin: -2px 0;
+            margin: -6px 0;
+            line-height: 1;
         }
 
         /* Gyroscope debug overlay */
@@ -1839,6 +1840,7 @@
                 transform: translateX(-50%);
                 width: clamp(90px, 22vw, 120px);
                 height: clamp(90px, 22vw, 120px);
+                box-shadow: 0 0 40px 15px rgba(0,0,0,0.5);
             }
             .play-button-container.desktop-play {
                 display: none !important;
