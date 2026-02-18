@@ -1891,17 +1891,19 @@
                 display: none !important;
             }
 
-            /* Pause screen mobile - centré verticalement */
+            /* Pause screen mobile — décalé vers le bas pour ne pas toucher le X */
             #pause-screen {
-                justify-content: center;
+                justify-content: flex-start;
                 padding: 0;
+                padding-top: calc(70px + env(safe-area-inset-top));
+                padding-bottom: calc(80px + env(safe-area-inset-bottom));
             }
             .pause-content {
                 max-width: 85vw;
                 width: auto;
                 padding: 20px 18px;
-                margin: 15px;
-                max-height: calc(95dvh - 160px);
+                margin: 0 15px;
+                max-height: calc(100dvh - 150px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
                 overflow-y: auto;
                 font-size: 13px;
                 background: rgba(0,0,0,0.55);
@@ -1915,16 +1917,7 @@
                 bottom: calc(60px + env(safe-area-inset-bottom));
                 right: calc(15px + env(safe-area-inset-right));
             }
-            /* Mobile fullscreen: panneau légèrement sous le centre, hauteur généreuse */
-            body.is-fullscreen #pause-screen {
-                justify-content: center;
-                padding-top: calc(80px + env(safe-area-inset-top));
-                padding-bottom: calc(60px + env(safe-area-inset-bottom));
-            }
-            body.is-fullscreen .pause-content {
-                margin-top: 40px;
-                max-height: calc(100dvh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-            }
+            /* Mobile fullscreen: mêmes règles, le padding-top protège déjà du X */
 
             /* Cacher le volume, lang et le bouton fullscreen du panneau sur mobile */
             .volume-control, .lang-button {
