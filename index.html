@@ -756,8 +756,8 @@
         .welcome-project-name {
             font-family: var(--font-sans);
             font-size: 64px;
-            font-weight: 700;
-            letter-spacing: 8px;
+            font-weight: 900;
+            letter-spacing: 12px;
             margin-bottom: 2px;
             color: var(--color-text);
             line-height: 1.1;
@@ -930,7 +930,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 40px 0;
+            padding: 60px 0;
             box-sizing: border-box;
             z-index: var(--z-pause);
             transition: opacity 0.4s ease;
@@ -1028,12 +1028,12 @@
             letter-spacing: 0.3px;
             text-align: left;
         }
-        /* ─── Bottom-right control grid (fullscreen + volume) ─── */
+        /* ─── Bottom-right control grid (hidden — unified mobile UI) ─── */
         .pause-controls {
             position: fixed;
             bottom: 24px;
             right: 24px;
-            display: grid;
+            display: none;
             grid-template-columns: 1fr;
             align-items: center;
             justify-items: center;
@@ -1164,10 +1164,11 @@
            INSTRUCTION SYSTEM — Unified grid for desktop & mobile
            ═══════════════════════════════════════════════════════════════ */
 
-        /* Shared instruction card base — no background, clean floating */
+        /* Shared instruction card base — hidden (unified mobile UI) */
         .persistent-instructions,
         .game-instructions,
         .pause-instructions {
+            display: none !important;
             background: transparent;
             padding: 0;
             border-radius: 0;
@@ -1422,47 +1423,27 @@
            MOBILE UI COMPONENTS
            ═══════════════════════════════════════════════════════════════ */
 
-        /* Pull-to-refresh indicator */
-        #pull-to-refresh {
+        /* Scene logo — small DUMBO at top center, fades with controls */
+        #scene-logo {
             position: fixed;
-            top: 0;
+            top: calc(12px + env(safe-area-inset-top));
             left: 50%;
-            transform: translateX(-50%) translateY(-100%);
+            transform: translateX(-50%);
             z-index: var(--z-mobile-controls);
-            background: rgba(0,0,0,0.7);
-            padding: var(--space-md) var(--space-xl);
-            border-radius: 0 0 var(--radius-xl) var(--radius-xl);
-            font-size: 12px;
-            color: rgba(255,255,255,0.8);
-            transition: transform 0.3s ease;
-            display: none;
-        }
-        #pull-to-refresh.visible {
-            display: block;
-        }
-        #pull-to-refresh.pulling {
-            transform: translateX(-50%) translateY(0);
-        }
-        #pull-to-refresh .ptr-spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-top-color: #fff;
-            border-radius: 50%;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-        #pull-to-refresh.loading .ptr-spinner {
-            animation: ptr-spin 0.8s linear infinite;
-        }
-        @keyframes ptr-spin {
-            to { transform: rotate(360deg); }
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.8s ease;
         }
 
         /* Mobile Pause Button */
         #mobile-pause-btn {
-            display: none;
+            display: flex;
             position: fixed;
             top: calc(10px + env(safe-area-inset-top));
             right: calc(20px + env(safe-area-inset-right));
@@ -1517,7 +1498,7 @@
 
         /* Mobile Fullscreen Button */
         #mobile-fullscreen-btn {
-            display: none;
+            display: flex;
             position: fixed;
             top: calc(10px + env(safe-area-inset-top));
             left: calc(20px + env(safe-area-inset-left));
@@ -1853,13 +1834,7 @@
                 );
             }
 
-            /* Afficher UI mobile */
-            #mobile-pause-btn {
-                display: flex;
-            }
-            #mobile-fullscreen-btn {
-                display: flex;
-            }
+            /* Mobile-specific: show joystick and gyro/manual toggles */
             #mobile-joystick {
                 display: block;
             }
@@ -1870,24 +1845,14 @@
                 display: flex;
             }
 
-            /* Cacher UI desktop */
-            .persistent-instructions,
-            .game-instructions,
-            .pause-instructions {
-                display: none !important;
-            }
-
-            /* Pause screen mobile - centré verticalement */
-            #pause-screen {
-                justify-content: center;
-                padding: 0;
-            }
+            /* Pause screen mobile adjustments */
             .pause-content {
                 max-width: 85vw;
                 width: auto;
                 padding: 20px 18px;
                 margin: 15px;
-                max-height: calc(95dvh - 160px);
+                margin-top: calc(50px + env(safe-area-inset-top));
+                max-height: calc(90dvh - 120px);
                 overflow-y: auto;
                 font-size: 13px;
             }
@@ -1911,17 +1876,6 @@
                 font-size: clamp(8px, 2.5vw, 10px);
                 margin-top: 20px;
                 padding-top: 15px;
-            }
-            .pause-controls {
-                bottom: calc(60px + env(safe-area-inset-bottom));
-                right: calc(15px + env(safe-area-inset-right));
-            }
-            /* Cacher le volume et le bouton fermer sur mobile */
-            .volume-control {
-                display: none !important;
-            }
-            .pause-close-btn {
-                display: none !important;
             }
 
             /* FPS counter plus discret sur mobile */
@@ -1992,11 +1946,8 @@
          MOBILE UI COMPONENTS
          ═══════════════════════════════════════════════════════════════ -->
 
-    <!-- Pull-to-refresh indicator (welcome screen only) -->
-    <div id="pull-to-refresh">
-        <span class="ptr-spinner"></span>
-        <span class="ptr-text">Relâchez pour actualiser</span>
-    </div>
+    <!-- Small DUMBO logo — top center, fades with controls -->
+    <div id="scene-logo" class="hidden" aria-hidden="true">DUMBO</div>
 
     <!-- Mobile Info Button (ouvre le mode ESC/Infos) -->
     <button id="mobile-pause-btn" class="hidden" aria-label="Infos">
@@ -9453,22 +9404,26 @@
             // Update fullscreen icon in pause panel
             updateFullscreenIcon();
 
-            // Mobile: cacher contrôles et instructions, transformer bouton info en croix
-            if (isMobile) {
-                // Stopper l'auto-hide pendant que le panneau info est ouvert
-                if (window.mobileAutoHide) window.mobileAutoHide.stop();
+            // Stopper l'auto-hide pendant que le panneau info est ouvert
+            if (window.mobileAutoHide) window.mobileAutoHide.stop();
 
+            // Cacher contrôles, transformer bouton info en croix
+            document.getElementById('mobile-fullscreen-btn')?.classList.add('hidden');
+            document.getElementById('mobile-pause-btn')?.classList.add('active-infos');
+            // Garder le bouton X visible (forcer opacity à 1)
+            const pauseBtn = document.getElementById('mobile-pause-btn');
+            if (pauseBtn) {
+                pauseBtn.style.opacity = '1';
+                pauseBtn.style.pointerEvents = '';
+            }
+            // Cacher le logo
+            const sceneLogo = document.getElementById('scene-logo');
+            if (sceneLogo) { sceneLogo.style.opacity = '0'; sceneLogo.style.pointerEvents = 'none'; }
+
+            if (isMobile) {
                 document.getElementById('gyro-toggle-btn')?.classList.add('hidden');
                 document.getElementById('manual-toggle-btn')?.classList.add('hidden');
                 document.getElementById('mobile-joystick')?.classList.add('hidden');
-                document.getElementById('mobile-fullscreen-btn')?.classList.add('hidden');
-                document.getElementById('mobile-pause-btn')?.classList.add('active-infos');
-                // Garder le bouton X visible (forcer opacity à 1)
-                const pauseBtn = document.getElementById('mobile-pause-btn');
-                if (pauseBtn) {
-                    pauseBtn.style.opacity = '1';
-                    pauseBtn.style.pointerEvents = '';
-                }
                 const mobileInstr = document.getElementById('mobile-instructions');
                 if (mobileInstr) mobileInstr.classList.add('hidden');
             }
@@ -9491,9 +9446,15 @@
                 document.body.classList.add('fps-cursor-hidden');
             }
 
-            // Réafficher les contrôles mobiles, retransformer croix en info
+            // Réafficher les contrôles, retransformer croix en info
+            document.getElementById('mobile-pause-btn')?.classList.remove('active-infos');
+            const fsBtn = document.getElementById('mobile-fullscreen-btn');
+            if (fsBtn) {
+                fsBtn.classList.remove('hidden');
+                fsBtn.style.display = 'flex';
+            }
+
             if (isMobile) {
-                document.getElementById('mobile-pause-btn')?.classList.remove('active-infos');
                 const gyroToggle = document.getElementById('gyro-toggle-btn');
                 if (gyroToggle) {
                     gyroToggle.classList.remove('hidden');
@@ -9505,14 +9466,9 @@
                     manualToggle.style.display = 'flex';
                 }
                 document.getElementById('mobile-joystick')?.classList.remove('hidden');
-                const fsBtn = document.getElementById('mobile-fullscreen-btn');
-                if (fsBtn) {
-                    fsBtn.classList.remove('hidden');
-                    fsBtn.style.display = 'flex';
-                }
-                // Réafficher toutes les icônes en fondu et relancer l'auto-hide
-                if (window.mobileAutoHide) window.mobileAutoHide.show();
             }
+            // Réafficher toutes les icônes en fondu et relancer l'auto-hide
+            if (window.mobileAutoHide) window.mobileAutoHide.show();
 
             // Volume constant - pas de fade
 
@@ -10132,62 +10088,7 @@
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // PULL-TO-REFRESH (Welcome screen only)
-        // ═══════════════════════════════════════════════════════════════
-        let ptrStartY = 0;
-        let ptrCurrentY = 0;
-        let ptrTriggered = false;
-        const PTR_THRESHOLD = 80;
-
-        function initPullToRefresh() {
-            if (!isMobile) return;
-
-            const welcomeScreen = document.getElementById('welcome-screen');
-            const ptrIndicator = document.getElementById('pull-to-refresh');
-
-            if (!welcomeScreen || !ptrIndicator) return;
-
-            welcomeScreen.addEventListener('touchstart', (e) => {
-                if (welcomeScreen.scrollTop === 0) {
-                    ptrStartY = e.touches[0].clientY;
-                    ptrIndicator.classList.add('visible');
-                }
-            }, { passive: true });
-
-            welcomeScreen.addEventListener('touchmove', (e) => {
-                if (ptrStartY === 0) return;
-
-                ptrCurrentY = e.touches[0].clientY;
-                const pullDistance = ptrCurrentY - ptrStartY;
-
-                if (pullDistance > 0 && welcomeScreen.scrollTop === 0) {
-                    if (pullDistance > PTR_THRESHOLD) {
-                        ptrIndicator.classList.add('pulling');
-                        ptrTriggered = true;
-                    } else {
-                        ptrIndicator.classList.remove('pulling');
-                        ptrTriggered = false;
-                    }
-                }
-            }, { passive: true });
-
-            welcomeScreen.addEventListener('touchend', () => {
-                if (ptrTriggered) {
-                    const ptrIndicator = document.getElementById('pull-to-refresh');
-                    ptrIndicator.classList.add('loading');
-                    ptrIndicator.querySelector('.ptr-text').textContent = 'Actualisation...';
-
-                    setTimeout(() => {
-                        location.reload();
-                    }, 500);
-                } else {
-                    ptrIndicator.classList.remove('visible', 'pulling');
-                }
-                ptrStartY = 0;
-                ptrTriggered = false;
-            }, { passive: true });
-        }
+        // PULL-TO-REFRESH removed
 
         // ═══════════════════════════════════════════════════════════════
         // GYROSCOPE CAMERA CONTROL
@@ -10695,8 +10596,6 @@
         // MOBILE PAUSE BUTTON
         // ═══════════════════════════════════════════════════════════════
         function initMobilePauseButton() {
-            if (!isMobile) return;
-
             const pauseBtn = document.getElementById('mobile-pause-btn');
             if (!pauseBtn) return;
 
@@ -10721,8 +10620,6 @@
         // MOBILE FULLSCREEN BUTTON
         // ═══════════════════════════════════════════════════════════════
         function initMobileFullscreenButton() {
-            if (!isMobile) return;
-
             const btn = document.getElementById('mobile-fullscreen-btn');
             if (!btn) return;
 
@@ -10823,18 +10720,19 @@
         // MOBILE INITIALIZATION
         // ═══════════════════════════════════════════════════════════════
         function initMobile() {
+            // Init shared controls (pause/fullscreen buttons) on all platforms
+            initMobilePauseButton();
+            initMobileFullscreenButton();
+
             if (!isMobile) {
-                console.log('💻 Mode desktop détecté');
+                console.log('💻 Mode desktop détecté (unified UI)');
                 return;
             }
 
             console.log('📱 Mode mobile détecté');
 
-            // Initialiser les contrôles
-            initPullToRefresh();
+            // Initialiser les contrôles mobile-only
             initJoystick();
-            initMobilePauseButton();
-            initMobileFullscreenButton();
             initGyroToggle();
             initTouchDrag();
 
@@ -10871,129 +10769,143 @@
         startExperience = function() {
             originalStartExperience();
 
-            if (isMobile) {
-                // Liste des contrôles mobiles à faire apparaître en fondu
-                const mobileControlIds = [
-                    'mobile-pause-btn',
-                    'mobile-fullscreen-btn',
-                    'mobile-joystick',
-                    'gyro-toggle-btn',
-                    'manual-toggle-btn'
-                ];
+            // Unified UI controls (same on desktop & mobile)
+            const sharedControlIds = [
+                'mobile-pause-btn',
+                'mobile-fullscreen-btn',
+                'scene-logo'
+            ];
+            // Mobile-only controls
+            const mobileOnlyIds = isMobile ? [
+                'mobile-joystick',
+                'gyro-toggle-btn',
+                'manual-toggle-btn'
+            ] : [];
+            const allControlIds = sharedControlIds.concat(mobileOnlyIds);
 
-                // Rendre les contrôles visibles dans le DOM mais transparents (opacity: 0)
-                mobileControlIds.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        el.classList.remove('hidden');
-                        el.style.opacity = '0';
-                        el.style.transition = 'opacity 0.8s ease';
-                        // Forcer display: flex/block selon l'élément
-                        if (id === 'mobile-joystick') {
-                            el.style.display = 'block';
-                        } else {
-                            el.style.display = 'flex';
-                        }
+            // Rendre les contrôles visibles dans le DOM mais transparents (opacity: 0)
+            allControlIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.classList.remove('hidden');
+                    el.style.opacity = '0';
+                    el.style.transition = 'opacity 0.8s ease';
+                    if (id === 'mobile-joystick') {
+                        el.style.display = 'block';
+                    } else if (id === 'scene-logo') {
+                        el.style.display = 'block';
+                    } else {
+                        el.style.display = 'flex';
                     }
-                });
+                }
+            });
 
+            if (isMobile) {
                 // Appliquer le mode initial (manuel par défaut)
                 setControlMode(touchDragEnabled ? 'manual' : 'gyro');
-
-                // Réinitialiser la référence gyroscope
                 resetGyroReference();
+            }
 
-                // Après la disparition du chargement et la révélation de la scène,
-                // faire apparaître tous les contrôles mobiles en fondu
-                window.addEventListener('scene-revealed', function onRevealed() {
-                    window.removeEventListener('scene-revealed', onRevealed);
+            // Après la disparition du chargement et la révélation de la scène,
+            // faire apparaître tous les contrôles en fondu
+            window.addEventListener('scene-revealed', function onRevealed() {
+                window.removeEventListener('scene-revealed', onRevealed);
 
-                    // Petit délai pour laisser la scène se stabiliser
-                    setTimeout(() => {
-                        mobileControlIds.forEach(id => {
-                            const el = document.getElementById(id);
-                            if (el) el.style.opacity = '1';
-                        });
+                setTimeout(() => {
+                    allControlIds.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.style.opacity = '1';
+                    });
 
-                        // Afficher les instructions mobiles aussi en fondu
-                        showMobileInstructions();
+                    if (isMobile) showMobileInstructions();
 
-                        // ═══════════════════════════════════════════════════
-                        // AUTO-HIDE des icônes mobiles (sauf joystick)
-                        // ═══════════════════════════════════════════════════
-                        const hideableIds = [
-                            'mobile-pause-btn',
-                            'mobile-fullscreen-btn',
-                            'gyro-toggle-btn',
-                            'manual-toggle-btn'
-                        ];
-                        let controlsVisible = true;
-                        let autoHideTimer = null;
+                    // ═══════════════════════════════════════════════════
+                    // AUTO-HIDE des icônes (sauf joystick)
+                    // ═══════════════════════════════════════════════════
+                    const hideableIds = [
+                        'mobile-pause-btn',
+                        'mobile-fullscreen-btn',
+                        'scene-logo'
+                    ];
+                    if (isMobile) {
+                        hideableIds.push('gyro-toggle-btn', 'manual-toggle-btn');
+                    }
+                    let controlsVisible = true;
+                    let autoHideTimer = null;
 
-                        function fadeMobileCtrls(show) {
-                            controlsVisible = show;
-                            hideableIds.forEach(id => {
-                                const el = document.getElementById(id);
-                                if (!el) return;
-                                // Ne pas cacher le bouton X quand le panneau info est ouvert
-                                if (id === 'mobile-pause-btn' && isPaused) return;
-                                el.style.opacity = show ? '1' : '0';
-                                el.style.pointerEvents = show ? '' : 'none';
-                            });
-                        }
-
-                        function resetAutoHide() {
-                            clearTimeout(autoHideTimer);
-                            if (!isPaused) {
-                                autoHideTimer = setTimeout(() => {
-                                    fadeMobileCtrls(false);
-                                }, 5000);
-                            }
-                        }
-
-                        function stopAutoHide() {
-                            clearTimeout(autoHideTimer);
-                        }
-
-                        // API globale pour showPauseScreen / resumeExperience
-                        window.mobileAutoHide = {
-                            show: function() {
-                                fadeMobileCtrls(true);
-                                resetAutoHide();
-                            },
-                            stop: stopAutoHide
-                        };
-
-                        // Reset du timer quand on tape sur une icône
+                    function fadeControls(show) {
+                        controlsVisible = show;
                         hideableIds.forEach(id => {
                             const el = document.getElementById(id);
-                            if (el) {
-                                el.addEventListener('touchstart', () => {
-                                    if (controlsVisible) resetAutoHide();
-                                }, { passive: true });
-                            }
+                            if (!el) return;
+                            if (id === 'mobile-pause-btn' && isPaused) return;
+                            el.style.opacity = show ? '1' : '0';
+                            el.style.pointerEvents = show ? '' : 'none';
                         });
+                    }
 
-                        // Double-tap pour afficher/masquer les icônes
+                    function resetAutoHide() {
+                        clearTimeout(autoHideTimer);
+                        if (!isPaused) {
+                            autoHideTimer = setTimeout(() => {
+                                fadeControls(false);
+                            }, 5000);
+                        }
+                    }
+
+                    function stopAutoHide() {
+                        clearTimeout(autoHideTimer);
+                    }
+
+                    // API globale pour showPauseScreen / resumeExperience
+                    window.mobileAutoHide = {
+                        show: function() {
+                            fadeControls(true);
+                            resetAutoHide();
+                        },
+                        stop: stopAutoHide
+                    };
+
+                    // Touch: reset timer on icon tap
+                    hideableIds.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.addEventListener('touchstart', () => {
+                                if (controlsVisible) resetAutoHide();
+                            }, { passive: true });
+                            // Desktop: reset on click too
+                            el.addEventListener('mouseenter', () => {
+                                if (controlsVisible) resetAutoHide();
+                            });
+                        }
+                    });
+
+                    // Desktop: show controls on mouse movement, auto-hide after 5s
+                    if (!isMobile) {
+                        document.addEventListener('mousemove', () => {
+                            if (isPaused || !fpsMode) return;
+                            if (!controlsVisible) fadeControls(true);
+                            resetAutoHide();
+                        });
+                    }
+
+                    // Mobile: double-tap to toggle controls
+                    if (isMobile) {
                         let lastTapTime = 0;
                         document.addEventListener('touchend', (e) => {
                             if (isPaused || !fpsMode) return;
-
-                            // Ignorer les taps sur les boutons et le joystick
                             if (e.target.closest('#mobile-pause-btn, #mobile-fullscreen-btn, #gyro-toggle-btn, #manual-toggle-btn, #mobile-joystick')) {
                                 if (controlsVisible) resetAutoHide();
                                 lastTapTime = 0;
                                 return;
                             }
-
                             const now = Date.now();
                             if (now - lastTapTime < 300) {
-                                // Double-tap détecté
                                 if (controlsVisible) {
-                                    fadeMobileCtrls(false);
+                                    fadeControls(false);
                                     stopAutoHide();
                                 } else {
-                                    fadeMobileCtrls(true);
+                                    fadeControls(true);
                                     resetAutoHide();
                                 }
                                 lastTapTime = 0;
@@ -11001,13 +10913,13 @@
                                 lastTapTime = now;
                             }
                         }, { passive: true });
+                    }
 
-                        // Démarrer le premier auto-hide
-                        resetAutoHide();
+                    // Démarrer le premier auto-hide
+                    resetAutoHide();
 
-                    }, 200);
-                });
-            }
+                }, 200);
+            });
         };
 
         // Hook dans la boucle d'animation pour le joystick
