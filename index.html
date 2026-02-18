@@ -1971,54 +1971,6 @@
                 border-radius: 28px;
             }
 
-            /* ═══ Scroll fade — backdrop-filter blur superposé ═══
-               Pseudo-elements sticky DANS le scroll container.
-               backdrop-filter floute le texte qui passe derrière.
-               mask-image sur les overlays (pas sur le conteneur) → le panneau reste intact.
-               --fade-top-o / --fade-bottom-o (0→1) pilotés par JS au scroll. */
-            .welcome-content,
-            .pause-content {
-                --fade-top-o: 0;
-                --fade-bottom-o: 0;
-            }
-            /* Haut : flou fort en haut → disparition vers le bas */
-            .welcome-content::before,
-            .pause-content::before {
-                content: '';
-                display: block;
-                position: sticky;
-                top: 0;
-                height: 40px;
-                margin-bottom: -40px;
-                background: transparent;
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
-                mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
-                pointer-events: none;
-                z-index: 5;
-                opacity: var(--fade-top-o);
-                transition: opacity 0.2s ease;
-            }
-            /* Bas : flou fort en bas → disparition vers le haut */
-            .welcome-content::after,
-            .pause-content::after {
-                content: '';
-                display: block;
-                position: sticky;
-                bottom: 0;
-                height: 40px;
-                margin-top: -40px;
-                background: transparent;
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                -webkit-mask-image: linear-gradient(to top, black 0%, transparent 100%);
-                mask-image: linear-gradient(to top, black 0%, transparent 100%);
-                pointer-events: none;
-                z-index: 5;
-                opacity: var(--fade-bottom-o);
-                transition: opacity 0.2s ease;
-            }
             .pause-conceptual-list .list-intro {
                 margin-bottom: 8px;
             }
@@ -9870,47 +9822,6 @@
                 console.log('📝 Règles typographiques anti-orphelins appliquées');
             })();
 
-            // ═══ Scroll fade mobile — backdrop-filter blur superposé ═══
-            // Les pseudo-elements ::before / ::after (sticky) floutent le texte.
-            // JS pilote --fade-top-o et --fade-bottom-o (0→1).
-            (function setupMobileScrollFades() {
-                var isMob = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
-                if (!isMob) return;
-
-                var THRESHOLD = 40; // px de scroll pour opacité complète
-
-                function bindScrollFade(container) {
-                    if (!container || container._scrollFadeBound) return;
-                    container._scrollFadeBound = true;
-
-                    function update() {
-                        var st = container.scrollTop;
-                        var remaining = container.scrollHeight - st - container.clientHeight;
-                        container.style.setProperty('--fade-top-o', Math.min(1, Math.max(0, st / THRESHOLD)));
-                        container.style.setProperty('--fade-bottom-o', Math.min(1, Math.max(0, remaining / THRESHOLD)));
-                    }
-
-                    container.addEventListener('scroll', update, { passive: true });
-                    update();
-                    setTimeout(update, 300);
-                    setTimeout(update, 1000);
-                    if (typeof ResizeObserver !== 'undefined') {
-                        new ResizeObserver(update).observe(container);
-                    }
-                }
-
-                bindScrollFade(document.getElementById('welcome-content'));
-
-                var pauseObs = new MutationObserver(function() {
-                    var pc = document.querySelector('.pause-content');
-                    if (pc) bindScrollFade(pc);
-                });
-                pauseObs.observe(document.body, { childList: true, subtree: true });
-                var pc = document.querySelector('.pause-content');
-                if (pc) bindScrollFade(pc);
-
-                console.log('📜 Scroll fade mobile (backdrop-filter) initialisé');
-            })();
 
             // ═══ Supprimer overlay MediaSession (notifications lecteur multimédia) ═══
             if ('mediaSession' in navigator) {
