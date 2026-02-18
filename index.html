@@ -11301,6 +11301,7 @@
                         ];
                         let controlsVisible = true;
                         let autoHideTimer = null;
+                        let firstHideDone = false;  // La première disparition utilise 10s
 
                         function fadeMobileCtrls(show) {
                             controlsVisible = show;
@@ -11317,9 +11318,12 @@
                         function resetAutoHide() {
                             clearTimeout(autoHideTimer);
                             if (!isPaused) {
+                                // Première disparition : 10s, ensuite 5s
+                                var delay = firstHideDone ? 5000 : 10000;
                                 autoHideTimer = setTimeout(() => {
                                     fadeMobileCtrls(false);
-                                }, 5000);
+                                    firstHideDone = true;
+                                }, delay);
                             }
                         }
 
@@ -11374,8 +11378,26 @@
                             }
                         }, { passive: true });
 
-                        // Démarrer le premier auto-hide
-                        resetAutoHide();
+                        // Premier auto-hide : attendre le premier mouvement (touch joystick)
+                        // Ne pas démarrer immédiatement — le timer se lance au premier touchstart
+                        let firstMovementDetected = false;
+                        const joystickForAutoHide = document.getElementById('mobile-joystick');
+                        if (joystickForAutoHide) {
+                            joystickForAutoHide.addEventListener('touchstart', function onFirstMove() {
+                                if (!firstMovementDetected) {
+                                    firstMovementDetected = true;
+                                    resetAutoHide(); // Lance le timer 10s
+                                }
+                            }, { passive: true });
+                        }
+                        // Aussi détecter le gyroscope (mouvement du téléphone)
+                        window.addEventListener('deviceorientation', function onFirstGyro() {
+                            if (!firstMovementDetected) {
+                                firstMovementDetected = true;
+                                resetAutoHide(); // Lance le timer 10s
+                            }
+                            window.removeEventListener('deviceorientation', onFirstGyro);
+                        }, { passive: true });
 
                     }, 200);
                 });
