@@ -688,20 +688,25 @@
             opacity: 0;
             pointer-events: none;
         }
+        /* PC: panneau opaque+blur pleine hauteur, collé à gauche, coins arrondis droits
+           Suit le bloc texte (width = textLeft + textColW + marge) */
         #welcome-screen::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
+            width: calc(var(--textLeft) + var(--textColW) + 80px);
             height: 100%;
-            background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.2) 62%, transparent 78%);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            -webkit-mask-image: linear-gradient(to right, black 0%, black 50%, transparent 80%);
-            mask-image: linear-gradient(to right, black 0%, black 50%, transparent 80%);
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border-radius: 0 28px 28px 0;
             z-index: 1;
             pointer-events: none;
+            transition: opacity var(--clickFadeMs) ease;
+        }
+        body.clickedPlay #welcome-screen::before {
+            opacity: 0;
         }
         #welcome-video-bg {
             position: absolute;
@@ -739,8 +744,8 @@
             transform: translateY(-50%);
             width: var(--textColW);
             max-width: 580px; /* ~60-65 caractères par ligne */
-            max-height: calc(100vh - 120px);
-            max-height: calc(100dvh - 120px);
+            max-height: calc(100vh - 120px + 2vh);
+            max-height: calc(100dvh - 120px + 2vh);
             overflow-y: auto;
             scrollbar-width: none;
             z-index: 2;
@@ -921,6 +926,21 @@
         /* Screen blend: le noir de la vidéo mp4 disparaît contre l'arrière-plan */
         .welcome-logo-container {
             mix-blend-mode: screen;
+            overflow: visible;
+        }
+
+        /* PC: render poulpe video at 2x internal resolution for crisp screen blend
+           (mobile retina screens have enough DPI naturally — only PC needs this) */
+        @media (min-width: 769px) and (pointer: fine) {
+            .welcome-logo-poulpe {
+                width: 200% !important;
+                height: 200% !important;
+                left: -50% !important;
+                top: -50% !important;
+                transform: scale(0.5);
+                transform-origin: center;
+                filter: contrast(1.12) brightness(1.08);
+            }
         }
 
         .welcome-logo {
@@ -1061,7 +1081,7 @@
             grid-template-columns: 1fr;
             align-items: center;
             justify-items: center;
-            gap: 12px;
+            gap: 8px;
             z-index: var(--z-pause-controls);
         }
         .volume-control {
@@ -1543,7 +1563,7 @@
         #mobile-joystick {
             display: none;
             position: fixed;
-            bottom: calc(50px + env(safe-area-inset-bottom));
+            bottom: calc(20px + env(safe-area-inset-bottom));
             left: 50%;
             transform: translateX(-50%);
             z-index: var(--z-mobile-controls);
@@ -1558,18 +1578,23 @@
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: var(--radius-round);
+            transition: background 0.15s, border-color 0.15s;
         }
         #mobile-joystick .joystick-thumb {
             position: absolute;
             width: 50px;
             height: 50px;
-            background: #fff;
-            border: none;
+            background: rgba(255,255,255,0.6);
+            border: 1px solid rgba(255,255,255,0.15);
             border-radius: var(--radius-round);
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
             transition: background 0.15s, border-color 0.15s;
+        }
+        #mobile-joystick.active .joystick-base {
+            background: rgba(100,150,255,0.12);
+            border-color: rgba(100,150,255,0.4);
         }
         #mobile-joystick.active .joystick-thumb {
             background: rgba(100,150,255,0.35);
@@ -1580,7 +1605,7 @@
         #gyro-toggle-btn {
             display: none;
             position: fixed;
-            bottom: calc(50px + env(safe-area-inset-bottom));
+            bottom: calc(20px + env(safe-area-inset-bottom));
             left: calc(20px + env(safe-area-inset-left));
             z-index: var(--z-mobile-controls);
             width: 44px;
@@ -1605,7 +1630,7 @@
         #manual-toggle-btn {
             display: none;
             position: fixed;
-            bottom: calc(50px + env(safe-area-inset-bottom));
+            bottom: calc(20px + env(safe-area-inset-bottom));
             right: calc(20px + env(safe-area-inset-right));
             z-index: var(--z-mobile-controls);
             width: 44px;
@@ -1758,28 +1783,35 @@
                 overflow: hidden;
             }
 
-            /* Logo mobile: centré dans la zone entre le haut et le bloc texte */
+            /* Logo mobile: centré, espace réduit de 1/4 par rapport au haut */
             .welcome-logo-container {
                 left: calc(50% - var(--logoSize) / 2) !important;
-                top: calc(15px + env(safe-area-inset-top)) !important;
+                top: calc(11px + env(safe-area-inset-top)) !important;
+                will-change: opacity, transform;
             }
             body.hoverPlay .welcome-logo-container {
                 left: calc(50% - var(--logoSize) / 2) !important;
             }
+            /* Animation fluide: fade out en place + léger scale au lieu de déplacer left/top */
             body.clickedPlay .welcome-logo-container {
-                left: calc(50vw - var(--logoSize) / 2) !important;
-                top: calc(50vh - var(--logoSize) / 2) !important;
-                top: calc(50dvh - var(--logoSize) / 2) !important;
+                opacity: 0 !important;
+                transform: scale(0.85) !important;
+                transition: opacity 0.4s ease, transform 0.4s ease !important;
             }
 
-            /* Texte mobile: même principe que pause-content — tout sur le même élément */
+            /* Vidéo arrière-plan mobile: effet projection (contraste/luminosité/saturation) */
+            #welcome-video-bg {
+                filter: contrast(1.25) brightness(1.1) saturate(1.15);
+            }
+
+            /* Texte mobile: espace haut réduit, étend vers le bas pour remplir l'écran */
             .welcome-content {
                 left: 50% !important;
-                top: calc(30px + env(safe-area-inset-top) + var(--logoSize)) !important;
+                top: calc(22px + env(safe-area-inset-top) + var(--logoSize)) !important;
                 transform: translateX(-50%) !important;
                 width: calc(100vw - 40px) !important;
                 max-width: 500px !important;
-                max-height: calc(95dvh - 140px - env(safe-area-inset-top) - var(--logoSize)) !important;
+                max-height: calc(100dvh - 90px - env(safe-area-inset-top) - var(--logoSize)) !important;
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
@@ -1789,6 +1821,7 @@
                 backdrop-filter: blur(24px);
                 -webkit-backdrop-filter: blur(24px);
                 border-radius: 28px;
+                will-change: opacity, transform;
             }
             .welcome-content::-webkit-scrollbar {
                 display: none;
@@ -1796,9 +1829,13 @@
             body.hoverPlay .welcome-content {
                 transform: translateX(-50%) !important;
             }
+            /* Animation fluide: fade + léger mouvement vertical sans backdrop-filter pendant transition */
             body.clickedPlay .welcome-content {
                 opacity: 0;
-                transform: translateX(-50%) translateY(-20px) !important;
+                transform: translateX(-50%) translateY(-10px) !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                transition: opacity 0.35s ease, transform 0.35s ease !important;
             }
 
             /* Textes plus petits */
@@ -1831,11 +1868,11 @@
                 padding-top: 20px;
             }
 
-            /* Boutons play: mobile visible, desktop cache */
+            /* Boutons play: mobile visible, desktop cache — collé en bas sans espace gris */
             .play-button-container.mobile-play {
                 display: block !important;
                 position: absolute !important;
-                bottom: calc(25px + env(safe-area-inset-bottom)) !important;
+                bottom: calc(12px + env(safe-area-inset-bottom)) !important;
                 right: auto !important;
                 left: 50% !important;
                 transform: translateX(-50%);
@@ -1855,17 +1892,20 @@
                 height: 50%;
             }
 
-            /* Gradient adapté mobile — pas de blur, juste overlay */
+            /* Gradient adapté mobile — plus léger, plein écran sans barre grise */
             #welcome-screen::before {
+                width: 100% !important;
+                border-radius: 0 !important;
                 background: linear-gradient(to bottom,
-                    rgba(0,0,0,0.9) 0%,
-                    rgba(0,0,0,0.7) 20%,
-                    rgba(0,0,0,0.4) 50%,
-                    rgba(0,0,0,0.7) 80%,
-                    rgba(0,0,0,0.95) 100%
-                );
-                backdrop-filter: none;
-                -webkit-backdrop-filter: none;
+                    rgba(0,0,0,0.85) 0%,
+                    rgba(0,0,0,0.5) 15%,
+                    rgba(0,0,0,0.25) 40%,
+                    rgba(0,0,0,0.25) 60%,
+                    rgba(0,0,0,0.5) 85%,
+                    rgba(0,0,0,0.8) 100%
+                ) !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
                 -webkit-mask-image: none;
                 mask-image: none;
             }
@@ -9332,13 +9372,15 @@
                 console.log('🐙 Poulpe vidéo: lecture lancée');
             }
 
-            // Phase 2: Après le fondu du texte (320ms), gérer le logo
-            const fadeMs = 350; // Légèrement après --clickFadeMs (320ms)
+            // Phase 2: Après le fondu du texte — délais réduits sur mobile pour fluidité
+            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
+            const fadeMs = isMobileDevice ? 250 : 350;
+            const startDelay = isMobileDevice ? 150 : 250;
             setTimeout(() => {
                 // Phase 3: Lancer le loading screen
                 setTimeout(() => {
                     startExperience();
-                }, 250);
+                }, startDelay);
             }, fadeMs);
         }
 
@@ -9423,9 +9465,15 @@
                     }
                 });
 
-                // Right-click: same as ALT — toggle info/pause screen (PC only)
+                // Block native context menu globally in FPS mode
                 document.addEventListener('contextmenu', function(e) {
-                    if (!fpsMode) return;
+                    if (fpsMode) e.preventDefault();
+                });
+
+                // Right-click (mousedown button=2): same as ALT — toggle info/pause screen
+                // Using mousedown instead of contextmenu because contextmenu doesn't fire during pointer lock
+                document.addEventListener('mousedown', function(e) {
+                    if (e.button !== 2 || !fpsMode) return;
                     e.preventDefault();
                     if (isPaused) {
                         resumeExperience();
@@ -9583,6 +9631,13 @@
             // Handle background video loading
             const welcomeVideo = document.getElementById('welcome-video-bg');
             if (welcomeVideo) {
+                // Mobile: use optimized mobile background video
+                const isMobileBg = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
+                if (isMobileBg) {
+                    welcomeVideo.src = 'videos/background_mobile.webm';
+                    welcomeVideo.load();
+                    console.log('📱 Vidéo d\'arrière-plan mobile: background_mobile.webm');
+                }
                 if (welcomeVideo.readyState >= 3) {
                     welcomeVideo.classList.add('loaded');
                     console.log('✅ Vidéo d\'arrière-plan déjà prête');
