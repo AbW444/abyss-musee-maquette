@@ -818,6 +818,10 @@
             z-index: 3;
             width: 160px;
             height: 161px;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 50%;
             transition: opacity var(--clickFadeMs) ease;
         }
         body.clickedPlay .play-button-container {
@@ -1917,14 +1921,15 @@
                 bottom: calc(60px + env(safe-area-inset-bottom));
                 right: calc(15px + env(safe-area-inset-right));
             }
-            /* Mobile fullscreen: descend le panneau, limiter la hauteur pour ne pas coller le X */
+            /* Mobile fullscreen: panneau légèrement sous le centre, hauteur généreuse */
             body.is-fullscreen #pause-screen {
-                justify-content: flex-end;
-                padding-top: calc(70px + env(safe-area-inset-top));
-                padding-bottom: calc(130px + env(safe-area-inset-bottom));
+                justify-content: center;
+                padding-top: calc(80px + env(safe-area-inset-top));
+                padding-bottom: calc(60px + env(safe-area-inset-bottom));
             }
             body.is-fullscreen .pause-content {
-                max-height: calc(100dvh - 200px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+                margin-top: 40px;
+                max-height: calc(100dvh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
             }
 
             /* Cacher le volume, lang et le bouton fullscreen du panneau sur mobile */
@@ -2144,6 +2149,10 @@
             <!-- Mouse wheel scroll icon -->
             <img class="instruction-svg" src="img/icone-scroll.svg" width="40" height="40" alt="Scroll">
             <span data-fr="Avancer / Reculer" data-en="Forward / Backward">Avancer / Reculer</span>
+        </div>
+        <div class="instruction-line secondary">
+            <span class="key">ESC</span>
+            <span data-fr="Quitter le plein écran" data-en="Exit fullscreen">Quitter le plein écran</span>
         </div>
         <div class="instruction-line secondary">
             <span class="key">ALT</span>
@@ -9418,12 +9427,25 @@
                         if (isPaused) {
                             resumeExperience();
                         } else {
-                            // Release pointer lock if active
                             if (document.exitPointerLock) {
                                 document.exitPointerLock();
                             }
                             showPauseScreen();
                         }
+                    }
+                });
+
+                // Right-click: same as ALT — toggle info/pause screen (PC only)
+                document.addEventListener('contextmenu', function(e) {
+                    if (!fpsMode) return;
+                    e.preventDefault();
+                    if (isPaused) {
+                        resumeExperience();
+                    } else {
+                        if (document.exitPointerLock) {
+                            document.exitPointerLock();
+                        }
+                        showPauseScreen();
                     }
                 });
 
