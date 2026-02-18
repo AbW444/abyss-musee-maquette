@@ -1133,8 +1133,8 @@
         }
         /* ─── Circle Buttons (mute, fullscreen — same style as gyroscope button) ─── */
         .mute-button, .pause-close-btn {
-            background: rgba(100,150,255,0.18);
-            border: 1px solid rgba(100,150,255,0.6);
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
             color: #fff;
             padding: 0;
             width: 44px;
@@ -1146,13 +1146,13 @@
             transition: background 0.15s, border-color 0.15s, transform 0.1s;
         }
         .mute-button:hover, .pause-close-btn:hover {
-            background: rgba(100,150,255,0.30);
+            background: rgba(255,255,255,0.12);
             transform: scale(1.05);
         }
         .mute-button:active, .pause-close-btn:active {
             transform: scale(0.93);
         }
-        /* Active state: button is "engaged" (muted or fullscreen active) */
+        /* Active state: button is "engaged" (muted or fullscreen active) — blue */
         .mute-button.active-state, .pause-close-btn.active-state {
             background: rgba(100,150,255,0.35);
             border-color: rgba(100,150,255,0.8);
@@ -2241,9 +2241,9 @@
                 <img class="instruction-svg" src="img/icone-scroll.svg" width="40" height="40" alt="Scroll">
                 <span>Avancer / Reculer</span>
             </div>
-            <div class="instruction-line" id="pause-esc-fullscreen-instruction" style="display:none;">
+            <div class="instruction-line">
                 <span class="key">ESC</span>
-                <span>Quitter le mode plein écran</span>
+                <span>Reprendre l'exploration</span>
             </div>
             <div class="instruction-line">
                 <span class="key">ALT</span>
@@ -2774,7 +2774,7 @@
         let videoSamplingData = null;
 
         // Particle density system - Safety cap to prevent performance issues
-        const MAX_PARTICLES = 300000; // Cap maximum de particules par écran (réduit pour éviter OOM GPU)
+        const MAX_PARTICLES = 500000; // Cap maximum de particules par écran
 
         // FPS Counter variables
         let fpsFrameCount = 0;
