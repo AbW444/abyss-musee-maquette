@@ -691,14 +691,13 @@
         /* PC: panneau opaque+blur pleine hauteur, ancré à gauche.
            Ne se déplace jamais — seule sa largeur évolue.
            Hover → remplit le viewport. Click → fade out.
-           --blurFade (48px) = dégradé latéral droit, net et contrôlé. */
+           Bord droit arrondi (20px), s'anime vers 0 au hover. */
         #welcome-screen::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
-            --blurFade: 48px;
-            width: calc(var(--textLeft) + var(--textColW) + 80px + var(--blurFade));
+            width: calc(var(--textLeft) + var(--textColW) + 80px);
             height: 100%;
             background: rgba(0,0,0,0.55);
             backdrop-filter: blur(32px);
@@ -709,17 +708,14 @@
             transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
                         border-radius 0.7s cubic-bezier(0.22, 1, 0.36, 1),
                         opacity var(--clickFadeMs) ease;
-            /* Dégradé 2 stops : opaque → transparent sur 48px. Net, pas diffus. */
-            -webkit-mask-image: linear-gradient(to right, black calc(100% - 48px), transparent 100%);
-            mask-image: linear-gradient(to right, black calc(100% - 48px), transparent 100%);
         }
         body.hoverPlay #welcome-screen::before {
-            width: calc(100vw + var(--blurFade));
+            width: 100vw;
             border-radius: 0;
         }
         body.clickedPlay #welcome-screen::before {
             opacity: 0;
-            width: calc(100vw + var(--blurFade));
+            width: 100vw;
             border-radius: 0;
         }
         #welcome-video-bg {
