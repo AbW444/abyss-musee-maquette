@@ -24,7 +24,7 @@
             --textLeft: 240px;
             --textColW: 580px;
             --textTop: 150px;
-            --logoSize: 208px;
+            --logoSize: 156px;
             --playRight: 240px;
             --playBottom: 150px;
             --hoverTextShift: 90px;
@@ -886,13 +886,11 @@
             left: calc((var(--textLeft) + var(--hoverTextShift)) / 2 - var(--logoSize) / 2);
         }
 
-        /* Centrage final lors du click + réduction à moitié */
+        /* Centrage final lors du click — taille inchangée */
         body.clickedPlay .welcome-logo-container {
-            width: calc(var(--logoSize) / 2);
-            height: calc(var(--logoSize) / 2);
-            left: calc(50vw - var(--logoSize) / 4);
-            top: calc(50vh - var(--logoSize) / 4);
-            top: calc(50dvh - var(--logoSize) / 4);
+            left: calc(50vw - var(--logoSize) / 2);
+            top: calc(50vh - var(--logoSize) / 2);
+            top: calc(50dvh - var(--logoSize) / 2);
         }
 
         /* État détaché: le logo est reparenté dans body pour rester visible pendant le chargement */
@@ -965,7 +963,7 @@
             overflow-y: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
-            background: rgba(0,0,0,0.92);
+            background: rgba(0,0,0,0.55);
             backdrop-filter: blur(32px);
             -webkit-backdrop-filter: blur(32px);
             border: none;
@@ -1742,7 +1740,7 @@
                 --textColW: calc(100vw - clamp(40px, 10vw, 80px));
                 --playRight: clamp(30px, 8vw, 60px);
                 --playBottom: clamp(80px, 15vh, 120px);
-                --logoSize: clamp(90px, 24vw, 110px); /* 2x base, reste réduit au centre */
+                --logoSize: clamp(68px, 18vw, 83px); /* 1.5x base */
                 --hoverTextShift: 0px;
                 --clickTextExitX: 100px;
             }
