@@ -1770,30 +1770,23 @@
                 top: calc(50dvh - var(--logoSize) / 2) !important;
             }
 
-            /* Texte mobile: glassmorphisme style pause-content, scroll interne */
+            /* Texte mobile: même principe que pause-content — tout sur le même élément */
             .welcome-content {
                 left: 50% !important;
                 top: calc(30px + env(safe-area-inset-top) + var(--logoSize)) !important;
                 transform: translateX(-50%) !important;
                 width: calc(100vw - 40px) !important;
                 max-width: 500px !important;
-                max-height: calc(100dvh - 40px - env(safe-area-inset-top) - var(--logoSize)) !important;
+                max-height: calc(100dvh - 140px - env(safe-area-inset-top) - var(--logoSize)) !important;
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
-                padding: 0;
+                padding: 22px 20px;
                 text-align: left;
-                background: none;
-                backdrop-filter: none;
-                -webkit-backdrop-filter: none;
-                border-radius: 0;
-            }
-            .welcome-text-wrapper {
                 background: rgba(0,0,0,0.55);
                 backdrop-filter: blur(24px);
                 -webkit-backdrop-filter: blur(24px);
                 border-radius: 28px;
-                padding: 22px 20px;
             }
             .welcome-content::-webkit-scrollbar {
                 display: none;
@@ -1839,10 +1832,11 @@
             /* Boutons play: mobile visible, desktop cache */
             .play-button-container.mobile-play {
                 display: block !important;
-                position: relative !important;
-                bottom: auto !important;
+                position: absolute !important;
+                bottom: calc(25px + env(safe-area-inset-bottom)) !important;
                 right: auto !important;
-                margin: 55px auto 40px auto;
+                left: 50% !important;
+                transform: translateX(-50%);
                 width: clamp(90px, 22vw, 120px);
                 height: clamp(90px, 22vw, 120px);
             }
@@ -2182,7 +2176,6 @@
         </div>
 
         <div class="welcome-content" id="welcome-content">
-          <div class="welcome-text-wrapper">
             <span class="welcome-project-name">DUMBO</span>
             <h1 class="welcome-title">
                 <span data-fr="Présences aquatiques rares" data-en="Rare Aquatic Presences">Présences aquatiques rares</span><br>
@@ -2216,11 +2209,10 @@
             </div>
           </div>
 
-            <!-- Bouton Play mobile: hors du wrapper blur -->
-            <div class="play-button-container mobile-play" id="play-button-mobile" onclick="handlePlayClick()">
-                <img src="img/icone_play_rond.png" alt="Play" class="play-rond">
-                <img src="img/icone_play_fleche.png" alt="Play" class="play-fleche">
-            </div>
+        <!-- Bouton Play mobile: en dehors de welcome-content -->
+        <div class="play-button-container mobile-play" id="play-button-mobile" onclick="handlePlayClick()">
+            <img src="img/icone_play_rond.png" alt="Play" class="play-rond">
+            <img src="img/icone_play_fleche.png" alt="Play" class="play-fleche">
         </div>
 
         <!-- Bouton Play desktop: position absolute -->
@@ -2884,9 +2876,9 @@
 
         // FPS Settings Object (accessible globalement)
         const fpsSettings = {
-            fpsCameraHeight: -96,       // Hauteur de spawn de la caméra
+            fpsCameraHeight: -91,       // Hauteur de spawn de la caméra
             fpsGravity: -1.5,           // Gravité
-            fpsPlayerHeight: 25,        // Hauteur des yeux du joueur au-dessus du sol
+            fpsPlayerHeight: 30,        // Hauteur des yeux du joueur au-dessus du sol
             fpsMaxSpeed: 1.125,         // Vitesse maximale (divisée par 2)
             fpsAcceleration: 0.1,       // Vitesse d'accélération
             fpsDeceleration: 0.3,       // Vitesse de décélération
