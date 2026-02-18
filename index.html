@@ -118,7 +118,21 @@
             --z-permission: 8000;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: inherit; }
+
+        /* ─── Custom Modern Cursor ─── */
+        body, html {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M5 3l14 8.5L12.5 13l-1.5 7L5 3z' fill='rgba(255,255,255,0.92)' stroke='rgba(0,0,0,0.4)' stroke-width='1' stroke-linejoin='round'/%3E%3C/svg%3E") 5 3, auto;
+        }
+        body.fps-cursor-hidden {
+            cursor: none !important;
+        }
+        body.fps-cursor-hidden * {
+            cursor: none !important;
+        }
+        a, button, [onclick], input[type="range"], .mute-button, .pause-close-btn, .play-button-container, .shape-btn, .volume-slider, label, .value, .arrow-btn {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M9 5l0 12M6 14l3 3 3-3' fill='none' stroke='rgba(255,255,255,0.92)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='9' cy='5' r='2' fill='rgba(255,255,255,0.92)' stroke='rgba(0,0,0,0.3)' stroke-width='0.5'/%3E%3C/svg%3E") 9 5, pointer !important;
+        }
 
         /* ═══════════════════════════════════════════════════════════════
            GLOBAL MOBILE STYLES - Anti-comportements gênants
@@ -172,7 +186,6 @@
             border: 1px solid var(--color-border);
             font-family: var(--font-sans);
             color: #fff;
-            cursor: move;
             user-select: none;
         }
         #ui, #screen-manager-panel, #fps-settings-panel {
@@ -301,7 +314,7 @@
                        width: 2px; height: 12px; background: rgba(255,255,255,0.4);
                        pointer-events: none; border-radius: 1px; }
 
-        .hint { font-size: var(--text-xs); color: var(--color-text-dim); margin-top: var(--space-sm); text-align: center;
+        .hint { font-size: var(--text-xs); color: var(--color-text-dim); margin-top: var(--space-sm); text-align: left;
                 font-style: italic; }
 
         #shape-selector { position: fixed; top: 20px; right: 20px; z-index: var(--z-ui);
@@ -927,7 +940,6 @@
             padding: 40px 0;
             box-sizing: border-box;
             z-index: var(--z-pause);
-            cursor: pointer;
             transition: opacity 0.4s ease;
         }
         #pause-screen.active {
@@ -939,71 +951,89 @@
             overflow-y: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
-            background: rgba(0,0,0,0.65);
-            border: none;
+            background: rgba(10,12,18,0.55);
+            backdrop-filter: blur(32px) saturate(1.3) brightness(0.85);
+            -webkit-backdrop-filter: blur(32px) saturate(1.3) brightness(0.85);
+            border: 1px solid rgba(255,255,255,0.08);
             border-radius: var(--radius-2xl);
-            padding: 33px 46px;
+            padding: 48px 58px;
             text-align: left;
-            box-shadow: none;
+            box-shadow: 0 8px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
             pointer-events: all;
-            cursor: default;
         }
         .pause-content::-webkit-scrollbar {
             display: none; /* Chrome/Safari */
         }
         .pause-title {
             font-family: var(--font-sans);
-            font-size: 21px;
-            font-weight: 500;
-            color: var(--color-text);
-            margin-bottom: 18px;
-            letter-spacing: 1.5px;
+            font-size: 18px;
+            font-weight: 400;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 22px;
+            letter-spacing: 1.8px;
             text-transform: uppercase;
             line-height: 1.4;
         }
         .pause-text {
             font-family: var(--font-sans);
-            font-size: 16px;
+            font-size: 14.5px;
             font-weight: 300;
-            color: var(--color-text-secondary);
-            line-height: 1.75;
+            color: rgba(255,255,255,0.65);
+            line-height: 1.7;
             margin-bottom: 14px;
-            letter-spacing: 0.3px;
-            text-align: justify;
+            letter-spacing: 0.2px;
+            text-align: left;
         }
         .pause-text strong {
             font-weight: 400;
-            color: rgba(255,255,255,0.85);
+            color: rgba(255,255,255,0.8);
+        }
+        .pause-text br:only-child {
+            display: none;
         }
         /* Liste conceptuelle - sans décoration */
         .pause-conceptual-list {
             font-family: var(--font-sans);
-            font-size: 16px;
+            font-size: 14.5px;
             font-weight: 300;
-            color: var(--color-text-secondary);
-            line-height: 1.9;
+            color: rgba(255,255,255,0.65);
+            line-height: 1.8;
             margin: 14px 0;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.2px;
+            text-align: left;
         }
         .pause-conceptual-list .list-intro {
             display: block;
-            margin-bottom: 8px;
-            line-height: 1.75;
+            margin-bottom: 10px;
+            line-height: 1.7;
         }
         .pause-conceptual-list .list-item {
             display: block;
-            color: rgba(255,255,255,0.80);
+            color: rgba(255,255,255,0.6);
+            padding-left: 12px;
+            position: relative;
+        }
+        .pause-conceptual-list .list-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.7em;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(100,150,255,0.4);
         }
         .pause-meta {
             font-family: var(--font-mono);
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 300;
-            color: var(--color-text-dim);
+            color: rgba(255,255,255,0.35);
             line-height: 1.6;
-            margin-top: 20px;
+            margin-top: 22px;
             padding-top: 16px;
-            border-top: 1px solid var(--color-border);
+            border-top: 1px solid rgba(255,255,255,0.08);
             letter-spacing: 0.3px;
+            text-align: left;
         }
         /* ─── Bottom-right control grid (fullscreen + volume) ─── */
         .pause-controls {
@@ -1027,9 +1057,9 @@
             position: relative;
         }
         .volume-slider-container {
-            width: 4px;
+            width: 36px;
             height: 0;
-            overflow: hidden;
+            overflow: visible;
             opacity: 0;
             transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
             display: flex;
@@ -1037,66 +1067,72 @@
             justify-content: center;
             margin-bottom: 8px;
             position: relative;
-            border-radius: 2px;
-            background: rgba(255,255,255,0.08);
+            border-radius: 18px;
+            background: rgba(10,12,18,0.45);
+            backdrop-filter: blur(16px) saturate(1.2);
+            -webkit-backdrop-filter: blur(16px) saturate(1.2);
         }
         .volume-control.active .volume-slider-container {
-            height: 100px;
+            height: 120px;
             opacity: 1;
         }
         .volume-slider {
             -webkit-appearance: none;
             appearance: none;
             width: 100px;
-            height: 4px;
+            height: 6px;
             background: transparent;
             transform: rotate(-90deg);
             transform-origin: center;
             position: absolute;
-            cursor: pointer;
+            margin: 0;
+            padding: 0;
+            z-index: 10;
         }
         .volume-slider::-webkit-slider-runnable-track {
-            height: 4px;
-            background: rgba(255,255,255,0.15);
-            border-radius: 2px;
+            height: 6px;
+            background: linear-gradient(to right, rgba(80,130,255,0.6), rgba(100,150,255,0.15));
+            border-radius: 3px;
         }
         .volume-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 14px;
-            height: 14px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
-            background: #fff;
-            margin-top: -5px;
-            cursor: pointer;
-            transition: transform 0.15s ease;
+            background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.95), rgba(180,200,255,0.8));
+            margin-top: -6px;
+            box-shadow: 0 0 12px rgba(100,150,255,0.5), 0 2px 6px rgba(0,0,0,0.3);
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
         }
         .volume-slider::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
+            transform: scale(1.3);
+            box-shadow: 0 0 20px rgba(100,150,255,0.7), 0 2px 8px rgba(0,0,0,0.4);
         }
         .volume-slider::-moz-range-track {
-            height: 4px;
-            background: rgba(255,255,255,0.15);
-            border-radius: 2px;
+            height: 6px;
+            background: linear-gradient(to right, rgba(80,130,255,0.6), rgba(100,150,255,0.15));
+            border-radius: 3px;
             border: none;
         }
         .volume-slider::-moz-range-thumb {
-            width: 14px;
-            height: 14px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
-            background: #fff;
+            background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.95), rgba(180,200,255,0.8));
             border: none;
-            cursor: pointer;
+            box-shadow: 0 0 12px rgba(100,150,255,0.5), 0 2px 6px rgba(0,0,0,0.3);
         }
         /* ─── Circle Buttons (mute, close, mobile) ─── */
         .mute-button, .pause-close-btn {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(10,12,18,0.45);
+            backdrop-filter: blur(16px) saturate(1.2);
+            -webkit-backdrop-filter: blur(16px) saturate(1.2);
+            border: 1px solid rgba(255,255,255,0.1);
             color: #fff;
             padding: 0;
             width: 52px;
             height: 52px;
             border-radius: var(--radius-round);
-            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1123,9 +1159,10 @@
             bottom: 18px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 12px;
-            color: var(--color-text-hint);
+            font-size: 11px;
+            color: rgba(255,255,255,0.2);
             font-style: italic;
+            letter-spacing: 0.3px;
         }
 
         /* Pause fullscreen button — inside bottom-right grid, no fixed positioning */
@@ -1146,29 +1183,31 @@
         .game-instructions,
         .pause-instructions {
             background: transparent;
-            padding: var(--space-lg);
-            border-radius: var(--radius-xl);
+            padding: 0;
+            border-radius: 0;
             border: none;
-            font-size: 13.2px;
-            color: rgba(255,255,255,0.85);
+            font-size: 12.5px;
+            color: rgba(255,255,255,0.7);
             pointer-events: none;
             z-index: var(--z-ui);
             display: flex;
             flex-direction: column;
-            gap: 11px;
+            gap: 10px;
         }
 
         .persistent-instructions {
             position: fixed;
-            top: 16px;
-            left: 16px;
+            bottom: 24px;
+            left: 24px;
+            top: auto;
             min-width: 160px;
         }
 
         .game-instructions {
             position: fixed;
-            top: 100px;
-            left: 16px;
+            bottom: 24px;
+            left: 24px;
+            top: auto;
             min-width: 200px;
             opacity: 1;
         }
@@ -1178,8 +1217,9 @@
 
         .pause-instructions {
             position: fixed;
-            top: 16px;
-            left: 16px;
+            bottom: 24px;
+            left: 24px;
+            top: auto;
             z-index: var(--z-pause-controls);
             min-width: 200px;
         }
@@ -1209,14 +1249,16 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background: rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             padding: 4px 9px;
-            border-radius: var(--radius-sm);
-            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.12);
             font-family: var(--font-mono);
-            font-size: 11px;
-            color: rgba(255,255,255,0.9);
-            font-weight: 600;
+            font-size: 10.5px;
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
             white-space: nowrap;
             line-height: 1;
             min-width: 26px;
@@ -1226,14 +1268,14 @@
         /* Inline key badges (within text flow) */
         .key-inline {
             display: inline-block;
-            background: rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.05);
             padding: 2px 6px;
-            border-radius: 3px;
-            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.1);
             font-family: var(--font-mono);
             font-size: 10px;
-            color: rgba(255,255,255,0.8);
-            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+            font-weight: 500;
             white-space: nowrap;
             line-height: 1;
             vertical-align: middle;
@@ -2081,32 +2123,32 @@
     <!-- Game Instructions (top-left, visible when on floor Y=11, hides after movement) -->
     <div class="game-instructions hidden" id="game-instructions">
         <div class="instruction-line">
-            <!-- Cursor/move icon for looking around -->
+            <!-- Mouse icon for looking around -->
             <svg class="instruction-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 9l-3 3 3 3"></path>
-                <path d="M9 5l3-3 3 3"></path>
-                <path d="M15 19l3 3-3-3"></path>
-                <path d="M19 9l3 3-3 3"></path>
-                <path d="M2 12h20"></path>
-                <path d="M12 2v20"></path>
+                <rect x="6" y="3" width="12" height="18" rx="6"></rect>
+                <line x1="12" y1="7" x2="12" y2="11"></line>
             </svg>
             <span>Regarder autour</span>
         </div>
         <div class="instruction-line">
-            <!-- Keyboard icon -->
+            <!-- Arrow keys icon (directional pad style) -->
             <svg class="instruction-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="6" width="20" height="14" rx="2"></rect>
-                <path d="M7 10h2 M11 10h2 M15 10h2"></path>
-                <path d="M9 14h6"></path>
+                <path d="M12 5l-4 4h8z" fill="currentColor" opacity="0.5"></path>
+                <path d="M12 19l-4-4h8z" fill="currentColor" opacity="0.5"></path>
+                <path d="M5 12l4-4v8z" fill="currentColor" opacity="0.5"></path>
+                <path d="M19 12l-4-4v8z" fill="currentColor" opacity="0.5"></path>
             </svg>
-            <span><span class="key-inline">ZQSD</span> <span class="or-text">ou</span> <span class="key-inline">↑←↓→</span> Se déplacer</span>
+            <span><span class="key-inline">ZQSD</span> <span class="or-text">ou</span> <span class="key-inline">Fleches</span> Se deplacer</span>
         </div>
         <div class="instruction-line secondary">
-            <!-- Scroll vertical icon (two arrows up/down) -->
+            <!-- Mouse wheel scroll icon -->
             <svg class="instruction-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 3v18"></path>
-                <path d="M8 7l4-4 4 4"></path>
-                <path d="M8 17l4 4 4-4"></path>
+                <rect x="7" y="4" width="10" height="16" rx="5"></rect>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <path d="M9 2l3-0 3 0"></path>
+                <path d="M9 22l3 0 3 0"></path>
+                <path d="M10 7l2-2 2 2"></path>
+                <path d="M10 13l2 2 2-2"></path>
             </svg>
             <span>Avancer / Reculer</span>
         </div>
@@ -2188,32 +2230,30 @@
                 <span>Plein écran</span>
             </div>
             <div class="instruction-line">
-                <!-- Move/look icon -->
+                <!-- Mouse icon for looking around -->
                 <svg class="instruction-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M5 9l-3 3 3 3"></path>
-                    <path d="M9 5l3-3 3 3"></path>
-                    <path d="M15 19l3 3-3-3"></path>
-                    <path d="M19 9l3 3-3 3"></path>
-                    <path d="M2 12h20"></path>
-                    <path d="M12 2v20"></path>
+                    <rect x="6" y="3" width="12" height="18" rx="6"></rect>
+                    <line x1="12" y1="7" x2="12" y2="11"></line>
                 </svg>
                 <span>Regarder autour</span>
             </div>
             <div class="instruction-line">
-                <!-- Keyboard icon -->
+                <!-- Arrow keys icon (directional pad style) -->
                 <svg class="instruction-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="6" width="20" height="14" rx="2"></rect>
-                    <path d="M7 10h2 M11 10h2 M15 10h2"></path>
-                    <path d="M9 14h6"></path>
+                    <path d="M12 5l-4 4h8z" fill="currentColor" opacity="0.5"></path>
+                    <path d="M12 19l-4-4h8z" fill="currentColor" opacity="0.5"></path>
+                    <path d="M5 12l4-4v8z" fill="currentColor" opacity="0.5"></path>
+                    <path d="M19 12l-4-4v8z" fill="currentColor" opacity="0.5"></path>
                 </svg>
-                <span><span class="key-inline">ZQSD</span> <span class="or-text">ou</span> <span class="key-inline">↑←↓→</span> Se déplacer</span>
+                <span><span class="key-inline">ZQSD</span> <span class="or-text">ou</span> <span class="key-inline">Fleches</span> Se deplacer</span>
             </div>
             <div class="instruction-line secondary">
-                <!-- Scroll vertical icon -->
+                <!-- Mouse wheel scroll icon -->
                 <svg class="instruction-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 3v18"></path>
-                    <path d="M8 7l4-4 4 4"></path>
-                    <path d="M8 17l4 4 4-4"></path>
+                    <rect x="7" y="4" width="10" height="16" rx="5"></rect>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <path d="M10 7l2-2 2 2"></path>
+                    <path d="M10 13l2 2 2-2"></path>
                 </svg>
                 <span>Avancer / Reculer</span>
             </div>
@@ -2231,11 +2271,11 @@
             </p>
 
             <div class="pause-conceptual-list">
-                <span class="list-intro">Le choix d'une maquette web répond à des contraintes de temps et de moyens. Il permet néanmoins d'explorer des questions essentielles&nbsp;:</span>
-                <span class="list-item">- distance et proximité du regard</span>
-                <span class="list-item">- échelle et corporalité</span>
-                <span class="list-item">- temporalité de l'observation</span>
-                <span class="list-item">- relation entre image documentaire et forme exposée</span>
+                <span class="list-intro">Le choix d'une maquette web repond a des contraintes de temps et de moyens. Il permet neanmoins d'explorer des questions essentielles :</span>
+                <span class="list-item">Distance et proximite du regard</span>
+                <span class="list-item">Echelle et corporalite</span>
+                <span class="list-item">Temporalite de l'observation</span>
+                <span class="list-item">Relation entre image documentaire et forme exposee</span>
             </div>
 
             <p class="pause-text">
@@ -2243,8 +2283,8 @@
             </p>
 
             <div class="pause-meta">
-                Navigation libre - déplacement lent recommandé<br>
-                Les contenus projetés peuvent évoluer au cours du projet
+                Navigation libre, deplacement lent recommande.
+                Les contenus projetes peuvent evoluer au cours du projet.
             </div>
         </div>
 
@@ -2255,9 +2295,12 @@
                     <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="30" oninput="updateVolume(this.value)">
                 </div>
                 <button class="mute-button" id="mute-button" onclick="toggleMute()" ontouchstart="showVolumeSlider()" onmouseenter="showVolumeSlider()">
-                    <svg id="mute-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path id="sound-waves" d="M12 6v12M8 9v6M16 8v8M4 11v2M20 10v4"></path>
-                        <line id="mute-slash" x1="4" y1="4" x2="20" y2="20" stroke-width="2" style="display:none;"></line>
+                    <svg id="mute-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path id="sound-waves" d="M12 4v16M8 7v10M16 6v12M4 10v4M20 8v8"></path>
+                        <g id="mute-x" style="display:none;">
+                            <line x1="6" y1="6" x2="18" y2="18" stroke-width="2.2"></line>
+                            <line x1="18" y1="6" x2="6" y2="18" stroke-width="2.2"></line>
+                        </g>
                     </svg>
                 </button>
             </div>
@@ -3295,7 +3338,11 @@
                     e.preventDefault();
                     deselectScreen();
                 }
-                // In FPS mode: browser handles fullscreen exit natively via ESC — no custom action needed
+                // In FPS mode: show info panel if not already paused and not pointer-locked
+                // (pointer lock release is handled by lockChangeCallback which also shows info)
+                if (fpsMode && !isPaused && !isMouseLocked && !document.fullscreenElement && !document.webkitFullscreenElement) {
+                    showPauseScreen();
+                }
             }
 
             // Delete or Backspace: Delete selected screen
@@ -3365,7 +3412,7 @@
                     hideScreenLabels();
 
                     // Hide cursor in Spectator/FPS mode
-                    document.body.style.cursor = 'none';
+                    document.body.classList.add('fps-cursor-hidden');
 
                     // Play background music in Spectator mode
                     playAudio();
@@ -3389,7 +3436,7 @@
                     }
 
                     // CRITICAL: Show cursor in Admin mode
-                    document.body.style.cursor = 'default';
+                    document.body.classList.remove('fps-cursor-hidden');
                     isMouseLocked = false;
 
                     // CRITICAL: In Admin mode, show ONLY FPS counter + screen numbers by default
@@ -4973,15 +5020,16 @@
                     document.mozPointerLockElement === renderer.domElement ||
                     document.webkitPointerLockElement === renderer.domElement) {
                     isMouseLocked = true;
+                    document.body.classList.add('fps-cursor-hidden');
                     console.log('🔒 PointerLock activé (ESC pour quitter)');
                 } else {
                     isMouseLocked = false;
                     console.log('🔓 PointerLock désactivé');
 
-                    // Pointer lock released (ESC) — do NOT auto-show pause screen
-                    // Info screen is triggered by ALT key
+                    // Pointer lock released (ESC) — show info panel and cursor
                     if (fpsMode && !isPaused) {
-                        console.log('🔓 PointerLock libéré — ALT pour les infos');
+                        document.body.classList.remove('fps-cursor-hidden');
+                        showPauseScreen();
                     }
                 }
             }
@@ -6862,7 +6910,7 @@
             const width8 = 983.983;
             const height8 = 231.29;
             const geometry8 = new THREE.PlaneGeometry(width8, height8);
-            const material8 = createWallFormMaterial(0x000000); // Shader subtil pour mur-forme
+            const material8 = createWallFormMaterial(0x808080); // Shader subtil pour mur-forme
             const screen8 = new THREE.Mesh(geometry8, material8);
 
             // Position et orientation (from user JSON)
@@ -6873,7 +6921,7 @@
             // Mark as color surface
             screen8.userData.screenNumber = 8;
             screen8.userData.isColorSurface = true;
-            screen8.userData.color = 0x000000;
+            screen8.userData.color = 0x808080;
 
             screensGroup.add(screen8);
 
@@ -6883,14 +6931,14 @@
             const width9 = 983.983;
             const height9 = 231.29;
             const geometry9 = new THREE.PlaneGeometry(width9, height9);
-            const material9 = createWallFormMaterial(0x000000); // Shader subtil pour mur-forme
+            const material9 = createWallFormMaterial(0x808080); // Shader subtil pour mur-forme
             const screen9 = new THREE.Mesh(geometry9, material9);
             screen9.position.set(137.097, -6.589, 226.306);
             screen9.rotation.set(0, 0, 0);
             screen9.scale.set(1, 1, 1);
             screen9.userData.screenNumber = 9;
             screen9.userData.isColorSurface = true;
-            screen9.userData.color = 0x000000;
+            screen9.userData.color = 0x808080;
             screensGroup.add(screen9);
 
             // ======================
@@ -6994,14 +7042,14 @@
             const width12 = 235.076;
             const height12 = 231.29;
             const geometry12 = new THREE.PlaneGeometry(width12, height12);
-            const material12 = createWallFormMaterial(0x999999); // Gris clair
+            const material12 = createWallFormMaterial(0xcccccc); // Gris clair
             const screen12 = new THREE.Mesh(geometry12, material12);
-            screen12.position.set(-348.048, -6.589, 115.234);
+            screen12.position.set(-348.048, 4.149, 115.234);
             screen12.rotation.set(0, 1.570796, 0);
             screen12.scale.set(1, 1, 1);
             screen12.userData.screenNumber = 12;
             screen12.userData.isColorSurface = true;
-            screen12.userData.color = 0x999999;
+            screen12.userData.color = 0xcccccc;
             screensGroup.add(screen12);
 
             // ======================
@@ -7162,14 +7210,14 @@
             const width22 = 235.076;
             const height22 = 60.24; // Ajusté pour bas = -111.773
             const geometry22 = new THREE.PlaneGeometry(width22, height22);
-            const material22 = createWallFormMaterial(0x999999); // Gris clair
+            const material22 = createWallFormMaterial(0xcccccc); // Gris clair
             const screen22 = new THREE.Mesh(geometry22, material22);
             screen22.position.set(-315.617, -81.653, 180.248); // Y ajusté
             screen22.rotation.set(-3.141593, 0, -3.141593);
             screen22.scale.set(1, 1, 1);
             screen22.userData.screenNumber = 22;
             screen22.userData.isColorSurface = true;
-            screen22.userData.color = 0x999999;
+            screen22.userData.color = 0xcccccc;
             screensGroup.add(screen22);
 
             // ======================
@@ -7179,14 +7227,14 @@
             const width23 = 235.076;
             const height23 = 60.24; // Ajusté pour bas = -111.773
             const geometry23 = new THREE.PlaneGeometry(width23, height23);
-            const material23 = createWallFormMaterial(0x999999); // Gris clair
+            const material23 = createWallFormMaterial(0xcccccc); // Gris clair
             const screen23 = new THREE.Mesh(geometry23, material23);
             screen23.position.set(-315.617, -81.653, 48.644); // Y ajusté
             screen23.rotation.set(-3.141593, 0, -3.141593);
             screen23.scale.set(1, 1, 1);
             screen23.userData.screenNumber = 23;
             screen23.userData.isColorSurface = true;
-            screen23.userData.color = 0x999999;
+            screen23.userData.color = 0xcccccc;
             screensGroup.add(screen23);
 
             // ======================
@@ -7195,14 +7243,14 @@
             const width24 = 235.076;
             const height24 = 231.29;
             const geometry24 = new THREE.PlaneGeometry(width24, height24);
-            const material24 = createWallFormMaterial(0x000000); // Noir absolu
+            const material24 = createWallFormMaterial(0x808080); // Gris moyen
             const screen24 = new THREE.Mesh(geometry24, material24);
             screen24.position.set(600.959, -6.589, 116.138);
             screen24.rotation.set(0, 1.570796, 0); // 90° en Y
             screen24.scale.set(1, 1, 1);
             screen24.userData.screenNumber = 24;
             screen24.userData.isColorSurface = true;
-            screen24.userData.color = 0x000000;
+            screen24.userData.color = 0x808080;
             screensGroup.add(screen24);
 
             // Restore custom shapes (>24) - both in allScreens and screensGroup
@@ -9149,20 +9197,20 @@
                 this.isMuted = !this.isMuted;
 
                 const soundWaves = document.getElementById('sound-waves');
-                const muteSlash = document.getElementById('mute-slash');
+                const muteX = document.getElementById('mute-x');
                 const muteBtn = document.getElementById('mute-button');
 
                 if (this.isMuted) {
                     // Mute everything
                     if (this.music) this.music.volume = 0;
                     soundWaves.style.display = 'none';
-                    muteSlash.style.display = 'block';
+                    muteX.style.display = 'block';
                     if (muteBtn) muteBtn.classList.add('active-state');
                 } else {
                     // Unmute
                     if (this.music) this.music.volume = this.currentMusicVolume;
                     soundWaves.style.display = 'block';
-                    muteSlash.style.display = 'none';
+                    muteX.style.display = 'none';
                     if (muteBtn) muteBtn.classList.remove('active-state');
 
                     // Play confirmation sound
@@ -9319,7 +9367,7 @@
             loadingScreen.classList.remove('hidden');
 
             // Immediately hide cursor - user should enter FPS mode directly
-            document.body.style.cursor = 'none';
+            document.body.classList.add('fps-cursor-hidden');
 
             // Start the auto-load sequence after welcome screen
             setTimeout(() => {
@@ -9392,6 +9440,9 @@
             isPaused = true;
             document.getElementById('pause-screen').classList.add('active');
 
+            // Show cursor when info panel is visible
+            document.body.classList.remove('fps-cursor-hidden');
+
             // Update fullscreen icon in pause panel
             updateFullscreenIcon();
 
@@ -9427,6 +9478,11 @@
 
             isPaused = false;
             document.getElementById('pause-screen').classList.remove('active');
+
+            // Hide cursor when resuming FPS experience
+            if (fpsMode && !isMobile) {
+                document.body.classList.add('fps-cursor-hidden');
+            }
 
             // Réafficher les contrôles mobiles, retransformer croix en info
             if (isMobile) {
@@ -10029,9 +10085,20 @@
         // Garder ouvert si on interagit avec le slider
         document.addEventListener('DOMContentLoaded', () => {
             const slider = document.getElementById('volume-slider');
+            const volumeContainer = document.getElementById('volume-control');
             if (slider) {
+                // Keep open while interacting
                 slider.addEventListener('input', () => {
                     clearTimeout(volumeSliderTimeout);
+                    volumeSliderTimeout = setTimeout(() => {
+                        hideVolumeSlider();
+                    }, 3000);
+                });
+                slider.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    clearTimeout(volumeSliderTimeout);
+                });
+                slider.addEventListener('mouseup', () => {
                     volumeSliderTimeout = setTimeout(() => {
                         hideVolumeSlider();
                     }, 3000);
@@ -10043,6 +10110,17 @@
                     volumeSliderTimeout = setTimeout(() => {
                         hideVolumeSlider();
                     }, 2000);
+                });
+            }
+            // Keep slider open when hovering over the container
+            if (volumeContainer) {
+                volumeContainer.addEventListener('mouseenter', () => {
+                    showVolumeSlider();
+                });
+                volumeContainer.addEventListener('mouseleave', () => {
+                    volumeSliderTimeout = setTimeout(() => {
+                        hideVolumeSlider();
+                    }, 1000);
                 });
             }
         });
