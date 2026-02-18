@@ -693,18 +693,15 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: calc(var(--textLeft) + var(--textColW) + 80px);
+            width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.55);
-            backdrop-filter: blur(32px);
-            -webkit-backdrop-filter: blur(32px);
-            border-radius: 0 28px 28px 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.2) 62%, transparent 78%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            -webkit-mask-image: linear-gradient(to right, black 0%, black 50%, transparent 80%);
+            mask-image: linear-gradient(to right, black 0%, black 50%, transparent 80%);
             z-index: 1;
             pointer-events: none;
-            transition: opacity var(--clickFadeMs) ease;
-        }
-        body.clickedPlay #welcome-screen::before {
-            opacity: 0;
         }
         #welcome-video-bg {
             position: absolute;
@@ -742,8 +739,8 @@
             transform: translateY(-50%);
             width: var(--textColW);
             max-width: 580px; /* ~60-65 caractères par ligne */
-            max-height: calc(100vh - 120px + 2vh);
-            max-height: calc(100dvh - 120px + 2vh);
+            max-height: calc(100vh - 120px);
+            max-height: calc(100dvh - 120px);
             overflow-y: auto;
             scrollbar-width: none;
             z-index: 2;
@@ -925,13 +922,6 @@
         .welcome-logo-container {
             mix-blend-mode: screen;
         }
-        /* Améliorer le rendu du logo MP4 — réduire les artefacts de compression amplifiés par screen blend */
-        .welcome-logo-poulpe {
-            filter: contrast(1.15) brightness(1.05);
-            image-rendering: auto;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-        }
 
         .welcome-logo {
             transition: opacity 0.2s ease;
@@ -1071,7 +1061,7 @@
             grid-template-columns: 1fr;
             align-items: center;
             justify-items: center;
-            gap: 8px;
+            gap: 12px;
             z-index: var(--z-pause-controls);
         }
         .volume-control {
@@ -1568,23 +1558,18 @@
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: var(--radius-round);
-            transition: background 0.15s, border-color 0.15s;
         }
         #mobile-joystick .joystick-thumb {
             position: absolute;
             width: 50px;
             height: 50px;
-            background: rgba(255,255,255,0.6);
-            border: 1px solid rgba(255,255,255,0.15);
+            background: #fff;
+            border: none;
             border-radius: var(--radius-round);
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
             transition: background 0.15s, border-color 0.15s;
-        }
-        #mobile-joystick.active .joystick-base {
-            background: rgba(100,150,255,0.12);
-            border-color: rgba(100,150,255,0.4);
         }
         #mobile-joystick.active .joystick-thumb {
             background: rgba(100,150,255,0.35);
@@ -1777,15 +1762,14 @@
             .welcome-logo-container {
                 left: calc(50% - var(--logoSize) / 2) !important;
                 top: calc(15px + env(safe-area-inset-top)) !important;
-                will-change: opacity;
             }
             body.hoverPlay .welcome-logo-container {
                 left: calc(50% - var(--logoSize) / 2) !important;
             }
             body.clickedPlay .welcome-logo-container {
-                /* Fade out in place — avoid expensive left/top layout animation on mobile */
-                opacity: 0 !important;
-                transition: opacity 0.3s ease !important;
+                left: calc(50vw - var(--logoSize) / 2) !important;
+                top: calc(50vh - var(--logoSize) / 2) !important;
+                top: calc(50dvh - var(--logoSize) / 2) !important;
             }
 
             /* Texte mobile: même principe que pause-content — tout sur le même élément */
@@ -1795,7 +1779,7 @@
                 transform: translateX(-50%) !important;
                 width: calc(100vw - 40px) !important;
                 max-width: 500px !important;
-                max-height: calc(97dvh - 140px - env(safe-area-inset-top) - var(--logoSize)) !important;
+                max-height: calc(95dvh - 140px - env(safe-area-inset-top) - var(--logoSize)) !important;
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
@@ -1814,10 +1798,7 @@
             }
             body.clickedPlay .welcome-content {
                 opacity: 0;
-                transform: translateX(-50%) !important;
-                backdrop-filter: none !important;
-                -webkit-backdrop-filter: none !important;
-                transition: opacity 0.25s ease !important;
+                transform: translateX(-50%) translateY(-20px) !important;
             }
 
             /* Textes plus petits */
@@ -9351,15 +9332,13 @@
                 console.log('🐙 Poulpe vidéo: lecture lancée');
             }
 
-            // Phase 2: Après le fondu du texte — délais réduits sur mobile pour fluidité
-            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
-            const fadeMs = isMobileDevice ? 200 : 350;
-            const startDelay = isMobileDevice ? 100 : 250;
+            // Phase 2: Après le fondu du texte (320ms), gérer le logo
+            const fadeMs = 350; // Légèrement après --clickFadeMs (320ms)
             setTimeout(() => {
                 // Phase 3: Lancer le loading screen
                 setTimeout(() => {
                     startExperience();
-                }, startDelay);
+                }, 250);
             }, fadeMs);
         }
 
@@ -9604,13 +9583,6 @@
             // Handle background video loading
             const welcomeVideo = document.getElementById('welcome-video-bg');
             if (welcomeVideo) {
-                // Mobile: use optimized mobile background video
-                const isMobileBg = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
-                if (isMobileBg) {
-                    welcomeVideo.src = 'videos/background_mobile.webm';
-                    welcomeVideo.load();
-                    console.log('📱 Vidéo d\'arrière-plan mobile: background_mobile.webm');
-                }
                 if (welcomeVideo.readyState >= 3) {
                     welcomeVideo.classList.add('loaded');
                     console.log('✅ Vidéo d\'arrière-plan déjà prête');
