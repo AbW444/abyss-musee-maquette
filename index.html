@@ -9827,14 +9827,7 @@
             })();
 
 
-            // ═══ Supprimer overlay MediaSession (notifications lecteur multimédia) ═══
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.metadata = null;
-                ['play','pause','seekbackward','seekforward','previoustrack','nexttrack','stop'].forEach(function(action) {
-                    try { navigator.mediaSession.setActionHandler(action, function() {}); } catch(e) {}
-                });
-                console.log('🔇 MediaSession overlay désactivé');
-            }
+            // MediaSession : laisser le navigateur afficher les métadonnées du média
             // Nettoyer l'audio à la fermeture/quitte de page
             window.addEventListener('pagehide', function() {
                 if (typeof AudioManager !== 'undefined' && AudioManager.music) {
@@ -11221,13 +11214,7 @@
 
                     // Petit délai pour laisser la scène se stabiliser
                     setTimeout(() => {
-                        // 1) Logo apparaît EN PREMIER
-                        const expLogo = document.getElementById('welcome-logo-container');
-                        if (expLogo && expLogo.classList.contains('mobile-experience-logo')) {
-                            expLogo.classList.add('visible');
-                        }
-
-                        // 2) Boutons/joystick apparaissent APRÈS le logo (400ms de délai)
+                        // 1) Boutons/joystick apparaissent
                         setTimeout(() => {
                             mobileControlIds.forEach(id => {
                                 const el = document.getElementById(id);
