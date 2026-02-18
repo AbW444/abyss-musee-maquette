@@ -865,7 +865,7 @@
             transform: translate(-50%, -50%) translateX(4px) scale(1.08);
         }
 
-        /* Logo container - PNG et WEBM */
+        /* Logo container - PNG/WEBM (mobile) + poulpe MP4 (desktop) */
         .welcome-logo-container {
             position: absolute;
             left: calc(var(--textLeft) / 2 - var(--logoSize) / 2);
@@ -876,7 +876,9 @@
             /* Transitions explicites (pas 'all') pour éviter rasterisation GPU basse-res */
             transition: left var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
                         top var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
-                        opacity var(--logoMoveMs) ease;
+                        width var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
+                        height var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
+                        opacity 0.5s ease;
         }
 
         /* Recentrage du logo lors du hover */
@@ -884,22 +886,31 @@
             left: calc((var(--textLeft) + var(--hoverTextShift)) / 2 - var(--logoSize) / 2);
         }
 
-        /* Centrage final lors du click */
+        /* Centrage final lors du click + réduction à moitié */
         body.clickedPlay .welcome-logo-container {
-            left: calc(50vw - var(--logoSize) / 2);
-            top: calc(50vh - var(--logoSize) / 2);
-            top: calc(50dvh - var(--logoSize) / 2);
+            width: calc(var(--logoSize) / 2);
+            height: calc(var(--logoSize) / 2);
+            left: calc(50vw - var(--logoSize) / 4);
+            top: calc(50vh - var(--logoSize) / 4);
+            top: calc(50dvh - var(--logoSize) / 4);
+        }
+
+        /* État détaché: le logo est reparenté dans body pour rester visible pendant le chargement */
+        .welcome-logo-container.detached {
+            position: fixed;
+            z-index: calc(var(--z-loading) + 1);
+            pointer-events: none;
         }
 
         .welcome-logo,
-        .welcome-logo-video {
+        .welcome-logo-video,
+        .welcome-logo-poulpe {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             object-fit: contain;
-            /* Pas de will-change ici: évite rasterisation GPU basse résolution sur desktop */
         }
 
         .welcome-logo {
@@ -914,6 +925,17 @@
 
         .welcome-logo-video.active {
             opacity: 1;
+        }
+
+        /* Desktop: cacher PNG/WEBM mobile, montrer poulpe */
+        .welcome-logo-mobile { display: block; }
+        .welcome-logo-poulpe { display: none; }
+        .loading-video-mobile { display: block; }
+
+        @media (min-width: 769px) and (pointer: fine) {
+            .welcome-logo-mobile { display: none !important; }
+            .welcome-logo-poulpe { display: block; }
+            .loading-video-mobile { display: none !important; }
         }
 
         /* Pause Screen - Ultra Modern */
@@ -2113,34 +2135,17 @@
     <div class="game-instructions hidden" id="game-instructions">
         <div class="instruction-line">
             <!-- Mouse icon for looking around -->
-            <svg class="instruction-svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="6" y="3" width="12" height="18" rx="6"></rect>
-                <line x1="12" y1="7" x2="12" y2="11"></line>
-            </svg>
+            <img class="instruction-svg" src="img/icone-souris.svg" width="40" height="40" alt="Souris">
             <span>Regarder autour</span>
         </div>
         <div class="instruction-line">
-            <!-- Arrow keys icon (keyboard style) -->
-            <svg class="instruction-svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="8.5" y="4.5" width="7" height="7" rx="1.5"></rect>
-                <path d="M10 9.5l2-3 2 3"></path>
-                <rect x="0.5" y="12.5" width="7" height="7" rx="1.5"></rect>
-                <path d="M5.5 14l-3 2 3 2"></path>
-                <rect x="8.5" y="12.5" width="7" height="7" rx="1.5"></rect>
-                <path d="M10 14.5l2 3 2-3"></path>
-                <rect x="16.5" y="12.5" width="7" height="7" rx="1.5"></rect>
-                <path d="M18.5 14l3 2-3 2"></path>
-            </svg>
+            <!-- Arrow keys icon -->
+            <img class="instruction-svg" src="img/icone-fleches.svg" width="40" height="40" alt="Flèches">
             <span>Se déplacer</span>
         </div>
         <div class="instruction-line secondary">
             <!-- Mouse wheel scroll icon -->
-            <svg class="instruction-svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="7" y="4" width="10" height="16" rx="5"></rect>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <path d="M10 7l2-2 2 2"></path>
-                <path d="M10 13l2 2 2-2"></path>
-            </svg>
+            <img class="instruction-svg" src="img/icone-scroll.svg" width="40" height="40" alt="Scroll">
             <span>Avancer / Reculer</span>
         </div>
         <div class="instruction-line">
@@ -2159,9 +2164,14 @@
         <div id="welcome-fade-overlay"></div>
 
         <div class="welcome-logo-container" id="welcome-logo-container">
-            <img src="img/presences_rares_logo.png" alt="Logo" class="welcome-logo" id="welcome-logo">
-            <video class="welcome-logo-video" id="welcome-logo-video" loop muted playsinline preload="auto">
+            <!-- Mobile: static PNG logo + animated webm loading icon -->
+            <img src="img/presences_rares_logo.png" alt="Logo" class="welcome-logo welcome-logo-mobile" id="welcome-logo">
+            <video class="welcome-logo-video welcome-logo-mobile" id="welcome-logo-video" loop muted playsinline preload="auto">
                 <source src="videos/dumbo_icone_chargement.webm" type="video/webm">
+            </video>
+            <!-- Desktop: poulpe video paused at frame 1 (logo) → plays as loading icon -->
+            <video class="welcome-logo-poulpe" id="welcome-logo-poulpe" loop muted playsinline preload="auto">
+                <source src="videos/poulpe_icone_chargement_desktop.mp4" type="video/mp4">
             </video>
         </div>
 
@@ -2218,34 +2228,17 @@
         <div class="pause-instructions">
             <div class="instruction-line">
                 <!-- Mouse icon for looking around -->
-                <svg class="instruction-svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="6" y="3" width="12" height="18" rx="6"></rect>
-                    <line x1="12" y1="7" x2="12" y2="11"></line>
-                </svg>
+                <img class="instruction-svg" src="img/icone-souris.svg" width="40" height="40" alt="Souris">
                 <span>Regarder autour</span>
             </div>
             <div class="instruction-line">
-                <!-- Arrow keys icon (keyboard style) -->
-                <svg class="instruction-svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="8.5" y="4.5" width="7" height="7" rx="1.5"></rect>
-                    <path d="M10 9.5l2-3 2 3"></path>
-                    <rect x="0.5" y="12.5" width="7" height="7" rx="1.5"></rect>
-                    <path d="M5.5 14l-3 2 3 2"></path>
-                    <rect x="8.5" y="12.5" width="7" height="7" rx="1.5"></rect>
-                    <path d="M10 14.5l2 3 2-3"></path>
-                    <rect x="16.5" y="12.5" width="7" height="7" rx="1.5"></rect>
-                    <path d="M18.5 14l3 2-3 2"></path>
-                </svg>
+                <!-- Arrow keys icon -->
+                <img class="instruction-svg" src="img/icone-fleches.svg" width="40" height="40" alt="Flèches">
                 <span>Se déplacer</span>
             </div>
             <div class="instruction-line secondary">
                 <!-- Mouse wheel scroll icon -->
-                <svg class="instruction-svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="7" y="4" width="10" height="16" rx="5"></rect>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <path d="M10 7l2-2 2 2"></path>
-                    <path d="M10 13l2 2 2-2"></path>
-                </svg>
+                <img class="instruction-svg" src="img/icone-scroll.svg" width="40" height="40" alt="Scroll">
                 <span>Avancer / Reculer</span>
             </div>
             <div class="instruction-line" id="pause-esc-fullscreen-instruction" style="display:none;">
@@ -2323,9 +2316,9 @@
     <!-- Fade-from-black overlay (reveals 3D scene smoothly after loading) -->
     <div id="scene-reveal-overlay"></div>
 
-    <!-- Loading Screen -->
+    <!-- Loading Screen (mobile only — desktop uses reparented poulpe logo) -->
     <div id="loading-screen">
-        <video class="loading-video" autoplay loop muted playsinline preload="auto">
+        <video class="loading-video loading-video-mobile" autoplay loop muted playsinline preload="auto">
             <source src="videos/dumbo_icone_chargement.webm" type="video/webm">
         </video>
     </div>
@@ -9311,6 +9304,9 @@
             // }
         }
 
+        // Detect desktop (non-touch, wide screen)
+        const isDesktopDevice = window.matchMedia('(min-width: 769px) and (pointer: fine)').matches;
+
         // Welcome screen functions
         window.handlePlayClick = function() {
             playClickSound(); // Click feedback
@@ -9322,27 +9318,36 @@
                 else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
             }
 
-            // Phase 1: Fondu au noir (texte + bouton disparaissent)
+            // Phase 1: Fondu au noir (texte + bouton disparaissent), logo se centre + réduit
             document.body.classList.remove('hoverPlay');
             document.body.classList.add('clickedPlay');
 
-            // Phase 2: Après le fondu du texte (320ms), faire disparaître le logo PNG
-            // et activer l'icône animée de chargement
+            // Desktop: lancer le poulpe vidéo immédiatement (la réduction est gérée par CSS)
+            if (isDesktopDevice) {
+                const poulpeVideo = document.getElementById('welcome-logo-poulpe');
+                if (poulpeVideo) {
+                    poulpeVideo.play().catch(() => {});
+                    console.log('🐙 Poulpe vidéo: lecture lancée');
+                }
+            }
+
+            // Phase 2: Après le fondu du texte (320ms), gérer le logo
             const fadeMs = 350; // Légèrement après --clickFadeMs (320ms)
             setTimeout(() => {
-                const logoStatic = document.getElementById('welcome-logo');
-                const logoVideo = document.getElementById('welcome-logo-video');
-                if (logoStatic) {
-                    logoStatic.style.opacity = '0'; // Fade out (200ms CSS transition)
-                }
-                // Activer l'icône animée de chargement (remplace le logo statique)
-                if (logoVideo) {
-                    logoVideo.play().catch(() => {});
-                    logoVideo.classList.add('active');
+                if (!isDesktopDevice) {
+                    // Mobile: comportement original — fade PNG, activer webm
+                    const logoStatic = document.getElementById('welcome-logo');
+                    const logoVideo = document.getElementById('welcome-logo-video');
+                    if (logoStatic) {
+                        logoStatic.style.opacity = '0';
+                    }
+                    if (logoVideo) {
+                        logoVideo.play().catch(() => {});
+                        logoVideo.classList.add('active');
+                    }
                 }
 
-                // Phase 3: Attendre que le logo soit totalement invisible, puis lancer le loading screen
-                // 250ms = 200ms (transition CSS opacity logo) + 50ms (marge de sécurité)
+                // Phase 3: Lancer le loading screen
                 setTimeout(() => {
                     startExperience();
                 }, 250);
@@ -9366,6 +9371,24 @@
         function startExperience() {
             const welcomeScreen = document.getElementById('welcome-screen');
             const loadingScreen = document.getElementById('loading-screen');
+
+            // Desktop: reparenter le logo poulpe dans body pour qu'il reste visible
+            // pendant le chargement (au-dessus du loading screen)
+            if (isDesktopDevice) {
+                const logoContainer = document.getElementById('welcome-logo-container');
+                if (logoContainer) {
+                    // Capturer la position actuelle (centrée, réduite) avant reparenting
+                    const rect = logoContainer.getBoundingClientRect();
+                    logoContainer.classList.add('detached');
+                    document.body.appendChild(logoContainer);
+                    // Fixer à la position CSS finale (centre, taille réduite)
+                    logoContainer.style.left = rect.left + 'px';
+                    logoContainer.style.top = rect.top + 'px';
+                    logoContainer.style.width = rect.width + 'px';
+                    logoContainer.style.height = rect.height + 'px';
+                    console.log('🐙 Logo poulpe détaché et reparenté dans body');
+                }
+            }
 
             // Hide welcome screen instantly (fade overlay is already black from clickedPlay)
             welcomeScreen.style.transition = 'none';
@@ -9543,6 +9566,21 @@
                 }, 300);
             }
 
+            // Desktop: pause poulpe video at frame 1 (static logo)
+            const poulpeVideo = document.getElementById('welcome-logo-poulpe');
+            if (poulpeVideo) {
+                poulpeVideo.addEventListener('loadeddata', function() {
+                    poulpeVideo.currentTime = 0;
+                    poulpeVideo.pause();
+                    console.log('🐙 Poulpe vidéo desktop: pausé à la frame 1');
+                });
+                // If already loaded
+                if (poulpeVideo.readyState >= 2) {
+                    poulpeVideo.currentTime = 0;
+                    poulpeVideo.pause();
+                }
+            }
+
             // Handle background video loading
             const welcomeVideo = document.getElementById('welcome-video-bg');
             if (welcomeVideo) {
@@ -9573,9 +9611,15 @@
 
         // Helper: keep loading video alive during heavy JS work
         function ensureLoadingVideoPlaying() {
+            // Mobile: loading screen video
             const loadingVideo = document.querySelector('#loading-screen .loading-video');
             if (loadingVideo && loadingVideo.paused) {
                 loadingVideo.play().catch(() => {});
+            }
+            // Desktop: poulpe video (reparented as loading indicator)
+            const poulpeVideo = document.getElementById('welcome-logo-poulpe');
+            if (poulpeVideo && poulpeVideo.paused && document.body.classList.contains('clickedPlay')) {
+                poulpeVideo.play().catch(() => {});
             }
         }
 
@@ -9638,12 +9682,24 @@
                 await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))));
                 await sleep(300);
 
-                // Step 6: Hide loading screen (reveal overlay stays black behind it)
+                // Step 6: Hide loading screen + poulpe logo (reveal overlay stays black behind it)
                 loadingScreen.classList.add('hidden');
+
+                // Desktop: fade out the poulpe logo
+                const poulpeLogo = document.getElementById('welcome-logo-container');
+                if (poulpeLogo && poulpeLogo.classList.contains('detached')) {
+                    poulpeLogo.style.opacity = '0';
+                    console.log('🐙 Poulpe logo: disparition');
+                }
 
                 // After loading screen fades out (500ms), trigger the fade-from-black reveal
                 setTimeout(() => {
                     loadingScreen.style.display = 'none';
+
+                    // Remove poulpe logo from DOM
+                    if (poulpeLogo && poulpeLogo.classList.contains('detached')) {
+                        poulpeLogo.remove();
+                    }
 
                     // Now fade the black overlay to transparent — smooth reveal of 3D scene
                     revealOverlay.classList.add('revealed');
@@ -9674,8 +9730,16 @@
                 // Hide loading screen anyway after 2s with fade-from-black reveal
                 setTimeout(() => {
                     loadingScreen.classList.add('hidden');
+                    // Also hide poulpe logo on error
+                    const poulpeLogoErr = document.getElementById('welcome-logo-container');
+                    if (poulpeLogoErr && poulpeLogoErr.classList.contains('detached')) {
+                        poulpeLogoErr.style.opacity = '0';
+                    }
                     setTimeout(() => {
                         loadingScreen.style.display = 'none';
+                        if (poulpeLogoErr && poulpeLogoErr.classList.contains('detached')) {
+                            poulpeLogoErr.remove();
+                        }
                         revealOverlay.classList.add('revealed');
                         setTimeout(() => {
                             revealOverlay.style.display = 'none';
