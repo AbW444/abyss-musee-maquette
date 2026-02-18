@@ -25,8 +25,8 @@
             --textColW: 580px;
             --textTop: 150px;
             --logoSize: 156px;
-            --playRight: 240px;
-            --playBottom: 150px;
+            --playRight: var(--textLeft);
+            --playBottom: var(--textLeft);
             --hoverTextShift: 90px;
             --clickTextExitX: 320px;
             --clickFadeMs: 320ms;
@@ -695,11 +695,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 35%, transparent 55%);
+            background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.2) 55%, transparent 70%);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            -webkit-mask-image: linear-gradient(to right, black 0%, black 30%, transparent 60%);
-            mask-image: linear-gradient(to right, black 0%, black 30%, transparent 60%);
+            -webkit-mask-image: linear-gradient(to right, black 0%, black 42%, transparent 72%);
+            mask-image: linear-gradient(to right, black 0%, black 42%, transparent 72%);
             z-index: 1;
             pointer-events: none;
         }
@@ -816,8 +816,8 @@
             right: var(--playRight);
             cursor: pointer;
             z-index: 3;
-            width: 208px;
-            height: 209px;
+            width: 160px;
+            height: 161px;
             transition: opacity var(--clickFadeMs) ease;
         }
         body.clickedPlay .play-button-container {
@@ -838,8 +838,8 @@
             left: 0;
         }
         .play-button-container .play-rond {
-            width: 208px;
-            height: 209px;
+            width: 160px;
+            height: 161px;
             animation: playRondRotate 6s linear infinite;
             transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -858,8 +858,8 @@
             to { transform: rotate(360deg) scale(1.05); }
         }
         .play-button-container .play-fleche {
-            width: 80px;
-            height: 105px;
+            width: 53px;
+            height: 70px;
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%) translateX(4px);
@@ -913,6 +913,9 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
+        }
+        .welcome-logo-poulpe {
+            mix-blend-mode: screen;
         }
 
         .welcome-logo {
@@ -1126,10 +1129,10 @@
             border: none;
             cursor: pointer;
         }
-        /* ─── Circle Buttons (mute, fullscreen — same style as gyroscope button) ─── */
-        .mute-button, .pause-close-btn {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.15);
+        /* ─── Circle Buttons (mute, fullscreen, lang — same style as mobile buttons) ─── */
+        .mute-button, .pause-close-btn, .lang-button {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid var(--color-border);
             color: #fff;
             padding: 0;
             width: 44px;
@@ -1140,19 +1143,19 @@
             justify-content: center;
             transition: background 0.15s, border-color 0.15s, transform 0.1s;
         }
-        .mute-button:hover, .pause-close-btn:hover {
+        .mute-button:hover, .pause-close-btn:hover, .lang-button:hover {
             background: rgba(255,255,255,0.12);
             transform: scale(1.05);
         }
-        .mute-button:active, .pause-close-btn:active {
+        .mute-button:active, .pause-close-btn:active, .lang-button:active {
             transform: scale(0.93);
         }
         /* Active state: button is "engaged" (muted or fullscreen active) — blue */
-        .mute-button.active-state, .pause-close-btn.active-state {
+        .mute-button.active-state, .pause-close-btn.active-state, .lang-button.active-state {
             background: rgba(100,150,255,0.35);
             border-color: rgba(100,150,255,0.8);
         }
-        .mute-button.active-state:hover, .pause-close-btn.active-state:hover {
+        .mute-button.active-state:hover, .pause-close-btn.active-state:hover, .lang-button.active-state:hover {
             background: rgba(100,150,255,0.45);
         }
         .pause-credits {
@@ -1753,7 +1756,7 @@
             /* Logo mobile: centré dans la zone entre le haut et le bloc texte */
             .welcome-logo-container {
                 left: calc(50% - var(--logoSize) / 2) !important;
-                top: calc(30px + env(safe-area-inset-top)) !important;
+                top: calc(15px + env(safe-area-inset-top)) !important;
             }
             body.hoverPlay .welcome-logo-container {
                 left: calc(50% - var(--logoSize) / 2) !important;
@@ -1767,17 +1770,19 @@
             /* Texte mobile: glassmorphisme style pause-content, scroll interne */
             .welcome-content {
                 left: 50% !important;
-                top: calc(60px + env(safe-area-inset-top) + var(--logoSize)) !important;
+                top: calc(30px + env(safe-area-inset-top) + var(--logoSize)) !important;
                 transform: translateX(-50%) !important;
                 width: calc(100vw - 40px) !important;
                 max-width: 500px !important;
-                max-height: calc(100dvh - 70px - env(safe-area-inset-top) - var(--logoSize)) !important;
+                max-height: calc(100dvh - 40px - env(safe-area-inset-top) - var(--logoSize)) !important;
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
                 padding: 22px 20px;
                 text-align: left;
-                background: rgba(0,0,0,0.80);
+                background: rgba(0,0,0,0.55);
+                backdrop-filter: blur(24px);
+                -webkit-backdrop-filter: blur(24px);
                 border-radius: 28px;
             }
             .welcome-content::-webkit-scrollbar {
@@ -1843,7 +1848,7 @@
                 height: 50%;
             }
 
-            /* Gradient adapté mobile */
+            /* Gradient adapté mobile — pas de blur, juste overlay */
             #welcome-screen::before {
                 background: linear-gradient(to bottom,
                     rgba(0,0,0,0.9) 0%,
@@ -1852,6 +1857,10 @@
                     rgba(0,0,0,0.7) 80%,
                     rgba(0,0,0,0.95) 100%
                 );
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+                -webkit-mask-image: none;
+                mask-image: none;
             }
 
             /* Afficher UI mobile */
@@ -1908,8 +1917,8 @@
                 padding-bottom: calc(130px + env(safe-area-inset-bottom));
             }
 
-            /* Cacher le volume et le bouton fullscreen du panneau sur mobile */
-            .volume-control {
+            /* Cacher le volume, lang et le bouton fullscreen du panneau sur mobile */
+            .volume-control, .lang-button {
                 display: none !important;
             }
             .pause-close-btn {
@@ -2092,20 +2101,20 @@
 
     <!-- Gyroscope Permission Request (iOS) -->
     <div id="gyro-permission-btn">
-        <h3>Activer le mouvement</h3>
-        <p>Pour une expérience immersive, autorisez l'accès aux capteurs de mouvement.</p>
-        <button onclick="requestGyroPermission()">Activer</button>
+        <h3 data-fr="Activer le mouvement" data-en="Enable motion">Activer le mouvement</h3>
+        <p data-fr="Pour une expérience immersive, autorisez l'accès aux capteurs de mouvement." data-en="For an immersive experience, allow access to motion sensors.">Pour une expérience immersive, autorisez l'accès aux capteurs de mouvement.</p>
+        <button onclick="requestGyroPermission()" data-fr="Activer" data-en="Enable">Activer</button>
     </div>
 
     <!-- Persistent Instructions (ALT + ESC — always visible in FPS mode) -->
     <div class="persistent-instructions" id="persistent-instructions" style="display:none;">
         <div class="instruction-line secondary" id="esc-fullscreen-instruction" style="display:none;">
             <span class="key">ESC</span>
-            <span>Quitter le mode plein écran</span>
+            <span data-fr="Quitter le mode plein écran" data-en="Exit fullscreen mode">Quitter le mode plein écran</span>
         </div>
         <div class="instruction-line secondary">
             <span class="key">ALT</span>
-            <span>Infos</span>
+            <span data-fr="Infos" data-en="Info">Infos</span>
         </div>
     </div>
 
@@ -2113,22 +2122,22 @@
     <div class="game-instructions hidden" id="game-instructions">
         <div class="instruction-line">
             <!-- Mouse icon for looking around -->
-            <img class="instruction-svg" src="img/icone-souris.svg" width="40" height="40" alt="Souris">
-            <span>Regarder autour</span>
+            <img class="instruction-svg" src="img/icone-souris.svg" width="48" height="48" alt="Souris">
+            <span data-fr="Regarder autour" data-en="Look around">Regarder autour</span>
         </div>
         <div class="instruction-line">
             <!-- Arrow keys icon -->
             <img class="instruction-svg" src="img/icone-fleches.svg" width="40" height="40" alt="Flèches">
-            <span>Se déplacer</span>
+            <span data-fr="Se déplacer" data-en="Move">Se déplacer</span>
         </div>
         <div class="instruction-line secondary">
             <!-- Mouse wheel scroll icon -->
-            <img class="instruction-svg" src="img/icone-scroll.svg" width="40" height="40" alt="Scroll">
-            <span>Avancer / Reculer</span>
+            <img class="instruction-svg" src="img/icone-scroll.svg" width="48" height="48" alt="Scroll">
+            <span data-fr="Avancer / Reculer" data-en="Forward / Backward">Avancer / Reculer</span>
         </div>
         <div class="instruction-line secondary">
             <span class="key">ALT</span>
-            <span>Infos</span>
+            <span data-fr="Infos" data-en="Info">Infos</span>
         </div>
     </div>
 
@@ -2156,31 +2165,31 @@
         <div class="welcome-content" id="welcome-content">
             <span class="welcome-project-name">DUMBO</span>
             <h1 class="welcome-title">
-                Présences aquatiques rares<br>
-                <span class="welcome-subtitle-inline">Maquette de dispositif d'exposition</span>
+                <span data-fr="Présences aquatiques rares" data-en="Rare Aquatic Presences">Présences aquatiques rares</span><br>
+                <span class="welcome-subtitle-inline" data-fr="Maquette de dispositif d'exposition" data-en="Exhibition device prototype">Maquette de dispositif d'exposition</span>
             </h1>
 
-            <p class="welcome-manifesto">
+            <p class="welcome-manifesto" data-fr="Traduire des captations scientifiques en formes exposables, sans les simplifier ni les fictionnaliser." data-en="Translating scientific captures into exhibitable forms, without simplifying or fictionalizing them.">
                 Traduire des captations scientifiques en formes exposables, sans les simplifier ni les fictionnaliser.
             </p>
 
-            <p class="welcome-text">
+            <p class="welcome-text" data-fr="Ce projet explore comment des images réelles issues de captations sous-marines rares, souvent fragmentaires, instables ou difficilement lisibles, peuvent être traduites visuellement afin de rendre perceptible une présence vivante autrement inaccessible au public." data-en="This project explores how real images from rare underwater captures, often fragmentary, unstable or difficult to read, can be visually translated to make perceptible a living presence otherwise inaccessible to the public.">
                 Ce projet explore comment des images réelles issues de captations sous-marines rares, souvent fragmentaires, instables ou difficilement lisibles, peuvent être traduites visuellement afin de rendre perceptible une présence vivante autrement inaccessible au public.
             </p>
 
-            <p class="welcome-text">
+            <p class="welcome-text" data-fr="À partir de ces images, un protocole de transformation volumétrique est appliqué. Celui-ci ne vise ni la reconstitution fidèle du milieu aquatique, ni la production d'images spectaculaires, mais la conception de formes traduites, plus stables, plus proches et regardables dans le temps de l'exposition, tout en conservant leur ancrage documentaire." data-en="From these images, a volumetric transformation protocol is applied. It aims neither at faithful reconstruction of the aquatic environment, nor at producing spectacular imagery, but at designing translated forms — more stable, closer and viewable over the duration of an exhibition, while preserving their documentary grounding.">
                 À partir de ces images, un protocole de transformation volumétrique est appliqué. Celui-ci ne vise ni la reconstitution fidèle du milieu aquatique, ni la production d'images spectaculaires, mais la conception de formes traduites, plus stables, plus proches et regardables dans le temps de l'exposition, tout en conservant leur ancrage documentaire.
             </p>
 
-            <p class="welcome-text">
+            <p class="welcome-text" data-fr="L'espace que vous traversez n'est pas une exposition finale, mais une maquette spatiale et perceptive. Elle permet de tester l'échelle, la proximité, la temporalité et la relation du regard à ces formes, dans la perspective d'un futur dispositif d'exposition physique." data-en="The space you traverse is not a final exhibition, but a spatial and perceptive prototype. It allows testing scale, proximity, temporality and the relationship of the gaze to these forms, with a view toward a future physical exhibition device.">
                 L'espace que vous traversez n'est pas une exposition finale, mais une maquette spatiale et perceptive. Elle permet de tester l'échelle, la proximité, la temporalité et la relation du regard à ces formes, dans la perspective d'un futur dispositif d'exposition physique.
             </p>
 
-            <p class="welcome-text">
+            <p class="welcome-text" data-fr="Cette maquette s'inscrit dans une réflexion sur la médiation scientifique : comment exposer des formes de vie rarement observables sans les simplifier, sans les fictionnaliser, et sans prétendre les rendre totalement accessibles." data-en="This prototype is part of a reflection on scientific mediation: how to exhibit rarely observable life forms without simplifying them, fictionalizing them, or claiming to make them fully accessible.">
                 Cette maquette s'inscrit dans une réflexion sur la médiation scientifique : comment exposer des formes de vie rarement observables sans les simplifier, sans les fictionnaliser, et sans prétendre les rendre totalement accessibles.
             </p>
 
-            <div class="welcome-context">
+            <div class="welcome-context" data-fr="Projet de recherche par le design, maquette non définitive. Images issues de sources scientifiques réelles. Traductions visuelles réalisées dans un cadre expérimental." data-en="Design research project, non-definitive prototype. Images from real scientific sources. Visual translations produced in an experimental framework.">
                 Projet de recherche par le design, maquette non définitive.<br>
                 Images issues de sources scientifiques réelles.<br>
                 Traductions visuelles réalisées dans un cadre expérimental.
@@ -2206,53 +2215,53 @@
         <div class="pause-instructions">
             <div class="instruction-line">
                 <!-- Mouse icon for looking around -->
-                <img class="instruction-svg" src="img/icone-souris.svg" width="40" height="40" alt="Souris">
-                <span>Regarder autour</span>
+                <img class="instruction-svg" src="img/icone-souris.svg" width="48" height="48" alt="Souris">
+                <span data-fr="Regarder autour" data-en="Look around">Regarder autour</span>
             </div>
             <div class="instruction-line">
                 <!-- Arrow keys icon -->
                 <img class="instruction-svg" src="img/icone-fleches.svg" width="40" height="40" alt="Flèches">
-                <span>Se déplacer</span>
+                <span data-fr="Se déplacer" data-en="Move">Se déplacer</span>
             </div>
             <div class="instruction-line secondary">
                 <!-- Mouse wheel scroll icon -->
-                <img class="instruction-svg" src="img/icone-scroll.svg" width="40" height="40" alt="Scroll">
-                <span>Avancer / Reculer</span>
+                <img class="instruction-svg" src="img/icone-scroll.svg" width="48" height="48" alt="Scroll">
+                <span data-fr="Avancer / Reculer" data-en="Forward / Backward">Avancer / Reculer</span>
             </div>
             <div class="instruction-line secondary">
                 <span class="key">ESC</span>
-                <span>Quitter le plein écran</span>
+                <span data-fr="Quitter le plein écran" data-en="Exit fullscreen">Quitter le plein écran</span>
             </div>
             <div class="instruction-line secondary">
                 <span class="key">ALT</span>
-                <span>Infos</span>
+                <span data-fr="Infos" data-en="Info">Infos</span>
             </div>
         </div>
 
         <div class="pause-content" onclick="event.stopPropagation()">
-            <h2 class="pause-title">À propos de cette maquette</h2>
+            <h2 class="pause-title" data-fr="À propos de cette maquette" data-en="About this prototype">À propos de cette maquette</h2>
 
-            <p class="pause-text">
+            <p class="pause-text" data-fr="Cet espace numérique a été conçu comme un outil de simulation perceptive, permettant de tester comment des formes issues d'images scientifiques réelles peuvent être perçues lorsqu'elles sont traduites volumétriquement et mises en situation d'exposition." data-en="This digital space was designed as a perceptive simulation tool, allowing to test how forms derived from real scientific images can be perceived when volumetrically translated and placed in an exhibition context.">
                 Cet espace numérique a été conçu comme un outil de simulation perceptive, permettant de tester comment des formes issues d'images scientifiques réelles peuvent être perçues lorsqu'elles sont traduites volumétriquement et mises en situation d'exposition.
             </p>
 
-            <p class="pause-text">
+            <p class="pause-text" data-fr="Les formes présentées ne sont ni des reconstitutions fidèles, ni des créations fictionnelles. Elles résultent d'un processus de traduction visuelle, appliqué à des captations existantes, afin de rendre perceptible une présence vivante tout en assumant les limites du réel et de l'image." data-en="The forms presented are neither faithful reconstructions nor fictional creations. They result from a visual translation process, applied to existing captures, in order to make a living presence perceptible while acknowledging the limits of reality and image.">
                 Les formes présentées ne sont ni des reconstitutions fidèles, ni des créations fictionnelles. Elles résultent d'un processus de traduction visuelle, appliqué à des captations existantes, afin de rendre perceptible une présence vivante tout en assumant les limites du réel et de l'image.
             </p>
 
             <div class="pause-conceptual-list">
-                <span class="list-intro">Le choix d'une maquette web répond à des contraintes de temps et de moyens. Il permet néanmoins d'explorer des questions essentielles :</span>
-                <span class="list-item">Distance et proximité du regard</span>
-                <span class="list-item">Échelle et corporalité</span>
-                <span class="list-item">Temporalité de l'observation</span>
-                <span class="list-item">Relation entre image documentaire et forme exposée</span>
+                <span class="list-intro" data-fr="Le choix d'une maquette web répond à des contraintes de temps et de moyens. Il permet néanmoins d'explorer des questions essentielles :" data-en="The choice of a web prototype responds to time and resource constraints. It nonetheless allows exploring essential questions:">Le choix d'une maquette web répond à des contraintes de temps et de moyens. Il permet néanmoins d'explorer des questions essentielles :</span>
+                <span class="list-item" data-fr="Distance et proximité du regard" data-en="Distance and proximity of the gaze">Distance et proximité du regard</span>
+                <span class="list-item" data-fr="Échelle et corporalité" data-en="Scale and embodiment">Échelle et corporalité</span>
+                <span class="list-item" data-fr="Temporalité de l'observation" data-en="Temporality of observation">Temporalité de l'observation</span>
+                <span class="list-item" data-fr="Relation entre image documentaire et forme exposée" data-en="Relationship between documentary image and exhibited form">Relation entre image documentaire et forme exposée</span>
             </div>
 
-            <p class="pause-text">
+            <p class="pause-text" data-fr="Cette interface ne remplace pas une exposition physique. Elle en constitue une prévisualisation critique, destinée à nourrir la réflexion sur de futurs dispositifs de médiation." data-en="This interface does not replace a physical exhibition. It constitutes a critical preview, intended to foster reflection on future mediation devices.">
                 Cette interface ne remplace pas une exposition physique. Elle en constitue une prévisualisation critique, destinée à nourrir la réflexion sur de futurs dispositifs de médiation.
             </p>
 
-            <div class="pause-meta">
+            <div class="pause-meta" data-fr="Navigation libre, deplacement lent recommande. Les contenus projetes peuvent evoluer au cours du projet." data-en="Free navigation, slow movement recommended. Projected content may evolve during the project.">
                 Navigation libre, deplacement lent recommande.
                 Les contenus projetes peuvent evoluer au cours du projet.
             </div>
@@ -2271,6 +2280,10 @@
                     </svg>
                 </button>
             </div>
+            <!-- Language toggle EN/FR -->
+            <button class="lang-button" id="lang-button" onclick="toggleLang()">
+                <span id="lang-label" style="font-family:var(--font-sans);font-size:13px;font-weight:600;letter-spacing:1px;">FR</span>
+            </button>
             <!-- Fullscreen button — fixed top-right -->
             <button class="pause-close-btn" id="pause-close-btn" onclick="handlePauseFullscreenClick()">
                 <svg class="fs-enter-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -10103,6 +10116,30 @@
                 AudioManager.music.pause();
             }
         });
+
+        // ═══════════════════════════════════════════════════════════════
+        // LANGUAGE TOGGLE EN/FR
+        // ═══════════════════════════════════════════════════════════════
+        let currentLang = 'fr';
+        const translations = {
+            fr: {},
+            en: {}
+        };
+        // Collect all translatable elements on init
+        (function initTranslations() {
+            document.querySelectorAll('[data-fr]').forEach(el => {
+                translations.fr[el.dataset.i18n] = el.dataset.fr;
+                translations.en[el.dataset.i18n] = el.dataset.en;
+            });
+        })();
+
+        window.toggleLang = function() {
+            currentLang = currentLang === 'fr' ? 'en' : 'fr';
+            document.getElementById('lang-label').textContent = currentLang.toUpperCase();
+            document.querySelectorAll('[data-fr]').forEach(el => {
+                el.textContent = el.dataset[currentLang];
+            });
+        };
 
         // ═══════════════════════════════════════════════════════════════
         // VOLUME SLIDER DYNAMIQUE
