@@ -1911,10 +1911,14 @@
                 bottom: calc(60px + env(safe-area-inset-bottom));
                 right: calc(15px + env(safe-area-inset-right));
             }
-            /* Mobile fullscreen: descend le panneau info */
+            /* Mobile fullscreen: descend le panneau, limiter la hauteur pour ne pas coller le X */
             body.is-fullscreen #pause-screen {
                 justify-content: flex-end;
+                padding-top: calc(70px + env(safe-area-inset-top));
                 padding-bottom: calc(130px + env(safe-area-inset-bottom));
+            }
+            body.is-fullscreen .pause-content {
+                max-height: calc(100dvh - 200px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
             }
 
             /* Cacher le volume, lang et le bouton fullscreen du panneau sur mobile */
