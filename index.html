@@ -1891,12 +1891,26 @@
                 padding-bottom: calc(80px + env(safe-area-inset-bottom));
             }
 
-            /* Cacher le volume et le bouton fermer sur mobile */
-            .volume-control {
+            /* Cacher le slider volume et le bouton fullscreen du panneau sur mobile */
+            .volume-slider-container {
                 display: none !important;
             }
             .pause-close-btn {
                 display: none !important;
+            }
+            /* Bouton mute mobile : sombre par défaut, bleu uniquement quand actif (son coupé) */
+            .mute-button {
+                background: rgba(0,0,0,0.7) !important;
+                border-color: var(--color-border) !important;
+            }
+            .mute-button.active-state {
+                background: rgba(100,150,255,0.35) !important;
+                border-color: rgba(100,150,255,0.8) !important;
+            }
+            /* Bouton fullscreen mobile : sombre par défaut, bleu quand plein écran actif */
+            #mobile-fullscreen-btn.active-state {
+                background: rgba(100,150,255,0.35);
+                border-color: rgba(100,150,255,0.8);
             }
 
             /* FPS counter plus discret sur mobile */
@@ -2160,9 +2174,9 @@
             </p>
 
             <div class="welcome-context">
-                Projet de recherche par le design, maquette non definitive.<br>
-                Images issues de sources scientifiques reelles.<br>
-                Traductions visuelles realisees dans un cadre experimental.
+                Projet de recherche par le design, maquette non définitive.<br>
+                Images issues de sources scientifiques réelles.<br>
+                Traductions visuelles réalisées dans un cadre expérimental.
             </div>
 
             <!-- Bouton Play mobile: dans le flux -->
@@ -2237,11 +2251,11 @@
             </p>
 
             <div class="pause-conceptual-list">
-                <span class="list-intro">Le choix d'une maquette web repond a des contraintes de temps et de moyens. Il permet neanmoins d'explorer des questions essentielles :</span>
-                <span class="list-item">Distance et proximite du regard</span>
-                <span class="list-item">Echelle et corporalite</span>
-                <span class="list-item">Temporalite de l'observation</span>
-                <span class="list-item">Relation entre image documentaire et forme exposee</span>
+                <span class="list-intro">Le choix d'une maquette web répond à des contraintes de temps et de moyens. Il permet néanmoins d'explorer des questions essentielles :</span>
+                <span class="list-item">Distance et proximité du regard</span>
+                <span class="list-item">Échelle et corporalité</span>
+                <span class="list-item">Temporalité de l'observation</span>
+                <span class="list-item">Relation entre image documentaire et forme exposée</span>
             </div>
 
             <p class="pause-text">
@@ -2249,8 +2263,8 @@
             </p>
 
             <div class="pause-meta">
-                Navigation libre, deplacement lent recommande.
-                Les contenus projetes peuvent evoluer au cours du projet.
+                Navigation libre, déplacement lent recommandé.
+                Les contenus projetés peuvent évoluer au cours du projet.
             </div>
         </div>
 
@@ -10682,6 +10696,12 @@
                 const exitIcon = btn.querySelector('.fs-exit-icon');
                 if (enterIcon) enterIcon.style.display = isFS ? 'none' : 'block';
                 if (exitIcon) exitIcon.style.display = isFS ? 'block' : 'none';
+                // Active state: bleu quand plein écran actif
+                if (isFS) {
+                    btn.classList.add('active-state');
+                } else {
+                    btn.classList.remove('active-state');
+                }
             }
             // Update pause panel fullscreen button + active state
             const pauseBtn = document.getElementById('pause-close-btn');
