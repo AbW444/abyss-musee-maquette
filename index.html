@@ -1815,12 +1815,11 @@
             body.hoverPlay .welcome-logo-container {
                 left: calc(50% - var(--logoSize) / 2) !important;
             }
-            /* Animation mobile: logo glisse au centre de l'écran, reste visible pour le loading */
+            /* Animation fluide: fade out en place + léger scale au lieu de déplacer left/top */
             body.clickedPlay .welcome-logo-container {
-                top: calc(var(--real-vh, 1vh) * 50 - var(--logoSize) / 2) !important;
-                opacity: 1 !important;
-                transform: none !important;
-                transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                opacity: 0 !important;
+                transform: scale(0.85) !important;
+                transition: opacity 0.4s ease, transform 0.4s ease !important;
             }
 
             /* Texte mobile: même marge haut/bas dans le bloc, espace égal texte↔play↔bord */
