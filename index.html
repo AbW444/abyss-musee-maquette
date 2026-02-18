@@ -783,28 +783,29 @@
         }
         .welcome-text, .welcome-manifesto {
             font-family: var(--font-sans);
-            font-size: 15px;
+            font-size: 14.5px;
             font-weight: 300;
-            color: var(--color-text-secondary);
-            line-height: 1.9;
-            margin-bottom: 20px;
-            letter-spacing: 0.3px;
-            text-align: justify;
+            color: rgba(255,255,255,0.65);
+            line-height: 1.7;
+            margin-bottom: 14px;
+            letter-spacing: 0.2px;
+            text-align: left;
         }
         .welcome-text strong {
             font-weight: 400;
-            color: rgba(255,255,255,0.85);
+            color: rgba(255,255,255,0.8);
         }
         .welcome-context {
             font-family: var(--font-mono);
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 300;
-            color: var(--color-text-dim);
-            line-height: 1.7;
-            margin-top: 50px;
-            padding-top: 25px;
-            border-top: 1px solid var(--color-border);
+            color: rgba(255,255,255,0.35);
+            line-height: 1.6;
+            margin-top: 22px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.08);
             letter-spacing: 0.3px;
+            text-align: left;
         }
         .play-button-container {
             position: absolute;
@@ -2185,13 +2186,13 @@
             </p>
 
             <p class="welcome-text">
-                Cette maquette s'inscrit dans une réflexion sur la médiation scientifique&nbsp;: comment exposer des formes de vie rarement observables sans les simplifier, sans les fictionnaliser, et sans prétendre les rendre totalement accessibles.
+                Cette maquette s'inscrit dans une réflexion sur la médiation scientifique : comment exposer des formes de vie rarement observables sans les simplifier, sans les fictionnaliser, et sans prétendre les rendre totalement accessibles.
             </p>
 
             <div class="welcome-context">
-                Projet de recherche par le design — maquette non définitive<br>
-                Images issues de sources scientifiques réelles<br>
-                Traductions visuelles réalisées dans un cadre expérimental
+                Projet de recherche par le design, maquette non definitive.<br>
+                Images issues de sources scientifiques reelles.<br>
+                Traductions visuelles realisees dans un cadre experimental.
             </div>
 
             <!-- Bouton Play mobile: dans le flux -->
@@ -9537,6 +9538,14 @@
                         console.log('✅ Vidéo d\'arrière-plan chargée');
                     });
                 }
+
+                // Handle power-saving pause (Chrome pauses muted background videos)
+                welcomeVideo.play().catch(() => {});
+                document.addEventListener('visibilitychange', function() {
+                    if (!document.hidden && welcomeVideo && welcomeVideo.paused && welcomeVideo.isConnected) {
+                        welcomeVideo.play().catch(() => {});
+                    }
+                });
 
                 welcomeVideo.addEventListener('error', function() {
                     console.log('⚠️ Vidéo d\'arrière-plan non disponible - fond noir utilisé');
