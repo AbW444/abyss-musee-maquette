@@ -703,10 +703,14 @@
             border-radius: 0 28px 28px 0;
             z-index: 1;
             pointer-events: none;
-            transition: opacity var(--clickFadeMs) ease;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--clickFadeMs) ease;
+        }
+        body.hoverPlay #welcome-screen::before {
+            transform: translateX(var(--hoverTextShift));
         }
         body.clickedPlay #welcome-screen::before {
             opacity: 0;
+            transform: translateX(var(--clickTextExitX));
         }
         #welcome-video-bg {
             position: absolute;
@@ -929,18 +933,14 @@
             overflow: visible;
         }
 
-        /* PC: render poulpe video at 2x internal resolution for crisp screen blend
-           (mobile retina screens have enough DPI naturally — only PC needs this) */
-        @media (min-width: 769px) and (pointer: fine) {
-            .welcome-logo-poulpe {
-                width: 200% !important;
-                height: 200% !important;
-                left: -50% !important;
-                top: -50% !important;
-                transform: scale(0.5);
-                transform-origin: center;
-                filter: contrast(1.12) brightness(1.08);
-            }
+        /* PC: poulpe video hidden — rendered to high-res canvas by JS for crisp screen blend */
+        .welcome-logo-poulpe-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            filter: contrast(1.12) brightness(1.08);
         }
 
         .welcome-logo {
@@ -1787,31 +1787,62 @@
             .welcome-logo-container {
                 left: calc(50% - var(--logoSize) / 2) !important;
                 top: calc(11px + env(safe-area-inset-top)) !important;
-                will-change: opacity, transform;
+                will-change: top, opacity;
+                transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                            opacity 0.4s ease !important;
             }
             body.hoverPlay .welcome-logo-container {
                 left: calc(50% - var(--logoSize) / 2) !important;
             }
-            /* Animation fluide: fade out en place + léger scale au lieu de déplacer left/top */
+            /* Animation mobile: logo glisse au centre de l'écran, reste visible pour le loading */
             body.clickedPlay .welcome-logo-container {
-                opacity: 0 !important;
-                transform: scale(0.85) !important;
-                transition: opacity 0.4s ease, transform 0.4s ease !important;
+                top: calc(50dvh - var(--logoSize) / 2) !important;
+                opacity: 1 !important;
+                transform: none !important;
+                transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
             }
 
-            /* Vidéo arrière-plan mobile: effet projection (contraste/luminosité/saturation) */
+            /* Vidéo arrière-plan mobile: masquée, remplacée par le canvas volumétrique */
             #welcome-video-bg {
-                filter: contrast(1.25) brightness(1.1) saturate(1.15);
+                z-index: -1;
             }
 
-            /* Texte mobile: espace haut réduit, étend vers le bas pour remplir l'écran */
+            /* Canvas volumétrique mobile: pixelisé façon écran de projection */
+            #welcome-pixel-canvas {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 0;
+                image-rendering: pixelated;
+                image-rendering: crisp-edges;
+                filter: contrast(1.4) brightness(1.15) saturate(1.3);
+                opacity: 0;
+                transition: opacity 0.5s ease;
+            }
+            #welcome-pixel-canvas.loaded {
+                opacity: 1;
+            }
+            /* Grille LED par-dessus le canvas pixelisé */
+            #welcome-pixel-grid {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 0;
+                pointer-events: none;
+            }
+
+            /* Texte mobile: espace haut réduit, marge basse correcte avec le bouton play */
             .welcome-content {
                 left: 50% !important;
                 top: calc(22px + env(safe-area-inset-top) + var(--logoSize)) !important;
                 transform: translateX(-50%) !important;
                 width: calc(100vw - 40px) !important;
                 max-width: 500px !important;
-                max-height: calc(100dvh - 90px - env(safe-area-inset-top) - var(--logoSize)) !important;
+                max-height: calc(100dvh - 155px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--logoSize)) !important;
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
@@ -1892,22 +1923,10 @@
                 height: 50%;
             }
 
-            /* Gradient adapté mobile — plus léger, plein écran sans barre grise */
+            /* Mobile: pas de panneau blur/gradient — le texte et le play ont leur propre fond,
+               le canvas volumétrique gère l'arrière-plan */
             #welcome-screen::before {
-                width: 100% !important;
-                border-radius: 0 !important;
-                background: linear-gradient(to bottom,
-                    rgba(0,0,0,0.85) 0%,
-                    rgba(0,0,0,0.5) 15%,
-                    rgba(0,0,0,0.25) 40%,
-                    rgba(0,0,0,0.25) 60%,
-                    rgba(0,0,0,0.5) 85%,
-                    rgba(0,0,0,0.8) 100%
-                ) !important;
-                backdrop-filter: none !important;
-                -webkit-backdrop-filter: none !important;
-                -webkit-mask-image: none;
-                mask-image: none;
+                display: none !important;
             }
 
             /* Afficher UI mobile */
@@ -9613,30 +9632,138 @@
                 }, 300);
             }
 
-            // Desktop: pause poulpe video at frame 1 (static logo)
+            // Desktop: pause poulpe video at frame 1 (static logo) + render to hi-res canvas
             const poulpeVideo = document.getElementById('welcome-logo-poulpe');
             if (poulpeVideo) {
-                poulpeVideo.addEventListener('loadeddata', function() {
+                function initPoulpePause() {
                     poulpeVideo.currentTime = 0;
                     poulpeVideo.pause();
                     console.log('🐙 Poulpe vidéo desktop: pausé à la frame 1');
+                }
+                function setupPoulpeCanvas() {
+                    // Render poulpe at native video resolution → canvas, then CSS downscales crisply
+                    const w = poulpeVideo.videoWidth || 512;
+                    const h = poulpeVideo.videoHeight || 512;
+                    const logoCanvas = document.createElement('canvas');
+                    logoCanvas.width = w;
+                    logoCanvas.height = h;
+                    logoCanvas.className = 'welcome-logo-poulpe-canvas';
+                    logoCanvas.id = 'welcome-logo-poulpe-canvas';
+                    poulpeVideo.parentNode.insertBefore(logoCanvas, poulpeVideo.nextSibling);
+                    poulpeVideo.style.visibility = 'hidden';
+                    poulpeVideo.style.width = '0';
+                    poulpeVideo.style.height = '0';
+                    const ctx = logoCanvas.getContext('2d');
+                    let poulpeRafId = 0;
+                    function renderPoulpeFrame() {
+                        if (poulpeVideo.readyState >= 2) {
+                            ctx.drawImage(poulpeVideo, 0, 0, w, h);
+                        }
+                        poulpeRafId = requestAnimationFrame(renderPoulpeFrame);
+                    }
+                    renderPoulpeFrame();
+                    // Stop rendering when welcome screen is gone
+                    const obs = new MutationObserver(function() {
+                        const ws = document.getElementById('welcome-screen');
+                        if (!ws || ws.style.display === 'none') {
+                            // Keep rendering during loading (logo is reparented)
+                            setTimeout(function() {
+                                if (!document.getElementById('welcome-logo-poulpe-canvas')) {
+                                    cancelAnimationFrame(poulpeRafId);
+                                    obs.disconnect();
+                                }
+                            }, 10000);
+                        }
+                    });
+                    obs.observe(document.body, { childList: true, subtree: true });
+                    console.log('🎨 Poulpe canvas: rendu natif ' + w + 'x' + h + 'px');
+                }
+                poulpeVideo.addEventListener('loadeddata', function() {
+                    initPoulpePause();
+                    setupPoulpeCanvas();
                 });
-                // If already loaded
                 if (poulpeVideo.readyState >= 2) {
-                    poulpeVideo.currentTime = 0;
-                    poulpeVideo.pause();
+                    initPoulpePause();
+                    setupPoulpeCanvas();
                 }
             }
 
             // Handle background video loading
             const welcomeVideo = document.getElementById('welcome-video-bg');
             if (welcomeVideo) {
-                // Mobile: use optimized mobile background video
+                // Mobile: use optimized mobile background video + volumetric pixel canvas
                 const isMobileBg = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
                 if (isMobileBg) {
                     welcomeVideo.src = 'videos/background_mobile.webm';
                     welcomeVideo.load();
                     console.log('📱 Vidéo d\'arrière-plan mobile: background_mobile.webm');
+
+                    // Volumetric pixel canvas: pixelise la vidéo façon écran de projection LED
+                    function setupMobilePixelCanvas() {
+                        const welcomeScreen = document.getElementById('welcome-screen');
+                        if (!welcomeScreen) return;
+
+                        // Taille pixel ~6-7px visible sur écran mobile
+                        const PIXEL_SIZE = 6;
+                        const cols = Math.ceil(window.innerWidth / PIXEL_SIZE);
+                        const rows = Math.ceil(window.innerHeight / PIXEL_SIZE);
+
+                        // Canvas principal basse résolution
+                        const pixelCanvas = document.createElement('canvas');
+                        pixelCanvas.id = 'welcome-pixel-canvas';
+                        pixelCanvas.width = cols;
+                        pixelCanvas.height = rows;
+                        const pCtx = pixelCanvas.getContext('2d');
+                        pCtx.imageSmoothingEnabled = false;
+
+                        // Grille LED overlay
+                        const gridOverlay = document.createElement('div');
+                        gridOverlay.id = 'welcome-pixel-grid';
+                        const pw = window.innerWidth / cols;
+                        const ph = window.innerHeight / rows;
+                        const gap = 0.8;
+                        gridOverlay.style.background =
+                            'repeating-linear-gradient(to right, transparent 0px, transparent ' + (pw - gap) + 'px, rgba(0,0,0,0.45) ' + (pw - gap) + 'px, rgba(0,0,0,0.45) ' + pw + 'px),' +
+                            'repeating-linear-gradient(to bottom, transparent 0px, transparent ' + (ph - gap) + 'px, rgba(0,0,0,0.45) ' + (ph - gap) + 'px, rgba(0,0,0,0.45) ' + ph + 'px)';
+
+                        // Insérer dans le welcome screen après la vidéo
+                        welcomeVideo.after(pixelCanvas);
+                        pixelCanvas.after(gridOverlay);
+
+                        // Object-fit: cover en canvas (vidéo 16:9, écran portrait)
+                        function drawCover() {
+                            if (welcomeVideo.readyState < 2) return;
+                            const vw = welcomeVideo.videoWidth;
+                            const vh = welcomeVideo.videoHeight;
+                            const scale = Math.max(cols / vw, rows / vh);
+                            const sw = cols / scale;
+                            const sh = rows / scale;
+                            const sx = (vw - sw) / 2;
+                            const sy = (vh - sh) / 2;
+                            pCtx.drawImage(welcomeVideo, sx, sy, sw, sh, 0, 0, cols, rows);
+                        }
+
+                        let pixelRafId = 0;
+                        function renderPixelFrame() {
+                            drawCover();
+                            if (!document.body.classList.contains('clickedPlay')) {
+                                pixelRafId = requestAnimationFrame(renderPixelFrame);
+                            }
+                        }
+
+                        // Démarrer dès que la vidéo est prête
+                        if (welcomeVideo.readyState >= 2) {
+                            pixelCanvas.classList.add('loaded');
+                            renderPixelFrame();
+                        } else {
+                            welcomeVideo.addEventListener('canplaythrough', function() {
+                                pixelCanvas.classList.add('loaded');
+                                renderPixelFrame();
+                            }, { once: true });
+                        }
+                        console.log('🎬 Canvas volumétrique mobile: ' + cols + 'x' + rows + ' pixels (' + PIXEL_SIZE + 'px/pixel)');
+                    }
+                    setupMobilePixelCanvas();
                 }
                 if (welcomeVideo.readyState >= 3) {
                     welcomeVideo.classList.add('loaded');
