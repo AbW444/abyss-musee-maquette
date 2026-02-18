@@ -27,7 +27,7 @@
             --logoSize: 156px;
             --playRight: 80px;
             --playBottom: 80px;
-            --hoverTextShift: -50px;
+            --hoverTextShift: 90px;
             --clickTextExitX: 320px;
             --clickFadeMs: 320ms;
             --logoMoveMs: 420ms;
@@ -690,14 +690,14 @@
         }
         /* PC: panneau opaque+blur pleine hauteur, ancré à gauche, expansion vers la droite.
            Le panneau ne se déplace JAMAIS — il reste collé au bord gauche.
-           Seule sa largeur évolue (hover → 100vw, click → fade out).
-           --blurFade (60px) = zone de dégradé, homogène via ease-stops. */
+           Seule sa largeur évolue (hover = +hoverTextShift).
+           --blurFade (120px) = zone de dégradé ajoutée à droite, ne réduit PAS la zone texte. */
         #welcome-screen::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
-            --blurFade: 60px;
+            --blurFade: 120px;
             width: calc(var(--textLeft) + var(--textColW) + 80px + var(--blurFade));
             height: 100%;
             background: rgba(0,0,0,0.55);
@@ -706,20 +706,18 @@
             border-radius: 0;
             z-index: 1;
             pointer-events: none;
-            /* Expo-out : élan rapide + décélération douce */
-            transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1), opacity var(--clickFadeMs) ease;
-            /* Dégradé latéral droit : courbe ease-out via 4 stops pour rendu homogène.
-               Élimine l'effet de "bande" d'un linear gradient brut. */
-            -webkit-mask-image: linear-gradient(to right, black 0%, black calc(100% - 60px), rgba(0,0,0,0.72) calc(100% - 40px), rgba(0,0,0,0.35) calc(100% - 20px), rgba(0,0,0,0.08) calc(100% - 6px), transparent 100%);
-            mask-image: linear-gradient(to right, black 0%, black calc(100% - 60px), rgba(0,0,0,0.72) calc(100% - 40px), rgba(0,0,0,0.35) calc(100% - 20px), rgba(0,0,0,0.08) calc(100% - 6px), transparent 100%);
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--clickFadeMs) ease;
+            /* Dégradé latéral droit : transition progressive opaque→transparent via mask.
+               La zone opaque couvre textLeft+textColW+80px, les 120px restants fondent. */
+            -webkit-mask-image: linear-gradient(to right, black 0%, black calc(100% - var(--blurFade)), transparent 100%);
+            mask-image: linear-gradient(to right, black 0%, black calc(100% - var(--blurFade)), transparent 100%);
         }
-        /* Hover : le panneau flou remplit toute la largeur viewport */
         body.hoverPlay #welcome-screen::before {
-            width: calc(100vw + var(--blurFade));
+            width: calc(var(--textLeft) + var(--textColW) + 80px + var(--hoverTextShift) + var(--blurFade));
         }
         body.clickedPlay #welcome-screen::before {
             opacity: 0;
-            width: calc(100vw + var(--blurFade));
+            width: calc(var(--textLeft) + var(--textColW) + 80px + var(--clickTextExitX) + var(--blurFade));
         }
         #welcome-video-bg {
             position: absolute;
@@ -762,8 +760,7 @@
             overflow-y: auto;
             scrollbar-width: none;
             z-index: 2;
-            /* Expo-out : mouvement net puis décélération douce */
-            transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity var(--clickFadeMs) ease;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--clickFadeMs) ease;
         }
         .welcome-content::-webkit-scrollbar {
             display: none;
@@ -841,15 +838,10 @@
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             border-radius: 50%;
-            transition: transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1),
-                        opacity var(--clickFadeMs) ease;
-        }
-        body.hoverPlay .play-button-container {
-            transform: scale(1.04);
+            transition: opacity var(--clickFadeMs) ease;
         }
         body.clickedPlay .play-button-container {
             opacity: 0;
-            transform: none;
         }
         /* Desktop play visible, mobile play cache par defaut */
         .play-button-container.mobile-play {
@@ -869,21 +861,21 @@
             width: 160px;
             height: 161px;
             animation: playRondRotate 6s linear infinite;
-            transition: transform 0.45s cubic-bezier(0.34, 1.4, 0.64, 1);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
         body.hoverPlay .play-button-container .play-rond {
-            transform: scale(1.12);
+            transform: scale(1.05);
         }
         @keyframes playRondRotate {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
         body.hoverPlay .play-button-container .play-rond {
-            animation: playRondRotateHover 5s linear infinite;
+            animation: playRondRotateHover 6s linear infinite;
         }
         @keyframes playRondRotateHover {
-            from { transform: rotate(0deg) scale(1.12); }
-            to { transform: rotate(360deg) scale(1.12); }
+            from { transform: rotate(0deg) scale(1.05); }
+            to { transform: rotate(360deg) scale(1.05); }
         }
         .play-button-container .play-fleche {
             width: 53px;
@@ -891,10 +883,10 @@
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%) translateX(4px);
-            transition: transform 0.45s cubic-bezier(0.34, 1.4, 0.64, 1);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
         body.hoverPlay .play-button-container .play-fleche {
-            transform: translate(-50%, -50%) translateX(4px) scale(1.15);
+            transform: translate(-50%, -50%) translateX(4px) scale(1.08);
         }
 
         /* Logo container - PNG/WEBM (mobile) + poulpe MP4 (desktop) */
@@ -905,12 +897,11 @@
             width: var(--logoSize);
             height: var(--logoSize);
             z-index: 10;
-            /* Transitions explicites (pas 'all') pour éviter rasterisation GPU basse-res.
-               Expo-out synchro avec le texte pour le hover, logoMoveMs pour le click. */
-            transition: left 0.65s cubic-bezier(0.16, 1, 0.3, 1),
-                        top var(--logoMoveMs) cubic-bezier(0.16, 1, 0.3, 1),
-                        width var(--logoMoveMs) cubic-bezier(0.16, 1, 0.3, 1),
-                        height var(--logoMoveMs) cubic-bezier(0.16, 1, 0.3, 1),
+            /* Transitions explicites (pas 'all') pour éviter rasterisation GPU basse-res */
+            transition: left var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
+                        top var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
+                        width var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
+                        height var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
                         opacity 0.5s ease;
         }
 
