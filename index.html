@@ -27,7 +27,7 @@
             --logoSize: 156px;
             --playRight: 80px;
             --playBottom: 80px;
-            --hoverTextShift: 90px;
+            --hoverTextShift: -50px;
             --clickTextExitX: 320px;
             --clickFadeMs: 320ms;
             --logoMoveMs: 420ms;
@@ -690,14 +690,14 @@
         }
         /* PC: panneau opaque+blur pleine hauteur, ancré à gauche, expansion vers la droite.
            Le panneau ne se déplace JAMAIS — il reste collé au bord gauche.
-           Seule sa largeur évolue (hover = +hoverTextShift).
-           --blurFade (120px) = zone de dégradé ajoutée à droite, ne réduit PAS la zone texte. */
+           Seule sa largeur évolue (hover → 100vw, click → fade out).
+           --blurFade (60px) = zone de dégradé, homogène via ease-stops. */
         #welcome-screen::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
-            --blurFade: 120px;
+            --blurFade: 60px;
             width: calc(var(--textLeft) + var(--textColW) + 80px + var(--blurFade));
             height: 100%;
             background: rgba(0,0,0,0.55);
@@ -706,18 +706,20 @@
             border-radius: 0;
             z-index: 1;
             pointer-events: none;
-            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--clickFadeMs) ease;
-            /* Dégradé latéral droit : transition progressive opaque→transparent via mask.
-               La zone opaque couvre textLeft+textColW+80px, les 120px restants fondent. */
-            -webkit-mask-image: linear-gradient(to right, black 0%, black calc(100% - var(--blurFade)), transparent 100%);
-            mask-image: linear-gradient(to right, black 0%, black calc(100% - var(--blurFade)), transparent 100%);
+            /* Expo-out : élan rapide + décélération douce */
+            transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1), opacity var(--clickFadeMs) ease;
+            /* Dégradé latéral droit : courbe ease-out via 4 stops pour rendu homogène.
+               Élimine l'effet de "bande" d'un linear gradient brut. */
+            -webkit-mask-image: linear-gradient(to right, black 0%, black calc(100% - 60px), rgba(0,0,0,0.72) calc(100% - 40px), rgba(0,0,0,0.35) calc(100% - 20px), rgba(0,0,0,0.08) calc(100% - 6px), transparent 100%);
+            mask-image: linear-gradient(to right, black 0%, black calc(100% - 60px), rgba(0,0,0,0.72) calc(100% - 40px), rgba(0,0,0,0.35) calc(100% - 20px), rgba(0,0,0,0.08) calc(100% - 6px), transparent 100%);
         }
+        /* Hover : le panneau flou remplit toute la largeur viewport */
         body.hoverPlay #welcome-screen::before {
-            width: calc(var(--textLeft) + var(--textColW) + 80px + var(--hoverTextShift) + var(--blurFade));
+            width: calc(100vw + var(--blurFade));
         }
         body.clickedPlay #welcome-screen::before {
             opacity: 0;
-            width: calc(var(--textLeft) + var(--textColW) + 80px + var(--clickTextExitX) + var(--blurFade));
+            width: calc(100vw + var(--blurFade));
         }
         #welcome-video-bg {
             position: absolute;
@@ -760,7 +762,8 @@
             overflow-y: auto;
             scrollbar-width: none;
             z-index: 2;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--clickFadeMs) ease;
+            /* Expo-out : mouvement net puis décélération douce */
+            transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity var(--clickFadeMs) ease;
         }
         .welcome-content::-webkit-scrollbar {
             display: none;
@@ -838,10 +841,15 @@
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             border-radius: 50%;
-            transition: opacity var(--clickFadeMs) ease;
+            transition: transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1),
+                        opacity var(--clickFadeMs) ease;
+        }
+        body.hoverPlay .play-button-container {
+            transform: scale(1.04);
         }
         body.clickedPlay .play-button-container {
             opacity: 0;
+            transform: none;
         }
         /* Desktop play visible, mobile play cache par defaut */
         .play-button-container.mobile-play {
@@ -861,21 +869,21 @@
             width: 160px;
             height: 161px;
             animation: playRondRotate 6s linear infinite;
-            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.45s cubic-bezier(0.34, 1.4, 0.64, 1);
         }
         body.hoverPlay .play-button-container .play-rond {
-            transform: scale(1.05);
+            transform: scale(1.12);
         }
         @keyframes playRondRotate {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
         body.hoverPlay .play-button-container .play-rond {
-            animation: playRondRotateHover 6s linear infinite;
+            animation: playRondRotateHover 5s linear infinite;
         }
         @keyframes playRondRotateHover {
-            from { transform: rotate(0deg) scale(1.05); }
-            to { transform: rotate(360deg) scale(1.05); }
+            from { transform: rotate(0deg) scale(1.12); }
+            to { transform: rotate(360deg) scale(1.12); }
         }
         .play-button-container .play-fleche {
             width: 53px;
@@ -883,10 +891,10 @@
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%) translateX(4px);
-            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.45s cubic-bezier(0.34, 1.4, 0.64, 1);
         }
         body.hoverPlay .play-button-container .play-fleche {
-            transform: translate(-50%, -50%) translateX(4px) scale(1.08);
+            transform: translate(-50%, -50%) translateX(4px) scale(1.15);
         }
 
         /* Logo container - PNG/WEBM (mobile) + poulpe MP4 (desktop) */
@@ -897,11 +905,12 @@
             width: var(--logoSize);
             height: var(--logoSize);
             z-index: 10;
-            /* Transitions explicites (pas 'all') pour éviter rasterisation GPU basse-res */
-            transition: left var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
-                        top var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
-                        width var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
-                        height var(--logoMoveMs) cubic-bezier(0.4, 0, 0.2, 1),
+            /* Transitions explicites (pas 'all') pour éviter rasterisation GPU basse-res.
+               Expo-out synchro avec le texte pour le hover, logoMoveMs pour le click. */
+            transition: left 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+                        top var(--logoMoveMs) cubic-bezier(0.16, 1, 0.3, 1),
+                        width var(--logoMoveMs) cubic-bezier(0.16, 1, 0.3, 1),
+                        height var(--logoMoveMs) cubic-bezier(0.16, 1, 0.3, 1),
                         opacity 0.5s ease;
         }
 
@@ -1972,58 +1981,29 @@
                 border-radius: 28px;
             }
 
-            /* ═══ Scroll fade indicators — haut & bas, blur pur ═══
-               Architecture : pseudo-elements sticky DANS le scroll container.
-               backdrop-filter flou le texte qui passe derrière.
-               mask-image crée le dégradé d'opacité (pas de couleur noire).
-               --fade-top / --fade-bottom (0→1) pilotés par JS au scroll.
-               Combinaison opacity + scaleY pour l'aplatissement progressif. */
+            /* ═══ Scroll fade — mask alpha pur, aucun overlay ═══
+               mask-image sur le conteneur lui-même : le texte + backdrop-filter
+               disparaissent progressivement aux bords haut/bas.
+               --mask-top / --mask-bottom (0px→40px) pilotés par JS au scroll.
+               Pas de pseudo-element, pas de couleur noire, pas d'overlay. */
             .welcome-content,
             .pause-content {
-                --fade-top: 0;
-                --fade-bottom: 0;
-            }
-            /* Top fade : opaque en haut → transparent vers le bas */
-            .welcome-content::before,
-            .pause-content::before {
-                content: '';
-                display: block;
-                position: sticky;
-                top: 0;
-                height: 50px;
-                margin-bottom: -50px;
-                background: transparent;
-                backdrop-filter: blur(16px);
-                -webkit-backdrop-filter: blur(16px);
-                -webkit-mask-image: linear-gradient(to top, transparent 0%, black 100%);
-                mask-image: linear-gradient(to top, transparent 0%, black 100%);
-                pointer-events: none;
-                z-index: 5;
-                opacity: var(--fade-top);
-                transform-origin: top center;
-                transform: scaleY(var(--fade-top));
-                transition: opacity 0.18s ease, transform 0.18s ease;
-            }
-            /* Bottom fade : opaque en bas → transparent vers le haut */
-            .welcome-content::after,
-            .pause-content::after {
-                content: '';
-                display: block;
-                position: sticky;
-                bottom: 0;
-                height: 50px;
-                margin-top: -50px;
-                background: transparent;
-                backdrop-filter: blur(16px);
-                -webkit-backdrop-filter: blur(16px);
-                -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
-                mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
-                pointer-events: none;
-                z-index: 5;
-                opacity: var(--fade-bottom);
-                transform-origin: bottom center;
-                transform: scaleY(var(--fade-bottom));
-                transition: opacity 0.18s ease, transform 0.18s ease;
+                --mask-top: 0px;
+                --mask-bottom: 0px;
+                -webkit-mask-image: linear-gradient(
+                    to bottom,
+                    transparent 0px,
+                    black var(--mask-top),
+                    black calc(100% - var(--mask-bottom)),
+                    transparent 100%
+                );
+                mask-image: linear-gradient(
+                    to bottom,
+                    transparent 0px,
+                    black var(--mask-top),
+                    black calc(100% - var(--mask-bottom)),
+                    transparent 100%
+                );
             }
             .pause-conceptual-list .list-intro {
                 margin-bottom: 8px;
@@ -9876,14 +9856,14 @@
                 console.log('📝 Règles typographiques anti-orphelins appliquées');
             })();
 
-            // ═══ Scroll fade haut+bas mobile — pseudo-elements blur ═══
-            // Détecte scrollTop / remaining, pilote --fade-top et --fade-bottom
-            // Les pseudo-elements ::before / ::after gèrent le rendu via CSS.
+            // ═══ Scroll fade mobile — mask alpha dynamique ═══
+            // Pilote --mask-top et --mask-bottom (0px→MAX_FADE px)
+            // Le mask-image CSS fait disparaître texte + backdrop-filter aux bords.
             (function setupMobileScrollFades() {
                 var isMob = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
                 if (!isMob) return;
 
-                var THRESHOLD = 40; // px de scroll avant pleine opacité
+                var MAX_FADE = 40; // px max du dégradé alpha
 
                 function bindScrollFade(container) {
                     if (!container || container._scrollFadeBound) return;
@@ -9892,11 +9872,11 @@
                     function update() {
                         var st = container.scrollTop;
                         var remaining = container.scrollHeight - st - container.clientHeight;
-                        // Valeur 0→1 progressive
-                        var top = Math.min(1, Math.max(0, st / THRESHOLD));
-                        var bot = Math.min(1, Math.max(0, remaining / THRESHOLD));
-                        container.style.setProperty('--fade-top', top);
-                        container.style.setProperty('--fade-bottom', bot);
+                        // Progression linéaire 0→MAX_FADE px
+                        var top = Math.min(MAX_FADE, Math.max(0, st));
+                        var bot = Math.min(MAX_FADE, Math.max(0, remaining));
+                        container.style.setProperty('--mask-top', top + 'px');
+                        container.style.setProperty('--mask-bottom', bot + 'px');
                     }
 
                     container.addEventListener('scroll', update, { passive: true });
@@ -9904,7 +9884,6 @@
                     // Re-check après rendu complet (fonts, images)
                     setTimeout(update, 300);
                     setTimeout(update, 1000);
-                    // Observer les changements de taille du contenu
                     if (typeof ResizeObserver !== 'undefined') {
                         new ResizeObserver(update).observe(container);
                     }
@@ -9912,7 +9891,6 @@
 
                 bindScrollFade(document.getElementById('welcome-content'));
 
-                // pause-content : observer son apparition dans le DOM
                 var pauseObs = new MutationObserver(function() {
                     var pc = document.querySelector('.pause-content');
                     if (pc) bindScrollFade(pc);
@@ -9921,7 +9899,7 @@
                 var pc = document.querySelector('.pause-content');
                 if (pc) bindScrollFade(pc);
 
-                console.log('📜 Scroll fade mobile (top+bottom) initialisé');
+                console.log('📜 Scroll fade mobile (mask alpha) initialisé');
             })();
 
             // ═══ Supprimer overlay MediaSession (notifications lecteur multimédia) ═══
