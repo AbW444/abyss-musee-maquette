@@ -1777,12 +1777,19 @@
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
-                padding: 22px 20px;
+                padding: 0;
                 text-align: left;
+                background: none;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+                border-radius: 0;
+            }
+            .welcome-text-wrapper {
                 background: rgba(0,0,0,0.55);
                 backdrop-filter: blur(24px);
                 -webkit-backdrop-filter: blur(24px);
                 border-radius: 28px;
+                padding: 22px 20px;
             }
             .welcome-content::-webkit-scrollbar {
                 display: none;
@@ -1831,7 +1838,7 @@
                 position: relative !important;
                 bottom: auto !important;
                 right: auto !important;
-                margin: 40px auto 40px auto;
+                margin: 55px auto 40px auto;
                 width: clamp(90px, 22vw, 120px);
                 height: clamp(90px, 22vw, 120px);
             }
@@ -2166,6 +2173,7 @@
         </div>
 
         <div class="welcome-content" id="welcome-content">
+          <div class="welcome-text-wrapper">
             <span class="welcome-project-name">DUMBO</span>
             <h1 class="welcome-title">
                 <span data-fr="Présences aquatiques rares" data-en="Rare Aquatic Presences">Présences aquatiques rares</span><br>
@@ -2197,8 +2205,9 @@
                 Images issues de sources scientifiques réelles.<br>
                 Traductions visuelles réalisées dans un cadre expérimental.
             </div>
+          </div>
 
-            <!-- Bouton Play mobile: dans le flux -->
+            <!-- Bouton Play mobile: hors du wrapper blur -->
             <div class="play-button-container mobile-play" id="play-button-mobile" onclick="handlePlayClick()">
                 <img src="img/icone_play_rond.png" alt="Play" class="play-rond">
                 <img src="img/icone_play_fleche.png" alt="Play" class="play-fleche">
