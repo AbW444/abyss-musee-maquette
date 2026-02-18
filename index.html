@@ -934,15 +934,15 @@
             display: flex;
         }
         .pause-content {
-            max-width: 640px;
+            max-width: 700px;
             max-height: calc(100vh - 120px);
             overflow-y: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
-            background: rgba(0,0,0,0.916);
+            background: rgba(0,0,0,0.65);
             border: none;
             border-radius: var(--radius-2xl);
-            padding: 30px 42px;
+            padding: 33px 46px;
             text-align: left;
             box-shadow: none;
             pointer-events: all;
@@ -953,7 +953,7 @@
         }
         .pause-title {
             font-family: var(--font-sans);
-            font-size: 19px;
+            font-size: 21px;
             font-weight: 500;
             color: var(--color-text);
             margin-bottom: 18px;
@@ -963,7 +963,7 @@
         }
         .pause-text {
             font-family: var(--font-sans);
-            font-size: 14.5px;
+            font-size: 16px;
             font-weight: 300;
             color: var(--color-text-secondary);
             line-height: 1.75;
@@ -978,7 +978,7 @@
         /* Liste conceptuelle - sans décoration */
         .pause-conceptual-list {
             font-family: var(--font-sans);
-            font-size: 14.5px;
+            font-size: 16px;
             font-weight: 300;
             color: var(--color-text-secondary);
             line-height: 1.9;
@@ -996,7 +996,7 @@
         }
         .pause-meta {
             font-family: var(--font-mono);
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 300;
             color: var(--color-text-dim);
             line-height: 1.6;
@@ -1005,90 +1005,134 @@
             border-top: 1px solid var(--color-border);
             letter-spacing: 0.3px;
         }
+        /* ─── Bottom-right control grid (fullscreen + volume) ─── */
         .pause-controls {
             position: fixed;
-            top: 80px;
-            right: 16px;
-            display: flex;
-            flex-direction: column;
+            bottom: 24px;
+            right: 24px;
+            display: grid;
+            grid-template-columns: 1fr;
             align-items: center;
-            gap: var(--space-lg);
+            justify-items: center;
+            gap: 12px;
             z-index: var(--z-pause-controls);
         }
         .volume-control {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 0;
             height: auto;
-            justify-content: center;
+            justify-content: flex-end;
             position: relative;
         }
         .volume-slider-container {
+            width: 4px;
             height: 0;
             overflow: hidden;
             opacity: 0;
-            transition: height 0.3s ease, opacity 0.3s ease;
+            transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-bottom: 8px;
+            position: relative;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.08);
         }
         .volume-control.active .volume-slider-container {
-            height: 130px;
+            height: 100px;
             opacity: 1;
         }
-        .volume-label {
-            font-size: var(--text-sm);
-            color: var(--color-text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
         .volume-slider {
-            width: 120px;
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100px;
+            height: 4px;
+            background: transparent;
             transform: rotate(-90deg);
             transform-origin: center;
+            position: absolute;
+            cursor: pointer;
+        }
+        .volume-slider::-webkit-slider-runnable-track {
+            height: 4px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 2px;
+        }
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            margin-top: -5px;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+        .volume-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        .volume-slider::-moz-range-track {
+            height: 4px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 2px;
+            border: none;
+        }
+        .volume-slider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            border: none;
+            cursor: pointer;
         }
         /* ─── Circle Buttons (mute, close, mobile) ─── */
         .mute-button, .pause-close-btn {
-            background: rgba(0,0,0,0.7);
-            border: 1px solid var(--color-border);
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
             color: #fff;
             padding: 0;
-            width: 48px;
-            height: 48px;
+            width: 52px;
+            height: 52px;
             border-radius: var(--radius-round);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+            transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
         }
         .mute-button:hover, .pause-close-btn:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(100,150,255,0.5);
+            border-color: rgba(100,150,255,0.35);
             transform: scale(1.05);
         }
         .mute-button:active, .pause-close-btn:active {
-            background: var(--color-accent-strong);
             transform: scale(0.93);
         }
-        .mute-button.muted {
-            border-color: var(--color-danger);
+        /* Active state: button is "engaged" (muted or fullscreen active) */
+        .mute-button.active-state, .pause-close-btn.active-state {
+            background: rgba(100,150,255,1);
+            border-color: rgba(100,150,255,0.8);
+        }
+        .mute-button.active-state:hover, .pause-close-btn.active-state:hover {
+            background: rgba(100,150,255,0.85);
         }
         .pause-credits {
             position: absolute;
-            bottom: 16px;
+            bottom: 18px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: var(--text-md);
+            font-size: 12px;
             color: var(--color-text-hint);
             font-style: italic;
         }
 
-        /* Pause close button positioning */
+        /* Pause fullscreen button — inside bottom-right grid, no fixed positioning */
         .pause-close-btn {
-            position: fixed;
-            top: 16px;
-            right: 16px;
+            position: relative;
+            top: auto;
+            right: auto;
             z-index: var(--z-pause-controls);
         }
 
@@ -1097,21 +1141,21 @@
            INSTRUCTION SYSTEM — Unified grid for desktop & mobile
            ═══════════════════════════════════════════════════════════════ */
 
-        /* Shared instruction card base — glassmorphic panel */
+        /* Shared instruction card base — no background, clean floating */
         .persistent-instructions,
         .game-instructions,
         .pause-instructions {
-            background: rgba(0,0,0,0.85);
+            background: transparent;
             padding: var(--space-lg);
             border-radius: var(--radius-xl);
-            border: 1px solid rgba(255,255,255,0.08);
-            font-size: 12px;
+            border: none;
+            font-size: 13.2px;
             color: rgba(255,255,255,0.85);
             pointer-events: none;
             z-index: var(--z-ui);
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 11px;
         }
 
         .persistent-instructions {
@@ -1143,13 +1187,13 @@
         /* Unified instruction line — CSS Grid for pixel-perfect alignment */
         .instruction-line {
             display: grid;
-            grid-template-columns: 24px 1fr;
+            grid-template-columns: 26px 1fr;
             align-items: center;
-            gap: 10px;
+            gap: 11px;
             line-height: 1.35;
         }
         .instruction-line.secondary {
-            font-size: 11px;
+            font-size: 12px;
             color: rgba(255,255,255,0.6);
         }
 
@@ -1165,29 +1209,29 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background: rgba(100,150,255,0.15);
-            padding: 4px 8px;
+            background: rgba(255,255,255,0.08);
+            padding: 4px 9px;
             border-radius: var(--radius-sm);
-            border: 1px solid rgba(100,150,255,0.25);
+            border: 1px solid rgba(255,255,255,0.18);
             font-family: var(--font-mono);
-            font-size: 10px;
+            font-size: 11px;
             color: rgba(255,255,255,0.9);
             font-weight: 600;
             white-space: nowrap;
             line-height: 1;
-            min-width: 24px;
+            min-width: 26px;
             justify-self: center;
         }
 
         /* Inline key badges (within text flow) */
         .key-inline {
             display: inline-block;
-            background: rgba(100,150,255,0.12);
-            padding: 2px 5px;
+            background: rgba(255,255,255,0.06);
+            padding: 2px 6px;
             border-radius: 3px;
-            border: 1px solid rgba(100,150,255,0.2);
+            border: 1px solid rgba(255,255,255,0.15);
             font-family: var(--font-mono);
-            font-size: 9px;
+            font-size: 10px;
             color: rgba(255,255,255,0.8);
             font-weight: 600;
             white-space: nowrap;
@@ -2037,14 +2081,20 @@
     <!-- Game Instructions (top-left, visible when on floor Y=11, hides after movement) -->
     <div class="game-instructions hidden" id="game-instructions">
         <div class="instruction-line">
-            <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="7" y="2" width="10" height="20" rx="5"></rect>
-                <line x1="12" y1="6" x2="12" y2="10"></line>
+            <!-- Cursor/move icon for looking around -->
+            <svg class="instruction-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 9l-3 3 3 3"></path>
+                <path d="M9 5l3-3 3 3"></path>
+                <path d="M15 19l3 3-3-3"></path>
+                <path d="M19 9l3 3-3 3"></path>
+                <path d="M2 12h20"></path>
+                <path d="M12 2v20"></path>
             </svg>
             <span>Regarder autour</span>
         </div>
         <div class="instruction-line">
-            <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Keyboard icon -->
+            <svg class="instruction-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="6" width="20" height="14" rx="2"></rect>
                 <path d="M7 10h2 M11 10h2 M15 10h2"></path>
                 <path d="M9 14h6"></path>
@@ -2052,10 +2102,11 @@
             <span><span class="key-inline">ZQSD</span> <span class="or-text">ou</span> <span class="key-inline">↑←↓→</span> Se déplacer</span>
         </div>
         <div class="instruction-line secondary">
-            <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="7" y="2" width="10" height="20" rx="5"></rect>
-                <line x1="12" y1="6" x2="12" y2="10"></line>
-                <path d="M10 16l2 2 2-2"></path>
+            <!-- Scroll vertical icon (two arrows up/down) -->
+            <svg class="instruction-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3v18"></path>
+                <path d="M8 7l4-4 4 4"></path>
+                <path d="M8 17l4 4 4-4"></path>
             </svg>
             <span>Avancer / Reculer</span>
         </div>
@@ -2126,21 +2177,6 @@
 
     <!-- Pause Screen (ESC / Infos) -->
     <div id="pause-screen">
-        <!-- Bouton fullscreen (desktop) — bascule le plein écran sans fermer le panneau -->
-        <button class="pause-close-btn" id="pause-close-btn" onclick="handlePauseFullscreenClick()">
-            <svg class="fs-enter-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
-                <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
-                <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
-                <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
-            </svg>
-            <svg class="fs-exit-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
-                <path d="M8 3v3a2 2 0 0 1-2 2H3"></path>
-                <path d="M21 8h-3a2 2 0 0 1-2-2V3"></path>
-                <path d="M3 16h3a2 2 0 0 1 2 2v3"></path>
-                <path d="M16 21v-3a2 2 0 0 1 2-2h3"></path>
-            </svg>
-        </button>
 
         <div class="pause-instructions">
             <div class="instruction-line">
@@ -2152,14 +2188,20 @@
                 <span>Plein écran</span>
             </div>
             <div class="instruction-line">
-                <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="7" y="2" width="10" height="20" rx="5"></rect>
-                    <line x1="12" y1="6" x2="12" y2="10"></line>
+                <!-- Move/look icon -->
+                <svg class="instruction-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 9l-3 3 3 3"></path>
+                    <path d="M9 5l3-3 3 3"></path>
+                    <path d="M15 19l3 3-3-3"></path>
+                    <path d="M19 9l3 3-3 3"></path>
+                    <path d="M2 12h20"></path>
+                    <path d="M12 2v20"></path>
                 </svg>
                 <span>Regarder autour</span>
             </div>
             <div class="instruction-line">
-                <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <!-- Keyboard icon -->
+                <svg class="instruction-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="2" y="6" width="20" height="14" rx="2"></rect>
                     <path d="M7 10h2 M11 10h2 M15 10h2"></path>
                     <path d="M9 14h6"></path>
@@ -2167,10 +2209,11 @@
                 <span><span class="key-inline">ZQSD</span> <span class="or-text">ou</span> <span class="key-inline">↑←↓→</span> Se déplacer</span>
             </div>
             <div class="instruction-line secondary">
-                <svg class="instruction-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="7" y="2" width="10" height="20" rx="5"></rect>
-                    <line x1="12" y1="6" x2="12" y2="10"></line>
-                    <path d="M10 16l2 2 2-2"></path>
+                <!-- Scroll vertical icon -->
+                <svg class="instruction-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3v18"></path>
+                    <path d="M8 7l4-4 4 4"></path>
+                    <path d="M8 17l4 4 4-4"></path>
                 </svg>
                 <span>Avancer / Reculer</span>
             </div>
@@ -2206,18 +2249,33 @@
         </div>
 
         <div class="pause-controls" onclick="event.stopPropagation()">
+            <!-- Volume control with modern vertical slider -->
             <div class="volume-control" id="volume-control" onmouseleave="hideVolumeSlider()">
                 <div class="volume-slider-container">
                     <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="30" oninput="updateVolume(this.value)">
                 </div>
                 <button class="mute-button" id="mute-button" onclick="toggleMute()" ontouchstart="showVolumeSlider()" onmouseenter="showVolumeSlider()">
-                <svg id="mute-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                    <path id="sound-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                    <line id="mute-slash" x1="2" y1="2" x2="22" y2="22" style="display:none;"></line>
+                    <svg id="mute-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path id="sound-waves" d="M12 6v12M8 9v6M16 8v8M4 11v2M20 10v4"></path>
+                        <line id="mute-slash" x1="4" y1="4" x2="20" y2="20" stroke-width="2" style="display:none;"></line>
+                    </svg>
+                </button>
+            </div>
+            <!-- Fullscreen button — aligned in same grid -->
+            <button class="pause-close-btn" id="pause-close-btn" onclick="handlePauseFullscreenClick()">
+                <svg class="fs-enter-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+                    <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+                    <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+                    <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                </svg>
+                <svg class="fs-exit-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none;">
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3"></path>
+                    <path d="M21 8h-3a2 2 0 0 1-2-2V3"></path>
+                    <path d="M3 16h3a2 2 0 0 1 2 2v3"></path>
+                    <path d="M16 21v-3a2 2 0 0 1 2-2h3"></path>
                 </svg>
             </button>
-            </div>
         </div>
 
         <div class="pause-credits">Musique : Teimo (schluss) par Thomas Köner</div>
@@ -2587,6 +2645,36 @@
                 </div>
             </div>
 
+            <div class="param-row">
+                <div class="param-header">
+                    <label>LUMINESCENCE</label>
+                    <div class="param-controls">
+                        <button class="arrow-btn" data-param="luminescence" data-dir="down">▼</button>
+                        <span class="value" id="val-luminescence" data-param="luminescence">1.0</span>
+                        <button class="arrow-btn" data-param="luminescence" data-dir="up">▲</button>
+                    </div>
+                </div>
+                <div class="slider-wrapper">
+                    <input type="range" class="slider" id="luminescence" min="0.5" max="4.0" step="0.1" value="1.0">
+                    <div class="center-mark" style="left: 14.3%;"></div>
+                </div>
+            </div>
+
+            <div class="param-row">
+                <div class="param-header">
+                    <label>DEPTH PEAK SMOOTH</label>
+                    <div class="param-controls">
+                        <button class="arrow-btn" data-param="depthPeakSmooth" data-dir="down">▼</button>
+                        <span class="value" id="val-depthPeakSmooth" data-param="depthPeakSmooth">0.00</span>
+                        <button class="arrow-btn" data-param="depthPeakSmooth" data-dir="up">▲</button>
+                    </div>
+                </div>
+                <div class="slider-wrapper">
+                    <input type="range" class="slider" id="depthPeakSmooth" min="0.0" max="1.0" step="0.05" value="0.0">
+                    <div class="center-mark" style="left: 0%;"></div>
+                </div>
+            </div>
+
             <button onclick="applySettings()">Apply</button>
             <button onclick="resetToDefaults()">Reset to Defaults</button>
             <button onclick="resetCamera()">Reset Camera</button>
@@ -2644,6 +2732,8 @@
         let hideBackground = false;
         let bgThreshold = 40;
         let glowIntensity = 0.0; // Émissivité/glow des particules lumineuses
+        let luminescence = 1.0; // Luminescence factor (1.0 = normal, >1 = brighter/vivid points)
+        let depthPeakSmooth = 0.0; // Depth peak smoothing (0 = none, 1 = max smoothing of extreme depth gaps)
 
         // Video sampling data for continuous updates
         let videoSamplingCanvas = null;
@@ -2813,7 +2903,9 @@
             depthCullPower: { min: 0.0, max: 1.0, step: 0.05, decimals: 2, suffix: '' },
             contrast: { min: 0.0, max: 3.0, step: 0.1, decimals: 1, suffix: '' },
             saturation: { min: 0.0, max: 2.0, step: 0.05, decimals: 2, suffix: '' },
-            bgThreshold: { min: 0, max: 128, step: 2, decimals: 0, suffix: '' }
+            bgThreshold: { min: 0, max: 128, step: 2, decimals: 0, suffix: '' },
+            luminescence: { min: 0.5, max: 4.0, step: 0.1, decimals: 1, suffix: '' },
+            depthPeakSmooth: { min: 0.0, max: 1.0, step: 0.05, decimals: 2, suffix: '' }
         };
 
         function updateValueDisplay(param) {
@@ -2827,7 +2919,7 @@
 
         function setupSliderListeners() {
             // GPU uniform params: update shader uniforms instantly, no regeneration
-            const gpuUniformParams = ['size', 'depth', 'brightness', 'contrast', 'saturation', 'glow', 'blackThreshold', 'depthCullPower'];
+            const gpuUniformParams = ['size', 'depth', 'brightness', 'contrast', 'saturation', 'glow', 'blackThreshold', 'depthCullPower', 'luminescence', 'depthPeakSmooth'];
 
             Object.keys(paramConfigs).forEach(param => {
                 const slider = document.getElementById(param);
@@ -2849,6 +2941,8 @@
                         else if (param === 'glow') glowIntensity = val;
                         else if (param === 'blackThreshold') blackThreshold = val;
                         else if (param === 'depthCullPower') depthCullPower = val;
+                        else if (param === 'luminescence') luminescence = val;
+                        else if (param === 'depthPeakSmooth') depthPeakSmooth = val;
                         updateGPUVolumeUniforms();
                     } else {
                         // density, smoothing, bgThreshold: need full regeneration
@@ -5015,6 +5109,8 @@
                     updateValueDisplay('glow');
                     updateValueDisplay('contrast');
                     updateValueDisplay('saturation');
+                    updateValueDisplay('luminescence');
+                    updateValueDisplay('depthPeakSmooth');
 
                     // Keep both load-section and controls visible
                     document.getElementById('controls').classList.remove('hidden');
@@ -5132,15 +5228,36 @@
             uniform sampler2D videoTexture;
             uniform float uDepthSpread;
             uniform float uPointSize;
+            uniform float uDepthPeakSmooth;
+            uniform vec2 uTexelSize;
 
             varying vec2 vUV;
 
             void main() {
                 vUV = particleUV;
 
+                // Compute sampling UV (replaced by createGPUVolumeMaterial for panoramic portions)
+                vec2 sampleUV = vUV;
+
                 // Read video pixel at this particle's UV
-                vec4 texColor = texture2D(videoTexture, vUV);
+                vec4 texColor = texture2D(videoTexture, sampleUV);
                 float luminance = (texColor.r + texColor.g + texColor.b) / 3.0;
+
+                // Depth peak smoothing: blend with neighborhood average to reduce extreme spikes
+                if (uDepthPeakSmooth > 0.0 && uTexelSize.x > 0.0) {
+                    // Sample 8-tap neighborhood (cross + diagonals)
+                    float n1 = dot(texture2D(videoTexture, sampleUV + vec2(uTexelSize.x, 0.0)).rgb, vec3(0.333));
+                    float n2 = dot(texture2D(videoTexture, sampleUV - vec2(uTexelSize.x, 0.0)).rgb, vec3(0.333));
+                    float n3 = dot(texture2D(videoTexture, sampleUV + vec2(0.0, uTexelSize.y)).rgb, vec3(0.333));
+                    float n4 = dot(texture2D(videoTexture, sampleUV - vec2(0.0, uTexelSize.y)).rgb, vec3(0.333));
+                    float n5 = dot(texture2D(videoTexture, sampleUV + uTexelSize).rgb, vec3(0.333));
+                    float n6 = dot(texture2D(videoTexture, sampleUV - uTexelSize).rgb, vec3(0.333));
+                    float n7 = dot(texture2D(videoTexture, sampleUV + vec2(uTexelSize.x, -uTexelSize.y)).rgb, vec3(0.333));
+                    float n8 = dot(texture2D(videoTexture, sampleUV + vec2(-uTexelSize.x, uTexelSize.y)).rgb, vec3(0.333));
+                    float avgLum = (n1 + n2 + n3 + n4 + n5 + n6 + n7 + n8) / 8.0;
+                    // Blend toward neighborhood average, reducing extreme deviations
+                    luminance = mix(luminance, avgLum, uDepthPeakSmooth);
+                }
 
                 // Depth displacement: luminance -> z
                 float depth = luminance * uDepthSpread;
@@ -5172,6 +5289,7 @@
             uniform float uGlowIntensity;
             uniform float uBlackThreshold;
             uniform float uDepthCullPower;
+            uniform float uLuminescence;
 
             #ifdef USE_MAP
                 uniform sampler2D map;
@@ -5218,6 +5336,16 @@
                     color += emissive * color;
                 }
 
+                // Luminescence: overdrive brightness for vivid, light-emitting points
+                if (uLuminescence > 1.0) {
+                    float lum = dot(color, vec3(0.299, 0.587, 0.114));
+                    // Boost proportional to pixel luminance (bright pixels glow more)
+                    float boost = 1.0 + (uLuminescence - 1.0) * pow(lum, 0.5);
+                    color *= boost;
+                } else if (uLuminescence < 1.0) {
+                    color *= uLuminescence;
+                }
+
                 color = clamp(color, 0.0, 1.0);
 
                 #ifdef USE_MAP
@@ -5243,11 +5371,10 @@
             const depthSpread = (options.depthSpread !== undefined) ? options.depthSpread : 0;
             const shapeTexture = options.shapeTexture || null;
 
-            // Adjust vertex shader for panoramic portion
+            // Adjust vertex shader for panoramic portion (remap sampleUV for both center + neighbors)
             const vertexShader = GPU_VOLUME_VERTEX_SHADER.replace(
-                'vec4 texColor = texture2D(videoTexture, vUV);',
-                `vec2 videoUV = vec2(vUV.x * ${portionWidth.toFixed(6)} + ${portionOffset.toFixed(6)}, vUV.y);
-                vec4 texColor = texture2D(videoTexture, videoUV);`
+                'vec2 sampleUV = vUV;',
+                `vec2 sampleUV = vec2(vUV.x * ${portionWidth.toFixed(6)} + ${portionOffset.toFixed(6)}, vUV.y);`
             );
 
             const fragmentShader = GPU_VOLUME_FRAGMENT_SHADER.replace(
@@ -5268,7 +5395,10 @@
                 uSaturation: { value: saturation },
                 uGlowIntensity: { value: glowIntensity },
                 uBlackThreshold: { value: hideBlack ? blackThreshold / 255.0 : 0.0 },
-                uDepthCullPower: { value: enableDepthCull ? depthCullPower : 0.0 }
+                uDepthCullPower: { value: enableDepthCull ? depthCullPower : 0.0 },
+                uLuminescence: { value: luminescence },
+                uDepthPeakSmooth: { value: depthPeakSmooth },
+                uTexelSize: { value: new THREE.Vector2(1.0 / 800.0, 1.0 / 450.0) }
             };
 
             if (shapeTexture) {
@@ -5302,6 +5432,15 @@
                 mat.uniforms.uGlowIntensity.value = glowIntensity;
                 mat.uniforms.uBlackThreshold.value = hideBlack ? blackThreshold / 255.0 : 0.0;
                 mat.uniforms.uDepthCullPower.value = enableDepthCull ? depthCullPower : 0.0;
+                mat.uniforms.uLuminescence.value = luminescence;
+                mat.uniforms.uDepthPeakSmooth.value = depthPeakSmooth;
+                // Update texel size based on current sampling resolution
+                if (videoSamplingData) {
+                    mat.uniforms.uTexelSize.value.set(
+                        1.0 / videoSamplingData.TARGET_WIDTH,
+                        1.0 / videoSamplingData.TARGET_HEIGHT
+                    );
+                }
             }
         }
 
@@ -7185,6 +7324,10 @@
             hideBackground = false;
             bgThreshold = 40;
             glowIntensity = 0.0;
+            luminescence = 1.0;
+            depthPeakSmooth = 0.0;
+            document.getElementById('luminescence').value = 1.0;
+            document.getElementById('depthPeakSmooth').value = 0.0;
 
             updateValueDisplay('size');
             updateValueDisplay('density');
@@ -7198,6 +7341,8 @@
             updateValueDisplay('contrast');
             updateValueDisplay('saturation');
             updateValueDisplay('bgThreshold');
+            updateValueDisplay('luminescence');
+            updateValueDisplay('depthPeakSmooth');
 
             if (currentVideo) {
                 generate(currentVideo);
@@ -9005,17 +9150,20 @@
 
                 const soundWaves = document.getElementById('sound-waves');
                 const muteSlash = document.getElementById('mute-slash');
+                const muteBtn = document.getElementById('mute-button');
 
                 if (this.isMuted) {
                     // Mute everything
                     if (this.music) this.music.volume = 0;
                     soundWaves.style.display = 'none';
                     muteSlash.style.display = 'block';
+                    if (muteBtn) muteBtn.classList.add('active-state');
                 } else {
                     // Unmute
                     if (this.music) this.music.volume = this.currentMusicVolume;
                     soundWaves.style.display = 'block';
                     muteSlash.style.display = 'none';
+                    if (muteBtn) muteBtn.classList.remove('active-state');
 
                     // Play confirmation sound
                     this.playClick();
@@ -10549,13 +10697,19 @@
                 if (enterIcon) enterIcon.style.display = isFS ? 'none' : 'block';
                 if (exitIcon) exitIcon.style.display = isFS ? 'block' : 'none';
             }
-            // Update pause panel fullscreen button
+            // Update pause panel fullscreen button + active state
             const pauseBtn = document.getElementById('pause-close-btn');
             if (pauseBtn) {
                 const enterIcon = pauseBtn.querySelector('.fs-enter-icon');
                 const exitIcon = pauseBtn.querySelector('.fs-exit-icon');
                 if (enterIcon) enterIcon.style.display = isFS ? 'none' : 'block';
                 if (exitIcon) exitIcon.style.display = isFS ? 'block' : 'none';
+                // Active state: blue when fullscreen is engaged
+                if (isFS) {
+                    pauseBtn.classList.add('active-state');
+                } else {
+                    pauseBtn.classList.remove('active-state');
+                }
             }
         }
 
