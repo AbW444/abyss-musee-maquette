@@ -2004,25 +2004,6 @@
                 border-color: rgba(100,150,255,0.8);
             }
 
-            /* ─── Logo visible pendant l'expérience 3D sur mobile ─── */
-            .welcome-logo-container.mobile-experience-logo {
-                --expLogoSize: clamp(68px, 17.7vw, 83px);
-                position: fixed !important;
-                top: calc(10px + env(safe-area-inset-top)) !important;
-                left: 50% !important;
-                transform: translateX(-50%) !important;
-                width: var(--expLogoSize) !important;
-                height: var(--expLogoSize) !important;
-                z-index: var(--z-mobile-controls) !important;
-                mix-blend-mode: screen;
-                pointer-events: none;
-                opacity: 0;
-                transition: opacity 0.8s ease !important;
-            }
-            .welcome-logo-container.mobile-experience-logo.visible {
-                opacity: 1 !important;
-            }
-
             /* FPS counter plus discret sur mobile */
             #fps-counter {
                 display: none;
@@ -9244,11 +9225,15 @@
                     this.currentMusicVolume = this.masterVolume;
                 }
 
-                // Empêcher le navigateur d'afficher l'overlay lecteur multimédia
+                // MediaSession : afficher les métadonnées du média dans l'overlay du navigateur
                 if ('mediaSession' in navigator) {
-                    navigator.mediaSession.metadata = null;
-                    ['play','pause','seekbackward','seekforward','previoustrack','nexttrack','stop'].forEach(function(a) {
-                        try { navigator.mediaSession.setActionHandler(a, function() {}); } catch(e) {}
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: 'Dumbo',
+                        artist: 'Présences aquatiques rares',
+                        album: 'Maquette de dispositif d\'exposition',
+                        artwork: [
+                            { src: 'img/presences_rares_favicon_v2.png', sizes: '180x180', type: 'image/png' }
+                        ]
                     });
                 }
 
@@ -9258,11 +9243,6 @@
             // Play background music
             playMusic() {
                 if (!this.music) return;
-
-                // Re-nullifier la MediaSession à chaque lecture (certains navigateurs la réactivent)
-                if ('mediaSession' in navigator) {
-                    navigator.mediaSession.metadata = null;
-                }
 
                 this.music.play().catch(err => {
                     console.warn('⚠️ Autoplay blocked:', err);
@@ -9719,18 +9699,14 @@
                         poulpeRafId = requestAnimationFrame(renderPoulpeFrame);
                     }
                     renderPoulpeFrame();
-                    // Stop rendering when welcome screen is gone (desktop only)
-                    // On mobile, keep rendering for the always-visible experience logo
+                    // Stop rendering when welcome screen is gone
                     const obs = new MutationObserver(function() {
                         const ws = document.getElementById('welcome-screen');
                         if (!ws || ws.style.display === 'none') {
+                            // Keep rendering during loading (logo is reparented)
                             setTimeout(function() {
-                                var canvas = document.getElementById('welcome-logo-poulpe-canvas');
-                                if (!canvas) {
+                                if (!document.getElementById('welcome-logo-poulpe-canvas')) {
                                     cancelAnimationFrame(poulpeRafId);
-                                    obs.disconnect();
-                                } else {
-                                    // Canvas still in DOM (mobile experience logo) — keep rendering, disconnect observer
                                     obs.disconnect();
                                 }
                             }, 10000);
@@ -9918,34 +9894,19 @@
                 // Step 6: Hide loading screen + poulpe logo (reveal overlay stays black behind it)
                 loadingScreen.classList.add('hidden');
 
-                // Fade out or transform the poulpe logo
+                // Fade out the poulpe logo
                 const poulpeLogo = document.getElementById('welcome-logo-container');
-                const isMobileForLogo = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
-
                 if (poulpeLogo && poulpeLogo.classList.contains('detached')) {
-                    if (isMobileForLogo) {
-                        // Mobile: transform into small always-visible experience logo
-                        poulpeLogo.style.transition = 'none';
-                        poulpeLogo.style.opacity = '0';
-                        poulpeLogo.style.left = '';
-                        poulpeLogo.style.top = '';
-                        poulpeLogo.style.width = '';
-                        poulpeLogo.style.height = '';
-                        poulpeLogo.classList.add('mobile-experience-logo');
-                        console.log('🐙 Poulpe logo: mode expérience mobile');
-                    } else {
-                        // Desktop: fade out
-                        poulpeLogo.style.opacity = '0';
-                        console.log('🐙 Poulpe logo: disparition');
-                    }
+                    poulpeLogo.style.opacity = '0';
+                    console.log('🐙 Poulpe logo: disparition');
                 }
 
                 // After loading screen fades out (500ms), trigger the fade-from-black reveal
                 setTimeout(() => {
                     loadingScreen.style.display = 'none';
 
-                    // Remove poulpe logo from DOM (desktop only)
-                    if (poulpeLogo && poulpeLogo.classList.contains('detached') && !isMobileForLogo) {
+                    // Remove poulpe logo from DOM
+                    if (poulpeLogo && poulpeLogo.classList.contains('detached')) {
                         poulpeLogo.remove();
                     }
 
@@ -9978,25 +9939,14 @@
                 // Hide loading screen anyway after 2s with fade-from-black reveal
                 setTimeout(() => {
                     loadingScreen.classList.add('hidden');
-                    // Also hide/transform poulpe logo on error
+                    // Also hide poulpe logo on error
                     const poulpeLogoErr = document.getElementById('welcome-logo-container');
-                    const isMobileErr = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2);
                     if (poulpeLogoErr && poulpeLogoErr.classList.contains('detached')) {
-                        if (isMobileErr) {
-                            poulpeLogoErr.style.transition = 'none';
-                            poulpeLogoErr.style.opacity = '0';
-                            poulpeLogoErr.style.left = '';
-                            poulpeLogoErr.style.top = '';
-                            poulpeLogoErr.style.width = '';
-                            poulpeLogoErr.style.height = '';
-                            poulpeLogoErr.classList.add('mobile-experience-logo');
-                        } else {
-                            poulpeLogoErr.style.opacity = '0';
-                        }
+                        poulpeLogoErr.style.opacity = '0';
                     }
                     setTimeout(() => {
                         loadingScreen.style.display = 'none';
-                        if (poulpeLogoErr && poulpeLogoErr.classList.contains('detached') && !isMobileErr) {
+                        if (poulpeLogoErr && poulpeLogoErr.classList.contains('detached')) {
                             poulpeLogoErr.remove();
                         }
                         revealOverlay.classList.add('revealed');
