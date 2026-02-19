@@ -702,29 +702,25 @@
             background: rgba(0,0,0,0.55);
             backdrop-filter: blur(32px);
             -webkit-backdrop-filter: blur(32px);
-            border-radius: 0 100px 100px 0;
+            border-radius: 0 300px 300px 0;
             z-index: 1;
             pointer-events: none;
-            -webkit-mask-image: linear-gradient(to right, black calc(100% - 140px), transparent);
-            mask-image: linear-gradient(to right, black calc(100% - 140px), transparent);
+            box-shadow: 40px 0 100px 20px rgba(0,0,0,0.35);
             transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
                         border-radius 0.7s cubic-bezier(0.22, 1, 0.36, 1),
                         opacity var(--clickFadeMs) ease,
-                        mask-image 0.7s ease,
-                        -webkit-mask-image 0.7s ease;
+                        box-shadow 0.7s ease;
         }
         body.hoverPlay #welcome-screen::before {
             width: 100vw;
             border-radius: 0;
-            -webkit-mask-image: none;
-            mask-image: none;
+            box-shadow: none;
         }
         body.clickedPlay #welcome-screen::before {
             opacity: 0;
             width: 100vw;
             border-radius: 0;
-            -webkit-mask-image: none;
-            mask-image: none;
+            box-shadow: none;
         }
         #welcome-video-bg {
             position: absolute;
@@ -1843,7 +1839,7 @@
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
-                padding: 22px 20px 18px 20px;
+                padding: 22px 20px 22px 20px;
                 text-align: left;
                 background: rgba(0,0,0,0.55);
                 backdrop-filter: blur(24px);
@@ -1899,6 +1895,7 @@
                 font-size: clamp(10px, 2.5vw, 12px);
                 margin-top: 30px;
                 padding-top: 20px;
+                margin-bottom: 4px;
             }
 
             /* Boutons play: espacement égal texte↔play et play↔bord écran */
