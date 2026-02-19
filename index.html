@@ -1825,8 +1825,6 @@
                 max-width: 500px !important;
                 max-height: calc(var(--real-vh, 1vh) * 100 - 12px - env(safe-area-inset-top) - var(--logoSize) - env(safe-area-inset-bottom)) !important;
                 overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
-                overscroll-behavior-y: none;
                 scrollbar-width: none;
                 padding: 22px 20px 12px 20px;
                 text-align: left;
@@ -1902,9 +1900,6 @@
                 backdrop-filter: none !important;
                 -webkit-backdrop-filter: none !important;
                 transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity var(--clickFadeMs) ease;
-            }
-            .play-button-container.mobile-play.scroll-expanded {
-                transform: scale(1.15);
             }
             .play-button-container.desktop-play {
                 display: none !important;
@@ -9638,14 +9633,6 @@
             movePlayButton(mobileQuery);
             mobileQuery.addEventListener('change', movePlayButton);
 
-            welcomeContentEl.addEventListener('scroll', function() {
-                const atBottom = welcomeContentEl.scrollTop + welcomeContentEl.clientHeight >= welcomeContentEl.scrollHeight - 10;
-                if (atBottom) {
-                    playButtonMobile.classList.add('scroll-expanded');
-                } else {
-                    playButtonMobile.classList.remove('scroll-expanded');
-                }
-            }, { passive: true });
         }
 
         function startExperience() {
