@@ -689,14 +689,13 @@
             pointer-events: none;
         }
         /* PC: forme floue — pilotée par CSS custom properties pour réglage live.
-           Valeurs par défaut identiques à l'original. */
+           Base = valeurs exportées depuis le tuning panel. */
         #welcome-screen::before {
             content: '';
             position: absolute;
             top: 0;
-            right: var(--blur-right, auto);
-            left: var(--blur-left, 0);
-            width: var(--blur-width, calc(var(--textLeft) + var(--textColW) + 80px));
+            left: 0;
+            width: var(--blur-width, 1400px);
             height: 100%;
             background: rgba(0,0,0, var(--blur-bg-opacity, 0.55));
             backdrop-filter: blur(var(--blur-amount, 32px));
@@ -709,21 +708,29 @@
             transform: translateX(var(--blur-tx, 0px));
             will-change: transform, opacity;
             transition:
-                transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
-                width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-                border-radius 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                transform var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+                width var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+                border-radius var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+                backdrop-filter var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+                -webkit-backdrop-filter var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+                background var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+                -webkit-mask-image var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+                mask-image var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
                 opacity var(--clickFadeMs) ease;
         }
         body.hoverPlay #welcome-screen::before {
-            width: 100vw;
-            border-radius: 0;
-            transform: translateX(0);
-            -webkit-mask-image: none;
-            mask-image: none;
+            width: var(--hover-width, 100vw);
+            border-radius: var(--hover-radius, 0);
+            transform: translateX(var(--hover-tx, 0px));
+            background: rgba(0,0,0, var(--hover-bg-opacity, 0.55));
+            backdrop-filter: blur(var(--hover-blur, 32px));
+            -webkit-backdrop-filter: blur(var(--hover-blur, 32px));
+            -webkit-mask-image: linear-gradient(to right, black var(--hover-mask-stop, 100%), transparent 100%);
+            mask-image: linear-gradient(to right, black var(--hover-mask-stop, 100%), transparent 100%);
         }
         body.clickedPlay #welcome-screen::before {
             opacity: 0;
-            width: 100vw;
+            width: var(--hover-width, 100vw);
             border-radius: 0;
             transform: translateX(0);
             -webkit-mask-image: none;
@@ -2094,20 +2101,50 @@
             scrollbar-width: thin;
             scrollbar-color: rgba(255,255,255,0.2) transparent;
         }
-        #blur-tuning-panel.visible {
-            display: block;
-        }
+        #blur-tuning-panel.visible { display: block; }
         #blur-tuning-panel h3 {
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1.2px;
             color: rgba(255,255,255,0.5);
-            margin: 0 0 12px 0;
+            margin: 0 0 10px 0;
             font-weight: 600;
         }
-        .blur-tune-row {
-            margin-bottom: 10px;
+        /* Tab bar */
+        .bt-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
         }
+        .bt-tabs button {
+            flex: 1;
+            padding: 7px 0;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            color: rgba(255,255,255,0.45);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .bt-tabs button.active {
+            background: rgba(100,200,255,0.12);
+            border-color: rgba(100,200,255,0.4);
+            color: rgba(100,200,255,0.95);
+        }
+        .bt-tabs button[data-tab="hover"].active {
+            background: rgba(255,160,60,0.12);
+            border-color: rgba(255,160,60,0.4);
+            color: rgba(255,180,80,0.95);
+        }
+        /* Tab content */
+        .bt-tab-content { display: none; }
+        .bt-tab-content.active { display: block; }
+        /* Slider rows */
+        .blur-tune-row { margin-bottom: 10px; }
         .blur-tune-row label {
             display: flex;
             justify-content: space-between;
@@ -2119,11 +2156,12 @@
             margin-bottom: 4px;
         }
         .blur-tune-row label span.bt-val {
-            color: rgba(100,200,255,0.9);
             font-family: var(--font-mono);
             font-weight: 600;
             font-size: 11px;
         }
+        .bt-tab-content[data-tab="base"] .bt-val { color: rgba(100,200,255,0.9); }
+        .bt-tab-content[data-tab="hover"] .bt-val { color: rgba(255,180,80,0.9); }
         .blur-tune-row input[type="range"] {
             width: 100%;
             height: 4px;
@@ -2135,61 +2173,50 @@
         }
         .blur-tune-row input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 14px;
-            height: 14px;
+            width: 14px; height: 14px;
             border-radius: 50%;
             background: rgba(100,200,255,0.9);
             cursor: pointer;
+        }
+        .bt-tab-content[data-tab="hover"] input[type="range"]::-webkit-slider-thumb {
+            background: rgba(255,180,80,0.9);
         }
         .blur-tune-row input[type="range"]::-moz-range-thumb {
-            width: 14px;
-            height: 14px;
+            width: 14px; height: 14px;
             border-radius: 50%;
             background: rgba(100,200,255,0.9);
-            cursor: pointer;
-            border: none;
+            cursor: pointer; border: none;
         }
-        #blur-tune-export {
-            margin-top: 12px;
+        .bt-tab-content[data-tab="hover"] input[type="range"]::-moz-range-thumb {
+            background: rgba(255,180,80,0.9);
+        }
+        /* Buttons */
+        .bt-action-btn {
+            margin-top: 8px;
             width: 100%;
             padding: 8px;
-            background: rgba(100,200,255,0.12);
-            border: 1px solid rgba(100,200,255,0.3);
             border-radius: 6px;
-            color: rgba(100,200,255,0.9);
             font-size: 10px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.8px;
             cursor: pointer;
         }
-        #blur-tune-export:hover {
-            background: rgba(100,200,255,0.2);
-        }
-        #blur-tune-anchor {
-            margin-bottom: 10px;
-            display: flex;
-            gap: 6px;
-        }
-        #blur-tune-anchor button {
-            flex: 1;
-            padding: 6px;
-            font-size: 10px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 4px;
-            color: rgba(255,255,255,0.7);
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-            margin: 0;
-            width: auto;
-        }
-        #blur-tune-anchor button.active {
-            background: rgba(100,200,255,0.2);
-            border-color: rgba(100,200,255,0.5);
+        .bt-action-btn.copy {
+            background: rgba(100,200,255,0.12);
+            border: 1px solid rgba(100,200,255,0.3);
             color: rgba(100,200,255,0.9);
+        }
+        .bt-action-btn.copy:hover { background: rgba(100,200,255,0.2); }
+        .bt-action-btn.preview {
+            background: rgba(255,160,60,0.12);
+            border: 1px solid rgba(255,160,60,0.3);
+            color: rgba(255,180,80,0.9);
+        }
+        .bt-action-btn.preview:hover { background: rgba(255,160,60,0.2); }
+        .bt-action-btn.preview.active-preview {
+            background: rgba(255,160,60,0.3);
+            border-color: rgba(255,160,60,0.6);
         }
     </style>
 </head>
@@ -11475,151 +11502,245 @@
     <div id="blur-tuning-panel">
         <h3>Blur Shape Tuning</h3>
 
-        <div id="blur-tune-anchor">
-            <button id="bt-anchor-left" class="active" onclick="setBlurAnchor('left')">Left</button>
-            <button id="bt-anchor-right" onclick="setBlurAnchor('right')">Right</button>
+        <!-- Tab bar -->
+        <div class="bt-tabs">
+            <button class="active" data-tab="base">Base</button>
+            <button data-tab="hover">Hover</button>
         </div>
 
-        <div class="blur-tune-row">
-            <label>Width <span class="bt-val" id="bt-val-width">900px</span></label>
-            <input type="range" id="bt-width" min="200" max="1600" step="10" value="900">
+        <!-- ══ BASE tab ══ -->
+        <div class="bt-tab-content active" data-tab="base">
+            <div class="blur-tune-row">
+                <label>Width <span class="bt-val" id="bt-val-width">1400px</span></label>
+                <input type="range" id="bt-width" min="200" max="2400" step="10" value="1400">
+            </div>
+            <div class="blur-tune-row">
+                <label>TranslateX <span class="bt-val" id="bt-val-tx">0px</span></label>
+                <input type="range" id="bt-tx" min="-500" max="800" step="5" value="0">
+            </div>
+            <div class="blur-tune-row">
+                <label>Border Radius <span class="bt-val" id="bt-val-radius">8px</span></label>
+                <input type="range" id="bt-radius" min="0" max="200" step="2" value="8">
+            </div>
+            <div class="blur-tune-row">
+                <label>Blur Amount <span class="bt-val" id="bt-val-blur">32px</span></label>
+                <input type="range" id="bt-blur" min="0" max="80" step="1" value="32">
+            </div>
+            <div class="blur-tune-row">
+                <label>BG Opacity <span class="bt-val" id="bt-val-bgop">0.55</span></label>
+                <input type="range" id="bt-bgop" min="0" max="1" step="0.05" value="0.55">
+            </div>
+            <div class="blur-tune-row">
+                <label>Mask Stop <span class="bt-val" id="bt-val-mask">65%</span></label>
+                <input type="range" id="bt-mask" min="0" max="100" step="1" value="65">
+            </div>
+            <button class="bt-action-btn copy" onclick="window._btExport('base')">Copy Base CSS</button>
         </div>
 
-        <div class="blur-tune-row">
-            <label>TranslateX <span class="bt-val" id="bt-val-tx">0px</span></label>
-            <input type="range" id="bt-tx" min="-500" max="800" step="5" value="0">
+        <!-- ══ HOVER tab ══ -->
+        <div class="bt-tab-content" data-tab="hover">
+            <div class="blur-tune-row">
+                <label>Width <span class="bt-val" id="bt-val-h-width">100vw</span></label>
+                <input type="range" id="bt-h-width" min="200" max="3000" step="10" value="1920" data-vw="true">
+            </div>
+            <div class="blur-tune-row">
+                <label>TranslateX <span class="bt-val" id="bt-val-h-tx">0px</span></label>
+                <input type="range" id="bt-h-tx" min="-500" max="800" step="5" value="0">
+            </div>
+            <div class="blur-tune-row">
+                <label>Border Radius <span class="bt-val" id="bt-val-h-radius">0px</span></label>
+                <input type="range" id="bt-h-radius" min="0" max="200" step="2" value="0">
+            </div>
+            <div class="blur-tune-row">
+                <label>Blur Amount <span class="bt-val" id="bt-val-h-blur">32px</span></label>
+                <input type="range" id="bt-h-blur" min="0" max="80" step="1" value="32">
+            </div>
+            <div class="blur-tune-row">
+                <label>BG Opacity <span class="bt-val" id="bt-val-h-bgop">0.55</span></label>
+                <input type="range" id="bt-h-bgop" min="0" max="1" step="0.05" value="0.55">
+            </div>
+            <div class="blur-tune-row">
+                <label>Mask Stop <span class="bt-val" id="bt-val-h-mask">100%</span></label>
+                <input type="range" id="bt-h-mask" min="0" max="100" step="1" value="100">
+            </div>
+            <div class="blur-tune-row">
+                <label>Transition <span class="bt-val" id="bt-val-h-dur">0.7s</span></label>
+                <input type="range" id="bt-h-dur" min="0.1" max="3" step="0.05" value="0.7">
+            </div>
+            <button class="bt-action-btn preview" id="bt-preview-hover" onclick="window._btPreviewHover()">Preview Hover</button>
+            <button class="bt-action-btn copy" style="margin-top:6px" onclick="window._btExport('hover')">Copy Hover CSS</button>
         </div>
-
-        <div class="blur-tune-row">
-            <label>Border Radius <span class="bt-val" id="bt-val-radius">8px</span></label>
-            <input type="range" id="bt-radius" min="0" max="200" step="2" value="8">
-        </div>
-
-        <div class="blur-tune-row">
-            <label>Blur Amount <span class="bt-val" id="bt-val-blur">32px</span></label>
-            <input type="range" id="bt-blur" min="0" max="80" step="1" value="32">
-        </div>
-
-        <div class="blur-tune-row">
-            <label>BG Opacity <span class="bt-val" id="bt-val-bgop">0.55</span></label>
-            <input type="range" id="bt-bgop" min="0" max="1" step="0.05" value="0.55">
-        </div>
-
-        <div class="blur-tune-row">
-            <label>Mask Stop <span class="bt-val" id="bt-val-mask">65%</span></label>
-            <input type="range" id="bt-mask" min="0" max="100" step="1" value="65">
-        </div>
-
-        <button id="blur-tune-export" onclick="exportBlurCSS()">Copy CSS</button>
     </div>
 
     <script>
     (function() {
         var panel = document.getElementById('blur-tuning-panel');
         var ws = document.getElementById('welcome-screen');
-        var blurAnchor = 'left';
         var bCount = 0;
         var bTimer = null;
+        var hoverPreviewing = false;
 
-        // Slider config: id -> { cssVar, suffix, label }
-        var sliders = {
-            'bt-width':  { cssVar: '--blur-width',      suffix: 'px', valId: 'bt-val-width' },
-            'bt-tx':     { cssVar: '--blur-tx',          suffix: 'px', valId: 'bt-val-tx' },
-            'bt-radius': { cssVar: null,                 suffix: 'px', valId: 'bt-val-radius' },
-            'bt-blur':   { cssVar: '--blur-amount',      suffix: 'px', valId: 'bt-val-blur' },
-            'bt-bgop':   { cssVar: '--blur-bg-opacity',  suffix: '',   valId: 'bt-val-bgop' },
-            'bt-mask':   { cssVar: '--blur-mask-stop',   suffix: '%',  valId: 'bt-val-mask' }
+        /* ── Tab switching ── */
+        panel.querySelectorAll('.bt-tabs button').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                panel.querySelectorAll('.bt-tabs button').forEach(function(b) { b.classList.remove('active'); });
+                panel.querySelectorAll('.bt-tab-content').forEach(function(c) { c.classList.remove('active'); });
+                btn.classList.add('active');
+                panel.querySelector('.bt-tab-content[data-tab="' + btn.dataset.tab + '"]').classList.add('active');
+            });
+        });
+
+        /* ── BASE sliders ── */
+        var baseSliders = {
+            'bt-width':  { cssVar: '--blur-width',     suffix: 'px', valId: 'bt-val-width' },
+            'bt-tx':     { cssVar: '--blur-tx',         suffix: 'px', valId: 'bt-val-tx' },
+            'bt-radius': { cssVar: null,                suffix: 'px', valId: 'bt-val-radius' },
+            'bt-blur':   { cssVar: '--blur-amount',     suffix: 'px', valId: 'bt-val-blur' },
+            'bt-bgop':   { cssVar: '--blur-bg-opacity', suffix: '',   valId: 'bt-val-bgop' },
+            'bt-mask':   { cssVar: '--blur-mask-stop',  suffix: '%',  valId: 'bt-val-mask' }
         };
 
-        function updateSlider(id) {
+        function updateBase(id) {
             var el = document.getElementById(id);
-            var cfg = sliders[id];
+            var cfg = baseSliders[id];
             var v = el.value;
             document.getElementById(cfg.valId).textContent = v + cfg.suffix;
-
             if (id === 'bt-radius') {
-                // Build border-radius based on anchor
                 var r = v + 'px';
-                if (blurAnchor === 'left') {
-                    ws.style.setProperty('--blur-radius', '0 ' + r + ' ' + r + ' 0');
-                } else {
-                    ws.style.setProperty('--blur-radius', r + ' 0 0 ' + r);
-                }
+                ws.style.setProperty('--blur-radius', '0 ' + r + ' ' + r + ' 0');
             } else if (cfg.cssVar) {
                 ws.style.setProperty(cfg.cssVar, v + cfg.suffix);
             }
         }
 
-        // Wire all sliders
-        Object.keys(sliders).forEach(function(id) {
+        Object.keys(baseSliders).forEach(function(id) {
             var el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('input', function() { updateSlider(id); });
-            }
+            if (el) el.addEventListener('input', function() { updateBase(id); });
         });
 
-        // Anchor switch
-        window.setBlurAnchor = function(side) {
-            blurAnchor = side;
-            document.getElementById('bt-anchor-left').classList.toggle('active', side === 'left');
-            document.getElementById('bt-anchor-right').classList.toggle('active', side === 'right');
-
-            if (side === 'right') {
-                ws.style.setProperty('--blur-left', 'auto');
-                ws.style.setProperty('--blur-right', '0');
-            } else {
-                ws.style.setProperty('--blur-left', '0');
-                ws.style.setProperty('--blur-right', 'auto');
-            }
-            // Re-apply radius with new anchor
-            updateSlider('bt-radius');
+        /* ── HOVER sliders ── */
+        var hoverSliders = {
+            'bt-h-width':  { cssVar: '--hover-width',     suffix: 'px', valId: 'bt-val-h-width', vw: true },
+            'bt-h-tx':     { cssVar: '--hover-tx',         suffix: 'px', valId: 'bt-val-h-tx' },
+            'bt-h-radius': { cssVar: '--hover-radius',     suffix: 'px', valId: 'bt-val-h-radius' },
+            'bt-h-blur':   { cssVar: '--hover-blur',       suffix: 'px', valId: 'bt-val-h-blur' },
+            'bt-h-bgop':   { cssVar: '--hover-bg-opacity', suffix: '',   valId: 'bt-val-h-bgop' },
+            'bt-h-mask':   { cssVar: '--hover-mask-stop',  suffix: '%',  valId: 'bt-val-h-mask' },
+            'bt-h-dur':    { cssVar: '--blur-tr-dur',      suffix: 's',  valId: 'bt-val-h-dur' }
         };
 
-        // Export CSS
-        window.exportBlurCSS = function() {
-            var w = document.getElementById('bt-width').value;
-            var tx = document.getElementById('bt-tx').value;
-            var r = document.getElementById('bt-radius').value;
-            var bl = document.getElementById('bt-blur').value;
-            var bgop = document.getElementById('bt-bgop').value;
-            var mask = document.getElementById('bt-mask').value;
+        function updateHover(id) {
+            var el = document.getElementById(id);
+            var cfg = hoverSliders[id];
+            var v = el.value;
+            // Show vw equivalent for width
+            if (cfg.vw) {
+                var vw = Math.round(parseFloat(v) / window.innerWidth * 100);
+                document.getElementById(cfg.valId).textContent = v + 'px (~' + vw + 'vw)';
+            } else {
+                document.getElementById(cfg.valId).textContent = v + cfg.suffix;
+            }
+            if (cfg.cssVar) {
+                ws.style.setProperty(cfg.cssVar, v + cfg.suffix);
+            }
+            // Live update if previewing
+            if (hoverPreviewing) applyHoverPreview();
+        }
 
-            var anchor = blurAnchor === 'right' ? 'right: 0;' : 'left: 0;';
-            var radiusVal = blurAnchor === 'left'
-                ? '0 ' + r + 'px ' + r + 'px 0'
-                : r + 'px 0 0 ' + r + 'px';
+        Object.keys(hoverSliders).forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('input', function() { updateHover(id); });
+        });
 
-            var css = '#welcome-screen::before {\n'
-                + '    content: \'\';\n'
-                + '    position: absolute;\n'
-                + '    top: 0;\n'
-                + '    ' + anchor + '\n'
-                + '    width: ' + w + 'px;\n'
-                + '    height: 100%;\n'
-                + '    background: rgba(0,0,0,' + bgop + ');\n'
-                + '    backdrop-filter: blur(' + bl + 'px);\n'
-                + '    -webkit-backdrop-filter: blur(' + bl + 'px);\n'
-                + '    border-radius: ' + radiusVal + ';\n'
-                + '    z-index: 1;\n'
-                + '    pointer-events: none;\n'
-                + '    -webkit-mask-image: linear-gradient(to right, black ' + mask + '%, transparent 100%);\n'
-                + '    mask-image: linear-gradient(to right, black ' + mask + '%, transparent 100%);\n'
-                + '    transform: translateX(' + tx + 'px);\n'
-                + '    will-change: transform, opacity;\n'
-                + '}';
+        /* ── Hover Preview ── */
+        function applyHoverPreview() {
+            document.body.classList.add('hoverPlay');
+        }
+        function removeHoverPreview() {
+            document.body.classList.remove('hoverPlay');
+        }
 
+        window._btPreviewHover = function() {
+            var btn = document.getElementById('bt-preview-hover');
+            hoverPreviewing = !hoverPreviewing;
+            if (hoverPreviewing) {
+                // Push all hover vars before activating class
+                Object.keys(hoverSliders).forEach(function(id) { updateHover(id); });
+                applyHoverPreview();
+                btn.textContent = 'Stop Preview';
+                btn.classList.add('active-preview');
+            } else {
+                removeHoverPreview();
+                btn.textContent = 'Preview Hover';
+                btn.classList.remove('active-preview');
+            }
+        };
+
+        /* ── Export ── */
+        window._btExport = function(tab) {
+            var css = '';
+            if (tab === 'base') {
+                var w = document.getElementById('bt-width').value;
+                var tx = document.getElementById('bt-tx').value;
+                var r = document.getElementById('bt-radius').value;
+                var bl = document.getElementById('bt-blur').value;
+                var bgop = document.getElementById('bt-bgop').value;
+                var mask = document.getElementById('bt-mask').value;
+                css = '#welcome-screen::before {\n'
+                    + '    content: \'\';\n'
+                    + '    position: absolute;\n'
+                    + '    top: 0;\n'
+                    + '    left: 0;\n'
+                    + '    width: ' + w + 'px;\n'
+                    + '    height: 100%;\n'
+                    + '    background: rgba(0,0,0,' + bgop + ');\n'
+                    + '    backdrop-filter: blur(' + bl + 'px);\n'
+                    + '    -webkit-backdrop-filter: blur(' + bl + 'px);\n'
+                    + '    border-radius: 0 ' + r + 'px ' + r + 'px 0;\n'
+                    + '    z-index: 1;\n'
+                    + '    pointer-events: none;\n'
+                    + '    -webkit-mask-image: linear-gradient(to right, black ' + mask + '%, transparent 100%);\n'
+                    + '    mask-image: linear-gradient(to right, black ' + mask + '%, transparent 100%);\n'
+                    + '    transform: translateX(' + tx + 'px);\n'
+                    + '    will-change: transform, opacity;\n'
+                    + '}';
+            } else {
+                var hw = document.getElementById('bt-h-width').value;
+                var htx = document.getElementById('bt-h-tx').value;
+                var hr = document.getElementById('bt-h-radius').value;
+                var hbl = document.getElementById('bt-h-blur').value;
+                var hbgop = document.getElementById('bt-h-bgop').value;
+                var hmask = document.getElementById('bt-h-mask').value;
+                var hdur = document.getElementById('bt-h-dur').value;
+                css = 'body.hoverPlay #welcome-screen::before {\n'
+                    + '    width: ' + hw + 'px;\n'
+                    + '    border-radius: ' + hr + 'px;\n'
+                    + '    transform: translateX(' + htx + 'px);\n'
+                    + '    background: rgba(0,0,0,' + hbgop + ');\n'
+                    + '    backdrop-filter: blur(' + hbl + 'px);\n'
+                    + '    -webkit-backdrop-filter: blur(' + hbl + 'px);\n'
+                    + '    -webkit-mask-image: linear-gradient(to right, black ' + hmask + '%, transparent 100%);\n'
+                    + '    mask-image: linear-gradient(to right, black ' + hmask + '%, transparent 100%);\n'
+                    + '}\n'
+                    + '/* transition: ' + hdur + 's cubic-bezier(0.22, 1, 0.36, 1) */';
+            }
             navigator.clipboard.writeText(css).then(function() {
-                var btn = document.getElementById('blur-tune-export');
-                btn.textContent = 'Copied!';
-                setTimeout(function() { btn.textContent = 'Copy CSS'; }, 1500);
+                var btns = panel.querySelectorAll('.bt-action-btn.copy');
+                btns.forEach(function(b) {
+                    if (b.closest('.bt-tab-content.active')) {
+                        b.textContent = 'Copied!';
+                        setTimeout(function() {
+                            b.textContent = tab === 'base' ? 'Copy Base CSS' : 'Copy Hover CSS';
+                        }, 1500);
+                    }
+                });
             });
             console.log(css);
         };
 
-        // 5xB toggle on welcome screen
+        /* ── 5xB toggle on welcome screen ── */
         document.addEventListener('keydown', function(e) {
             if (e.code !== 'KeyB') return;
-            // Only work when welcome screen is visible
             if (!ws || ws.classList.contains('hidden')) return;
 
             if (bTimer) clearTimeout(bTimer);
@@ -11629,10 +11750,18 @@
             if (bCount >= 5) {
                 bCount = 0;
                 clearTimeout(bTimer);
+                var opening = !panel.classList.contains('visible');
                 panel.classList.toggle('visible');
+                // When closing, clean up hover preview
+                if (!opening && hoverPreviewing) {
+                    hoverPreviewing = false;
+                    removeHoverPreview();
+                    document.getElementById('bt-preview-hover').textContent = 'Preview Hover';
+                    document.getElementById('bt-preview-hover').classList.remove('active-preview');
+                }
                 e.stopImmediatePropagation();
             }
-        }, true); // capture phase to intercept before existing B handler
+        }, true);
     })();
     </script>
 </body>
