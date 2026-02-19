@@ -1916,10 +1916,18 @@
                 height: 50%;
             }
 
-            /* Mobile: pas de panneau blur/gradient — le texte et le play ont leur propre fond,
-               le canvas volumétrique gère l'arrière-plan */
+            /* Mobile: fond flou pleine page, couvre texte + bouton play */
             #welcome-screen::before {
-                display: none !important;
+                display: block !important;
+                width: 100vw !important;
+                left: 0 !important;
+                border-radius: 0 !important;
+                -webkit-mask-image: linear-gradient(to bottom, black 75%, transparent 100%) !important;
+                mask-image: linear-gradient(to bottom, black 75%, transparent 100%) !important;
+                transform: none !important;
+            }
+            body.hoverPlay #welcome-screen::before {
+                width: 100vw !important;
             }
 
             /* Afficher UI mobile */
