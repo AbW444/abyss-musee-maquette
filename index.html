@@ -707,18 +707,15 @@
             pointer-events: none;
             -webkit-mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
             mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
-            transform: translateX(200px);
             transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
                         border-radius 0.7s cubic-bezier(0.22, 1, 0.36, 1),
                         opacity var(--clickFadeMs) ease,
                         -webkit-mask-image 0.7s ease,
-                        mask-image 0.7s ease,
-                        transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+                        mask-image 0.7s ease;
         }
         body.hoverPlay #welcome-screen::before {
             width: 100vw;
             border-radius: 0;
-            transform: translateX(0);
             -webkit-mask-image: none;
             mask-image: none;
         }
@@ -726,7 +723,6 @@
             opacity: 0;
             width: 100vw;
             border-radius: 0;
-            transform: translateX(0);
             -webkit-mask-image: none;
             mask-image: none;
         }
