@@ -1816,18 +1816,18 @@
                 transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease !important;
             }
 
-            /* Texte mobile: même marge haut/bas dans le bloc, espace égal texte↔play↔bord */
+            /* Texte mobile: bloc étendu jusqu'en bas, le play est dans le flux */
             .welcome-content {
                 left: 50% !important;
                 top: calc(12px + env(safe-area-inset-top) + var(--logoSize)) !important;
                 transform: translateX(-50%) !important;
                 width: calc(100vw - 40px) !important;
                 max-width: 500px !important;
-                max-height: calc(var(--real-vh, 1vh) * 100 - 12px - env(safe-area-inset-top) - var(--logoSize) - var(--playGap) - var(--playSize) - var(--playGap) - env(safe-area-inset-bottom)) !important;
+                max-height: calc(var(--real-vh, 1vh) * 100 - 12px - env(safe-area-inset-top) - var(--logoSize) - env(safe-area-inset-bottom)) !important;
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
-                padding: 22px 20px 22px 20px;
+                padding: 22px 20px 12px 20px;
                 text-align: left;
                 background: none !important;
                 backdrop-filter: none !important;
@@ -1886,14 +1886,15 @@
                 margin-bottom: 4px;
             }
 
-            /* Boutons play: espacement égal texte↔play et play↔bord écran */
+            /* Bouton play: dans le flux du bloc texte, centré, apparaît au scroll */
             .play-button-container.mobile-play {
                 display: block !important;
-                position: absolute !important;
-                bottom: calc(var(--playGap) + env(safe-area-inset-bottom)) !important;
+                position: relative !important;
+                bottom: auto !important;
                 right: auto !important;
-                left: 50% !important;
-                transform: translateX(-50%);
+                left: auto !important;
+                transform: none;
+                margin: var(--playGap) auto 12px auto;
                 width: var(--playSize);
                 height: var(--playSize);
                 background: none !important;
@@ -1902,7 +1903,7 @@
                 transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity var(--clickFadeMs) ease;
             }
             .play-button-container.mobile-play.scroll-expanded {
-                transform: translateX(-50%) scale(1.15);
+                transform: scale(1.15);
             }
             .play-button-container.desktop-play {
                 display: none !important;
@@ -2076,8 +2077,11 @@
                 width: calc(60vw - 150px) !important;
                 padding-bottom: 20px;
             }
-            .play-button-container {
+            .play-button-container.mobile-play {
+                position: absolute !important;
+                margin: 0 !important;
                 right: calc(40px + env(safe-area-inset-right)) !important;
+                left: auto !important;
                 bottom: 50% !important;
                 transform: translateY(50%);
             }
@@ -2425,7 +2429,7 @@
             </div>
           </div>
 
-        <!-- Bouton Play mobile: en dehors de welcome-content -->
+        <!-- Bouton Play mobile: déplacé dans welcome-content par JS en portrait -->
         <div class="play-button-container mobile-play" id="play-button-mobile" onclick="handlePlayClick()">
             <img src="img/icone_play_rond.png" alt="Play" class="play-rond">
             <img src="img/icone_play_fleche.png" alt="Play" class="play-fleche">
@@ -9620,6 +9624,19 @@
         const welcomeContentEl = document.getElementById('welcome-content');
         const playButtonMobile = document.getElementById('play-button-mobile');
         if (welcomeContentEl && playButtonMobile) {
+            // Mobile portrait: intégrer le bouton play dans le flux du bloc texte
+            const mobileQuery = window.matchMedia('(max-width: 768px) and (orientation: portrait)');
+            function movePlayButton(mq) {
+                if ((mq.matches || (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && window.innerHeight > window.innerWidth)) && playButtonMobile.parentElement !== welcomeContentEl) {
+                    welcomeContentEl.appendChild(playButtonMobile);
+                } else if (!mq.matches && playButtonMobile.parentElement === welcomeContentEl) {
+                    // Remettre en dehors si on passe en paysage/desktop
+                    document.getElementById('welcome-screen').insertBefore(playButtonMobile, document.getElementById('play-button'));
+                }
+            }
+            movePlayButton(mobileQuery);
+            mobileQuery.addEventListener('change', movePlayButton);
+
             welcomeContentEl.addEventListener('scroll', function() {
                 const atBottom = welcomeContentEl.scrollTop + welcomeContentEl.clientHeight >= welcomeContentEl.scrollHeight - 10;
                 if (atBottom) {
