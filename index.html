@@ -688,37 +688,43 @@
             opacity: 0;
             pointer-events: none;
         }
-        /* PC: couche flou indépendante, pleine hauteur.
-           Positionnée à droite, décalée via translateX uniquement.
-           Hover → remplit le viewport. Click → fade out. */
-        .blur-shape {
+        /* PC: panneau opaque+blur pleine hauteur, ancré à gauche.
+           Ne se déplace jamais — seule sa largeur évolue.
+           Hover → remplit le viewport. Click → fade out.
+           Bord droit arrondi (20px), s'anime vers 0 au hover. */
+        #welcome-screen::before {
+            content: '';
             position: absolute;
             top: 0;
-            right: 0;
-            width: 850px;
+            left: 0;
+            width: calc(var(--textLeft) + var(--textColW) + 80px);
             height: 100%;
             background: rgba(0,0,0,0.55);
-            backdrop-filter: blur(45px);
-            -webkit-backdrop-filter: blur(45px);
-            border-radius: 80px 0 0 80px;
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border-radius: 0 8px 8px 0;
             z-index: 1;
             pointer-events: none;
-            -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40%);
-            mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40%);
-            transform: translateX(140px);
-            will-change: transform;
-            transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+            -webkit-mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
+            mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
+            transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
                         border-radius 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-                        opacity var(--clickFadeMs) ease;
+                        opacity var(--clickFadeMs) ease,
+                        -webkit-mask-image 0.7s ease,
+                        mask-image 0.7s ease;
         }
-        body.hoverPlay .blur-shape {
-            transform: translateX(0);
+        body.hoverPlay #welcome-screen::before {
+            width: 100vw;
             border-radius: 0;
+            -webkit-mask-image: none;
+            mask-image: none;
         }
-        body.clickedPlay .blur-shape {
+        body.clickedPlay #welcome-screen::before {
             opacity: 0;
-            transform: translateX(0);
+            width: 100vw;
             border-radius: 0;
+            -webkit-mask-image: none;
+            mask-image: none;
         }
         #welcome-video-bg {
             position: absolute;
@@ -1920,7 +1926,7 @@
 
             /* Mobile: pas de panneau blur/gradient — le texte et le play ont leur propre fond,
                le canvas volumétrique gère l'arrière-plan */
-            .blur-shape {
+            #welcome-screen::before {
                 display: none !important;
             }
 
@@ -2212,7 +2218,6 @@
 
     <!-- Welcome Screen -->
     <div id="welcome-screen">
-        <div class="blur-shape"></div>
         <video id="welcome-video-bg" autoplay loop muted playsinline>
             <source src="videos/background.webm" type="video/webm">
         </video>
