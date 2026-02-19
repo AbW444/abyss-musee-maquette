@@ -688,8 +688,8 @@
             opacity: 0;
             pointer-events: none;
         }
-        /* PC: forme floue — pilotée par CSS custom properties pour réglage live.
-           Base = valeurs exportées depuis le tuning panel. */
+        /* PC: forme floue — deux états : base (1400px) → hover (2400px).
+           Seule la width change entre les deux. */
         #welcome-screen::before {
             content: '';
             position: absolute;
@@ -700,7 +700,7 @@
             background: rgba(0,0,0, var(--blur-bg-opacity, 0.55));
             backdrop-filter: blur(var(--blur-amount, 32px));
             -webkit-backdrop-filter: blur(var(--blur-amount, 32px));
-            border-radius: var(--blur-radius, 0 8px 8px 0);
+            border-radius: 0;
             z-index: 1;
             pointer-events: none;
             -webkit-mask-image: linear-gradient(to right, black var(--blur-mask-stop, 65%), transparent 100%);
@@ -708,33 +708,15 @@
             transform: translateX(var(--blur-tx, 0px));
             will-change: transform, opacity;
             transition:
-                transform var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
                 width var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-                border-radius var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-                backdrop-filter var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-                -webkit-backdrop-filter var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-                background var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-                -webkit-mask-image var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
-                mask-image var(--blur-tr-dur, 0.7s) var(--blur-tr-ease, cubic-bezier(0.22, 1, 0.36, 1)),
                 opacity var(--clickFadeMs) ease;
         }
         body.hoverPlay #welcome-screen::before {
-            width: var(--hover-width, 100vw);
-            border-radius: var(--hover-radius, 0);
-            transform: translateX(var(--hover-tx, 0px));
-            background: rgba(0,0,0, var(--hover-bg-opacity, 0.55));
-            backdrop-filter: blur(var(--hover-blur, 32px));
-            -webkit-backdrop-filter: blur(var(--hover-blur, 32px));
-            -webkit-mask-image: linear-gradient(to right, black var(--hover-mask-stop, 100%), transparent 100%);
-            mask-image: linear-gradient(to right, black var(--hover-mask-stop, 100%), transparent 100%);
+            width: var(--hover-width, 2400px);
         }
         body.clickedPlay #welcome-screen::before {
             opacity: 0;
-            width: var(--hover-width, 100vw);
-            border-radius: 0;
-            transform: translateX(0);
-            -webkit-mask-image: none;
-            mask-image: none;
+            width: var(--hover-width, 2400px);
         }
         #welcome-video-bg {
             position: absolute;
