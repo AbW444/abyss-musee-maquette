@@ -688,43 +688,55 @@
             opacity: 0;
             pointer-events: none;
         }
-        /* PC: panneau opaque+blur pleine hauteur, ancré à gauche.
-           Ne se déplace jamais — seule sa largeur évolue.
-           Hover → remplit le viewport. Click → fade out.
-           Bord droit arrondi (20px), s'anime vers 0 au hover. */
-        #welcome-screen::before {
-            content: '';
+        /* ─── Hero: Architecture 3 couches (desktop) ─── */
+
+        /* Couche 1 — Fond flou 100% opaque.
+           Couvre la zone texte + marge pour le hover shift.
+           Pas de mask-image, pas de gradient interne.
+           Statique : ne bouge ni au hover ni au click (seule l'opacité change au click). */
+        .hero-blur {
             position: absolute;
             top: 0;
             left: 0;
-            width: calc(var(--textLeft) + var(--textColW) + 80px);
+            width: calc(var(--textLeft) + var(--textColW) + var(--hoverTextShift) + 100px);
             height: 100%;
             background: rgba(0,0,0,0.55);
             backdrop-filter: blur(32px);
             -webkit-backdrop-filter: blur(32px);
-            border-radius: 0 150px 150px 0;
+            border-radius: 0 180px 180px 0;
             z-index: 1;
             pointer-events: none;
-            -webkit-mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
-            mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
-            transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-                        border-radius 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-                        opacity var(--clickFadeMs) ease,
-                        -webkit-mask-image 0.7s ease,
-                        mask-image 0.7s ease;
+            transition: opacity var(--clickFadeMs) ease;
         }
-        body.hoverPlay #welcome-screen::before {
-            width: 100vw;
-            border-radius: 0;
-            -webkit-mask-image: none;
-            mask-image: none;
+
+        /* Couche 2 — Dégradé externe.
+           Derrière le blur (z-index inférieur), même forme mais plus large.
+           Crée un fondu progressif là où le blur s'arrête (bord arrondi).
+           Aucun backdrop-filter, aucun mask-image — simple gradient de couleur. */
+        .hero-fade {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: calc(var(--textLeft) + var(--textColW) + var(--hoverTextShift) + 340px);
+            height: 100%;
+            border-radius: 0 220px 220px 0;
+            z-index: 0;
+            pointer-events: none;
+            background: linear-gradient(
+                to right,
+                rgba(0,0,0,0.55) 0%,
+                rgba(0,0,0,0.55) calc(100% - 340px),
+                rgba(0,0,0,0.30) calc(100% - 200px),
+                rgba(0,0,0,0.10) calc(100% - 80px),
+                transparent 100%
+            );
+            transition: opacity var(--clickFadeMs) ease;
         }
-        body.clickedPlay #welcome-screen::before {
+
+        /* Click : les deux couches disparaissent */
+        body.clickedPlay .hero-blur,
+        body.clickedPlay .hero-fade {
             opacity: 0;
-            width: 100vw;
-            border-radius: 0;
-            -webkit-mask-image: none;
-            mask-image: none;
         }
         #welcome-video-bg {
             position: absolute;
@@ -1926,7 +1938,8 @@
 
             /* Mobile: pas de panneau blur/gradient — le texte et le play ont leur propre fond,
                le canvas volumétrique gère l'arrière-plan */
-            #welcome-screen::before {
+            .hero-blur,
+            .hero-fade {
                 display: none !important;
             }
 
@@ -2221,6 +2234,11 @@
         <video id="welcome-video-bg" autoplay loop muted playsinline>
             <source src="videos/background.webm" type="video/webm">
         </video>
+
+        <!-- Couche 1: Fond flou opaque — couvre la zone texte, 100% opaque, pas de masque -->
+        <div class="hero-blur"></div>
+        <!-- Couche 2: Dégradé externe — prolonge le bord droit avec un fondu progressif -->
+        <div class="hero-fade"></div>
 
         <!-- Overlay fondu noir au clic play (devant tout sauf logo) -->
         <div id="welcome-fade-overlay"></div>
@@ -7328,14 +7346,14 @@
             const width24 = 235.076;
             const height24 = 231.29;
             const geometry24 = new THREE.PlaneGeometry(width24, height24);
-            const material24 = createWallFormMaterial(0x808080); // Gris moyen
+            const material24 = createWallFormMaterial(0x000000); // Noir
             const screen24 = new THREE.Mesh(geometry24, material24);
             screen24.position.set(600.959, -6.589, 116.138);
             screen24.rotation.set(0, 1.570796, 0); // 90° en Y
             screen24.scale.set(1, 1, 1);
             screen24.userData.screenNumber = 24;
             screen24.userData.isColorSurface = true;
-            screen24.userData.color = 0x808080;
+            screen24.userData.color = 0x000000;
             screensGroup.add(screen24);
 
             // Restore custom shapes (>24) - both in allScreens and screensGroup
@@ -7373,7 +7391,7 @@
                 21: screen21b,          // FORME: Gray thin vertical panel 2
                 22: screen22,           // FORME: Dark panel back
                 23: screen23,           // FORME: Dark panel front
-                24: screen24,           // FORME: Gray surface right side
+                24: screen24,           // FORME: Black surface right side
                 ...customShapesToPreserve // Restore custom shapes (>24)
             };
             console.log('✅ Tous les écrans (1-24 + custom):', Object.keys(allScreens));
