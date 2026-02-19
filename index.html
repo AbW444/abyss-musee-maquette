@@ -1817,11 +1817,11 @@
             body.hoverPlay .welcome-logo-container {
                 left: calc(50% - var(--logoSize) / 2) !important;
             }
-            /* Animation fluide: fade out en place + léger scale au lieu de déplacer left/top */
+            /* Animation fluide: le logo glisse vers le centre (comme desktop), reste visible pendant le chargement */
             body.clickedPlay .welcome-logo-container {
-                opacity: 0 !important;
-                transform: scale(0.85) !important;
-                transition: opacity 0.4s ease, transform 0.4s ease !important;
+                top: calc(50vh - var(--logoSize) / 2) !important;
+                top: calc(50dvh - var(--logoSize) / 2) !important;
+                transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease !important;
             }
 
             /* Texte mobile: même marge haut/bas dans le bloc, espace égal texte↔play↔bord */
@@ -1903,7 +1903,6 @@
                 transform: translateX(-50%);
                 width: var(--playSize);
                 height: var(--playSize);
-                box-shadow: 0 0 40px 15px rgba(0,0,0,0.5);
             }
             .play-button-container.desktop-play {
                 display: none !important;
