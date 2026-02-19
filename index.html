@@ -688,43 +688,43 @@
             opacity: 0;
             pointer-events: none;
         }
-        /* PC: forme floue fixe, ancrée à droite, déplacement pur via translateX.
-           Aucun recalcul de width/mask/radius lors des transitions. */
+        /* PC: panneau opaque+blur pleine hauteur, ancré à gauche.
+           Ne se déplace jamais — seule sa largeur évolue.
+           Hover → remplit le viewport. Click → fade out.
+           Bord droit arrondi (20px), s'anime vers 0 au hover. */
         #welcome-screen::before {
             content: '';
             position: absolute;
             top: 0;
-            right: 0;
-            width: 900px;
+            left: 0;
+            width: calc(var(--textLeft) + var(--textColW) + 80px);
             height: 100%;
             background: rgba(0,0,0,0.55);
             backdrop-filter: blur(32px);
             -webkit-backdrop-filter: blur(32px);
-            border-radius: 120px 0 0 120px;
+            border-radius: 0 8px 8px 0;
             z-index: 1;
             pointer-events: none;
-            -webkit-mask-image: linear-gradient(
-                to right,
-                black 65%,
-                transparent 100%
-            );
-            mask-image: linear-gradient(
-                to right,
-                black 65%,
-                transparent 100%
-            );
-            transform: translateX(240px);
-            will-change: transform, opacity;
-            transition:
-                transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
-                opacity var(--clickFadeMs) ease;
+            -webkit-mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
+            mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
+            transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                        border-radius 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                        opacity var(--clickFadeMs) ease,
+                        -webkit-mask-image 0.7s ease,
+                        mask-image 0.7s ease;
         }
         body.hoverPlay #welcome-screen::before {
-            transform: translateX(420px);
+            width: 100vw;
+            border-radius: 0;
+            -webkit-mask-image: none;
+            mask-image: none;
         }
         body.clickedPlay #welcome-screen::before {
             opacity: 0;
-            transform: translateX(600px);
+            width: 100vw;
+            border-radius: 0;
+            -webkit-mask-image: none;
+            mask-image: none;
         }
         #welcome-video-bg {
             position: absolute;
