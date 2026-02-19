@@ -688,55 +688,42 @@
             opacity: 0;
             pointer-events: none;
         }
-        /* ─── Hero: Architecture 3 couches (desktop) ─── */
-
-        /* Couche 1 — Fond flou 100% opaque.
-           Couvre la zone texte + marge pour le hover shift.
-           Pas de mask-image, pas de gradient interne.
-           Statique : ne bouge ni au hover ni au click (seule l'opacité change au click). */
-        .hero-blur {
+        /* PC: panneau opaque+blur pleine hauteur, ancré à gauche.
+           Hover → remplit le viewport. Click → fade out.
+           Pas d'arrondi, élargi de 20% vers la droite. */
+        #welcome-screen::before {
+            content: '';
             position: absolute;
             top: 0;
             left: 0;
-            width: calc(var(--textLeft) + var(--textColW) + var(--hoverTextShift) + 100px);
+            width: calc((var(--textLeft) + var(--textColW) + 80px) * 1.2);
             height: 100%;
             background: rgba(0,0,0,0.55);
             backdrop-filter: blur(32px);
             -webkit-backdrop-filter: blur(32px);
-            border-radius: 0 180px 180px 0;
+            border-radius: 0;
             z-index: 1;
             pointer-events: none;
-            transition: opacity var(--clickFadeMs) ease;
+            -webkit-mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
+            mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
+            transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                        border-radius 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                        opacity var(--clickFadeMs) ease,
+                        -webkit-mask-image 0.7s ease,
+                        mask-image 0.7s ease;
         }
-
-        /* Couche 2 — Dégradé externe.
-           Derrière le blur (z-index inférieur), même forme mais plus large.
-           Crée un fondu progressif là où le blur s'arrête (bord arrondi).
-           Aucun backdrop-filter, aucun mask-image — simple gradient de couleur. */
-        .hero-fade {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: calc(var(--textLeft) + var(--textColW) + var(--hoverTextShift) + 340px);
-            height: 100%;
-            border-radius: 0 220px 220px 0;
-            z-index: 0;
-            pointer-events: none;
-            background: linear-gradient(
-                to right,
-                rgba(0,0,0,0.55) 0%,
-                rgba(0,0,0,0.55) calc(100% - 340px),
-                rgba(0,0,0,0.30) calc(100% - 200px),
-                rgba(0,0,0,0.10) calc(100% - 80px),
-                transparent 100%
-            );
-            transition: opacity var(--clickFadeMs) ease;
+        body.hoverPlay #welcome-screen::before {
+            width: 100vw;
+            border-radius: 0;
+            -webkit-mask-image: none;
+            mask-image: none;
         }
-
-        /* Click : les deux couches disparaissent */
-        body.clickedPlay .hero-blur,
-        body.clickedPlay .hero-fade {
+        body.clickedPlay #welcome-screen::before {
             opacity: 0;
+            width: 100vw;
+            border-radius: 0;
+            -webkit-mask-image: none;
+            mask-image: none;
         }
         #welcome-video-bg {
             position: absolute;
@@ -1938,8 +1925,7 @@
 
             /* Mobile: pas de panneau blur/gradient — le texte et le play ont leur propre fond,
                le canvas volumétrique gère l'arrière-plan */
-            .hero-blur,
-            .hero-fade {
+            #welcome-screen::before {
                 display: none !important;
             }
 
@@ -2234,11 +2220,6 @@
         <video id="welcome-video-bg" autoplay loop muted playsinline>
             <source src="videos/background.webm" type="video/webm">
         </video>
-
-        <!-- Couche 1: Fond flou opaque — couvre la zone texte, 100% opaque, pas de masque -->
-        <div class="hero-blur"></div>
-        <!-- Couche 2: Dégradé externe — prolonge le bord droit avec un fondu progressif -->
-        <div class="hero-fade"></div>
 
         <!-- Overlay fondu noir au clic play (devant tout sauf logo) -->
         <div id="welcome-fade-overlay"></div>
