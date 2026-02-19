@@ -1893,7 +1893,7 @@
                 right: auto !important;
                 left: auto !important;
                 transform: none;
-                margin: var(--playGap) auto calc(var(--playGap) + 12px) auto;
+                margin: var(--playGap) auto 32px auto;
                 width: var(--playSize);
                 height: var(--playSize);
                 background: none !important;
@@ -9633,6 +9633,17 @@
             movePlayButton(mobileQuery);
             mobileQuery.addEventListener('change', movePlayButton);
 
+            // Grossissement progressif du play quand on approche du max scroll
+            welcomeContentEl.addEventListener('scroll', function() {
+                var dist = welcomeContentEl.scrollHeight - welcomeContentEl.scrollTop - welcomeContentEl.clientHeight;
+                var threshold = 120;
+                if (dist < threshold) {
+                    var t = 1 - dist / threshold;
+                    playButtonMobile.style.transform = 'scale(' + (1 + 0.15 * t) + ')';
+                } else {
+                    playButtonMobile.style.transform = '';
+                }
+            }, { passive: true });
         }
 
         function startExperience() {
