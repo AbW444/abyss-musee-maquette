@@ -702,25 +702,29 @@
             background: rgba(0,0,0,0.55);
             backdrop-filter: blur(32px);
             -webkit-backdrop-filter: blur(32px);
-            border-radius: 0 300px 300px 0;
+            border-radius: 0 150px 150px 0;
             z-index: 1;
             pointer-events: none;
-            box-shadow: 40px 0 100px 20px rgba(0,0,0,0.35);
+            -webkit-mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
+            mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
             transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
                         border-radius 0.7s cubic-bezier(0.22, 1, 0.36, 1),
                         opacity var(--clickFadeMs) ease,
-                        box-shadow 0.7s ease;
+                        -webkit-mask-image 0.7s ease,
+                        mask-image 0.7s ease;
         }
         body.hoverPlay #welcome-screen::before {
             width: 100vw;
             border-radius: 0;
-            box-shadow: none;
+            -webkit-mask-image: none;
+            mask-image: none;
         }
         body.clickedPlay #welcome-screen::before {
             opacity: 0;
             width: 100vw;
             border-radius: 0;
-            box-shadow: none;
+            -webkit-mask-image: none;
+            mask-image: none;
         }
         #welcome-video-bg {
             position: absolute;
@@ -1058,18 +1062,10 @@
         .pause-conceptual-list .list-item {
             display: block;
             color: rgba(255,255,255,0.85);
-            padding-left: 12px;
-            position: relative;
         }
         .pause-conceptual-list .list-item::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0.7em;
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.95);
+            content: '· ';
+            color: rgba(255,255,255,0.95);
         }
         .pause-meta {
             font-family: var(--font-mono);
@@ -7131,14 +7127,14 @@
             const width12 = 235.076;
             const height12 = 231.29;
             const geometry12 = new THREE.PlaneGeometry(width12, height12);
-            const material12 = createWallFormMaterial(0xcccccc); // Gris clair
+            const material12 = createWallFormMaterial(0xFFFFFF); // Blanc
             const screen12 = new THREE.Mesh(geometry12, material12);
             screen12.position.set(-348.048, 4.149, 115.234);
             screen12.rotation.set(0, 1.570796, 0);
             screen12.scale.set(1, 1, 1);
             screen12.userData.screenNumber = 12;
             screen12.userData.isColorSurface = true;
-            screen12.userData.color = 0xcccccc;
+            screen12.userData.color = 0xFFFFFF;
             screensGroup.add(screen12);
 
             // ======================
@@ -7299,14 +7295,14 @@
             const width22 = 235.076;
             const height22 = 60.24; // Ajusté pour bas = -111.773
             const geometry22 = new THREE.PlaneGeometry(width22, height22);
-            const material22 = createWallFormMaterial(0xcccccc); // Gris clair
+            const material22 = createWallFormMaterial(0x070707); // Quasi-noir
             const screen22 = new THREE.Mesh(geometry22, material22);
             screen22.position.set(-315.617, -81.653, 180.248); // Y ajusté
             screen22.rotation.set(-3.141593, 0, -3.141593);
             screen22.scale.set(1, 1, 1);
             screen22.userData.screenNumber = 22;
             screen22.userData.isColorSurface = true;
-            screen22.userData.color = 0xcccccc;
+            screen22.userData.color = 0x070707;
             screensGroup.add(screen22);
 
             // ======================
@@ -7316,14 +7312,14 @@
             const width23 = 235.076;
             const height23 = 60.24; // Ajusté pour bas = -111.773
             const geometry23 = new THREE.PlaneGeometry(width23, height23);
-            const material23 = createWallFormMaterial(0xcccccc); // Gris clair
+            const material23 = createWallFormMaterial(0x070707); // Quasi-noir
             const screen23 = new THREE.Mesh(geometry23, material23);
             screen23.position.set(-315.617, -81.653, 48.644); // Y ajusté
             screen23.rotation.set(-3.141593, 0, -3.141593);
             screen23.scale.set(1, 1, 1);
             screen23.userData.screenNumber = 23;
             screen23.userData.isColorSurface = true;
-            screen23.userData.color = 0xcccccc;
+            screen23.userData.color = 0x070707;
             screensGroup.add(screen23);
 
             // ======================
