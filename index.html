@@ -688,34 +688,36 @@
             opacity: 0;
             pointer-events: none;
         }
-        /* PC: panneau opaque+blur pleine hauteur, ancré à gauche.
-           Ne se déplace jamais — seule sa largeur évolue.
-           Hover → remplit le viewport. Click → fade out.
-           Bord droit arrondi (20px), s'anime vers 0 au hover. */
+        /* PC: forme floue — pilotée par CSS custom properties pour réglage live.
+           Valeurs par défaut identiques à l'original. */
         #welcome-screen::before {
             content: '';
             position: absolute;
             top: 0;
-            left: 0;
-            width: calc(var(--textLeft) + var(--textColW) + 80px);
+            right: var(--blur-right, auto);
+            left: var(--blur-left, 0);
+            width: var(--blur-width, calc(var(--textLeft) + var(--textColW) + 80px));
             height: 100%;
-            background: rgba(0,0,0,0.55);
-            backdrop-filter: blur(32px);
-            -webkit-backdrop-filter: blur(32px);
-            border-radius: 0 8px 8px 0;
+            background: rgba(0,0,0, var(--blur-bg-opacity, 0.55));
+            backdrop-filter: blur(var(--blur-amount, 32px));
+            -webkit-backdrop-filter: blur(var(--blur-amount, 32px));
+            border-radius: var(--blur-radius, 0 8px 8px 0);
             z-index: 1;
             pointer-events: none;
-            -webkit-mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
-            mask-image: linear-gradient(to right, black calc(100% - 220px), transparent);
-            transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-                        border-radius 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-                        opacity var(--clickFadeMs) ease,
-                        -webkit-mask-image 0.7s ease,
-                        mask-image 0.7s ease;
+            -webkit-mask-image: linear-gradient(to right, black var(--blur-mask-stop, 65%), transparent 100%);
+            mask-image: linear-gradient(to right, black var(--blur-mask-stop, 65%), transparent 100%);
+            transform: translateX(var(--blur-tx, 0px));
+            will-change: transform, opacity;
+            transition:
+                transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+                width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                border-radius 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity var(--clickFadeMs) ease;
         }
         body.hoverPlay #welcome-screen::before {
             width: 100vw;
             border-radius: 0;
+            transform: translateX(0);
             -webkit-mask-image: none;
             mask-image: none;
         }
@@ -723,6 +725,7 @@
             opacity: 0;
             width: 100vw;
             border-radius: 0;
+            transform: translateX(0);
             -webkit-mask-image: none;
             mask-image: none;
         }
@@ -2069,6 +2072,124 @@
                 transform: none;
                 bottom: calc(50px + env(safe-area-inset-bottom));
             }
+        }
+
+        /* ═══ Blur Tuning Panel (5xB) ═══ */
+        #blur-tuning-panel {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            width: 280px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            background: rgba(0,0,0,0.92);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: var(--font-sans);
+            color: #fff;
+            user-select: none;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.2) transparent;
+        }
+        #blur-tuning-panel.visible {
+            display: block;
+        }
+        #blur-tuning-panel h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: rgba(255,255,255,0.5);
+            margin: 0 0 12px 0;
+            font-weight: 600;
+        }
+        .blur-tune-row {
+            margin-bottom: 10px;
+        }
+        .blur-tune-row label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 4px;
+        }
+        .blur-tune-row label span.bt-val {
+            color: rgba(100,200,255,0.9);
+            font-family: var(--font-mono);
+            font-weight: 600;
+            font-size: 11px;
+        }
+        .blur-tune-row input[type="range"] {
+            width: 100%;
+            height: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255,255,255,0.12);
+            border-radius: 2px;
+            outline: none;
+        }
+        .blur-tune-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: rgba(100,200,255,0.9);
+            cursor: pointer;
+        }
+        .blur-tune-row input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: rgba(100,200,255,0.9);
+            cursor: pointer;
+            border: none;
+        }
+        #blur-tune-export {
+            margin-top: 12px;
+            width: 100%;
+            padding: 8px;
+            background: rgba(100,200,255,0.12);
+            border: 1px solid rgba(100,200,255,0.3);
+            border-radius: 6px;
+            color: rgba(100,200,255,0.9);
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            cursor: pointer;
+        }
+        #blur-tune-export:hover {
+            background: rgba(100,200,255,0.2);
+        }
+        #blur-tune-anchor {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 6px;
+        }
+        #blur-tune-anchor button {
+            flex: 1;
+            padding: 6px;
+            font-size: 10px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 4px;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin: 0;
+            width: auto;
+        }
+        #blur-tune-anchor button.active {
+            background: rgba(100,200,255,0.2);
+            border-color: rgba(100,200,255,0.5);
+            color: rgba(100,200,255,0.9);
         }
     </style>
 </head>
@@ -11348,6 +11469,171 @@
             }
             lastTouchEnd = now;
         }, { passive: false });
+    </script>
+
+    <!-- ═══ Blur Tuning Panel (5xB on welcome screen) ═══ -->
+    <div id="blur-tuning-panel">
+        <h3>Blur Shape Tuning</h3>
+
+        <div id="blur-tune-anchor">
+            <button id="bt-anchor-left" class="active" onclick="setBlurAnchor('left')">Left</button>
+            <button id="bt-anchor-right" onclick="setBlurAnchor('right')">Right</button>
+        </div>
+
+        <div class="blur-tune-row">
+            <label>Width <span class="bt-val" id="bt-val-width">900px</span></label>
+            <input type="range" id="bt-width" min="200" max="1600" step="10" value="900">
+        </div>
+
+        <div class="blur-tune-row">
+            <label>TranslateX <span class="bt-val" id="bt-val-tx">0px</span></label>
+            <input type="range" id="bt-tx" min="-500" max="800" step="5" value="0">
+        </div>
+
+        <div class="blur-tune-row">
+            <label>Border Radius <span class="bt-val" id="bt-val-radius">8px</span></label>
+            <input type="range" id="bt-radius" min="0" max="200" step="2" value="8">
+        </div>
+
+        <div class="blur-tune-row">
+            <label>Blur Amount <span class="bt-val" id="bt-val-blur">32px</span></label>
+            <input type="range" id="bt-blur" min="0" max="80" step="1" value="32">
+        </div>
+
+        <div class="blur-tune-row">
+            <label>BG Opacity <span class="bt-val" id="bt-val-bgop">0.55</span></label>
+            <input type="range" id="bt-bgop" min="0" max="1" step="0.05" value="0.55">
+        </div>
+
+        <div class="blur-tune-row">
+            <label>Mask Stop <span class="bt-val" id="bt-val-mask">65%</span></label>
+            <input type="range" id="bt-mask" min="0" max="100" step="1" value="65">
+        </div>
+
+        <button id="blur-tune-export" onclick="exportBlurCSS()">Copy CSS</button>
+    </div>
+
+    <script>
+    (function() {
+        var panel = document.getElementById('blur-tuning-panel');
+        var ws = document.getElementById('welcome-screen');
+        var blurAnchor = 'left';
+        var bCount = 0;
+        var bTimer = null;
+
+        // Slider config: id -> { cssVar, suffix, label }
+        var sliders = {
+            'bt-width':  { cssVar: '--blur-width',      suffix: 'px', valId: 'bt-val-width' },
+            'bt-tx':     { cssVar: '--blur-tx',          suffix: 'px', valId: 'bt-val-tx' },
+            'bt-radius': { cssVar: null,                 suffix: 'px', valId: 'bt-val-radius' },
+            'bt-blur':   { cssVar: '--blur-amount',      suffix: 'px', valId: 'bt-val-blur' },
+            'bt-bgop':   { cssVar: '--blur-bg-opacity',  suffix: '',   valId: 'bt-val-bgop' },
+            'bt-mask':   { cssVar: '--blur-mask-stop',   suffix: '%',  valId: 'bt-val-mask' }
+        };
+
+        function updateSlider(id) {
+            var el = document.getElementById(id);
+            var cfg = sliders[id];
+            var v = el.value;
+            document.getElementById(cfg.valId).textContent = v + cfg.suffix;
+
+            if (id === 'bt-radius') {
+                // Build border-radius based on anchor
+                var r = v + 'px';
+                if (blurAnchor === 'left') {
+                    ws.style.setProperty('--blur-radius', '0 ' + r + ' ' + r + ' 0');
+                } else {
+                    ws.style.setProperty('--blur-radius', r + ' 0 0 ' + r);
+                }
+            } else if (cfg.cssVar) {
+                ws.style.setProperty(cfg.cssVar, v + cfg.suffix);
+            }
+        }
+
+        // Wire all sliders
+        Object.keys(sliders).forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', function() { updateSlider(id); });
+            }
+        });
+
+        // Anchor switch
+        window.setBlurAnchor = function(side) {
+            blurAnchor = side;
+            document.getElementById('bt-anchor-left').classList.toggle('active', side === 'left');
+            document.getElementById('bt-anchor-right').classList.toggle('active', side === 'right');
+
+            if (side === 'right') {
+                ws.style.setProperty('--blur-left', 'auto');
+                ws.style.setProperty('--blur-right', '0');
+            } else {
+                ws.style.setProperty('--blur-left', '0');
+                ws.style.setProperty('--blur-right', 'auto');
+            }
+            // Re-apply radius with new anchor
+            updateSlider('bt-radius');
+        };
+
+        // Export CSS
+        window.exportBlurCSS = function() {
+            var w = document.getElementById('bt-width').value;
+            var tx = document.getElementById('bt-tx').value;
+            var r = document.getElementById('bt-radius').value;
+            var bl = document.getElementById('bt-blur').value;
+            var bgop = document.getElementById('bt-bgop').value;
+            var mask = document.getElementById('bt-mask').value;
+
+            var anchor = blurAnchor === 'right' ? 'right: 0;' : 'left: 0;';
+            var radiusVal = blurAnchor === 'left'
+                ? '0 ' + r + 'px ' + r + 'px 0'
+                : r + 'px 0 0 ' + r + 'px';
+
+            var css = '#welcome-screen::before {\n'
+                + '    content: \'\';\n'
+                + '    position: absolute;\n'
+                + '    top: 0;\n'
+                + '    ' + anchor + '\n'
+                + '    width: ' + w + 'px;\n'
+                + '    height: 100%;\n'
+                + '    background: rgba(0,0,0,' + bgop + ');\n'
+                + '    backdrop-filter: blur(' + bl + 'px);\n'
+                + '    -webkit-backdrop-filter: blur(' + bl + 'px);\n'
+                + '    border-radius: ' + radiusVal + ';\n'
+                + '    z-index: 1;\n'
+                + '    pointer-events: none;\n'
+                + '    -webkit-mask-image: linear-gradient(to right, black ' + mask + '%, transparent 100%);\n'
+                + '    mask-image: linear-gradient(to right, black ' + mask + '%, transparent 100%);\n'
+                + '    transform: translateX(' + tx + 'px);\n'
+                + '    will-change: transform, opacity;\n'
+                + '}';
+
+            navigator.clipboard.writeText(css).then(function() {
+                var btn = document.getElementById('blur-tune-export');
+                btn.textContent = 'Copied!';
+                setTimeout(function() { btn.textContent = 'Copy CSS'; }, 1500);
+            });
+            console.log(css);
+        };
+
+        // 5xB toggle on welcome screen
+        document.addEventListener('keydown', function(e) {
+            if (e.code !== 'KeyB') return;
+            // Only work when welcome screen is visible
+            if (!ws || ws.classList.contains('hidden')) return;
+
+            if (bTimer) clearTimeout(bTimer);
+            bCount++;
+            bTimer = setTimeout(function() { bCount = 0; }, 2000);
+
+            if (bCount >= 5) {
+                bCount = 0;
+                clearTimeout(bTimer);
+                panel.classList.toggle('visible');
+                e.stopImmediatePropagation();
+            }
+        }, true); // capture phase to intercept before existing B handler
+    })();
     </script>
 </body>
 </html>
