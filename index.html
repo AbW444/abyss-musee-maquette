@@ -691,7 +691,7 @@
         /* PC: panneau opaque+blur pleine hauteur, ancré à gauche.
            Ne se déplace jamais — seule sa largeur évolue.
            Hover → remplit le viewport. Click → fade out.
-           Bord droit arrondi (150px), s'anime vers 0 au hover. */
+           Bord droit arrondi (20px), s'anime vers 0 au hover. */
         #welcome-screen::before {
             content: '';
             position: absolute;
@@ -7328,14 +7328,14 @@
             const width24 = 235.076;
             const height24 = 231.29;
             const geometry24 = new THREE.PlaneGeometry(width24, height24);
-            const material24 = createWallFormMaterial(0x000000); // Noir
+            const material24 = createWallFormMaterial(0x808080); // Gris moyen
             const screen24 = new THREE.Mesh(geometry24, material24);
             screen24.position.set(600.959, -6.589, 116.138);
             screen24.rotation.set(0, 1.570796, 0); // 90° en Y
             screen24.scale.set(1, 1, 1);
             screen24.userData.screenNumber = 24;
             screen24.userData.isColorSurface = true;
-            screen24.userData.color = 0x000000;
+            screen24.userData.color = 0x808080;
             screensGroup.add(screen24);
 
             // Restore custom shapes (>24) - both in allScreens and screensGroup
@@ -7373,7 +7373,7 @@
                 21: screen21b,          // FORME: Gray thin vertical panel 2
                 22: screen22,           // FORME: Dark panel back
                 23: screen23,           // FORME: Dark panel front
-                24: screen24,           // FORME: Black surface right side
+                24: screen24,           // FORME: Gray surface right side
                 ...customShapesToPreserve // Restore custom shapes (>24)
             };
             console.log('✅ Tous les écrans (1-24 + custom):', Object.keys(allScreens));
