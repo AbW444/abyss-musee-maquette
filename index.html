@@ -2218,8 +2218,7 @@
 
     <!-- Welcome Screen -->
     <div id="welcome-screen">
-        <video id="welcome-video-bg" autoplay loop muted playsinline>
-            <source src="videos/background.webm" type="video/webm">
+        <video id="welcome-video-bg" autoplay loop muted playsinline preload="none">
         </video>
 
         <!-- Overlay fondu noir au clic play (devant tout sauf logo) -->
@@ -9750,25 +9749,38 @@
             // Handle background video loading
             const welcomeVideo = document.getElementById('welcome-video-bg');
             if (welcomeVideo) {
-                // TEMPORAIRE: utiliser la vidéo mobile pour tous les devices (PC inclus)
+                function showWelcomeVideo() {
+                    if (welcomeVideo.classList.contains('loaded')) return;
+                    welcomeVideo.classList.add('loaded');
+                    welcomeVideo.play().catch(function() {});
+                    console.log('✅ Vidéo d\'arrière-plan visible');
+                }
+
+                // Use loadeddata + canplay (more reliable than canplaythrough)
+                welcomeVideo.addEventListener('loadeddata', showWelcomeVideo);
+                welcomeVideo.addEventListener('canplay', showWelcomeVideo);
+
+                // Fallback timeout: show video after 4s even if events don't fire
+                setTimeout(function() {
+                    if (!welcomeVideo.classList.contains('loaded') && welcomeVideo.readyState >= 2) {
+                        showWelcomeVideo();
+                        console.log('⏱️ Vidéo affichée via timeout fallback');
+                    }
+                }, 4000);
+
+                // Set source and start loading (no double-load from HTML)
                 welcomeVideo.src = 'videos/background_mobile.webm';
                 welcomeVideo.load();
-                console.log('🎬 Vidéo d\'arrière-plan: background_mobile.webm (temporaire tous devices)');
-                if (welcomeVideo.readyState >= 3) {
-                    welcomeVideo.classList.add('loaded');
-                    console.log('✅ Vidéo d\'arrière-plan déjà prête');
-                } else {
-                    welcomeVideo.addEventListener('canplaythrough', function() {
-                        welcomeVideo.classList.add('loaded');
-                        console.log('✅ Vidéo d\'arrière-plan chargée');
-                    });
+
+                // Already ready (cached)
+                if (welcomeVideo.readyState >= 2) {
+                    showWelcomeVideo();
                 }
 
                 // Handle power-saving pause (Chrome pauses muted background videos)
-                welcomeVideo.play().catch(() => {});
                 document.addEventListener('visibilitychange', function() {
                     if (!document.hidden && welcomeVideo && welcomeVideo.paused && welcomeVideo.isConnected) {
-                        welcomeVideo.play().catch(() => {});
+                        welcomeVideo.play().catch(function() {});
                     }
                 });
 
