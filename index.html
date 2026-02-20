@@ -742,6 +742,7 @@
             opacity: 0;
             z-index: 5;
             pointer-events: none;
+            will-change: opacity;
             transition: opacity 0.5s ease;
         }
         body.clickedPlay #welcome-fade-overlay {
@@ -921,6 +922,10 @@
             position: fixed;
             z-index: calc(var(--z-loading) + 1);
             pointer-events: none;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            will-change: opacity;
+            transition: opacity 0.5s ease;
         }
 
         .welcome-logo,
@@ -1390,6 +1395,7 @@
             opacity: 1;
             pointer-events: none;
             display: none;
+            will-change: opacity;
             transition: opacity 1.2s ease;
         }
 
@@ -1929,6 +1935,12 @@
                 border-radius: 28px !important;
                 -webkit-mask-image: none !important;
                 mask-image: none !important;
+            }
+            body.clickedPlay #welcome-screen::before {
+                opacity: 0 !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                transition: opacity 0.3s ease !important;
             }
             body.hoverPlay #welcome-screen::before {
                 width: calc(100vw - 40px) !important;
@@ -7281,14 +7293,14 @@
             const width12 = 235.076;
             const height12 = 231.29;
             const geometry12 = new THREE.PlaneGeometry(width12, height12);
-            const material12 = createWallFormMaterial(0xFFFFFF); // Blanc
+            const material12 = createWallFormMaterial(0x000000); // Noir
             const screen12 = new THREE.Mesh(geometry12, material12);
             screen12.position.set(-348.048, 4.149, 115.234);
             screen12.rotation.set(0, 1.570796, 0);
             screen12.scale.set(1, 1, 1);
             screen12.userData.screenNumber = 12;
             screen12.userData.isColorSurface = true;
-            screen12.userData.color = 0xFFFFFF;
+            screen12.userData.color = 0x000000;
             screensGroup.add(screen12);
 
             // ======================
@@ -9656,6 +9668,8 @@
             if (logoContainer) {
                 // Capturer la position actuelle (centrée) avant reparenting
                 const rect = logoContainer.getBoundingClientRect();
+                // Désactiver transitions pendant le reparenting pour éviter un flash
+                logoContainer.style.transition = 'none';
                 logoContainer.classList.add('detached');
                 document.body.appendChild(logoContainer);
                 // Fixer à la position CSS finale (centre)
@@ -9663,17 +9677,22 @@
                 logoContainer.style.top = rect.top + 'px';
                 logoContainer.style.width = rect.width + 'px';
                 logoContainer.style.height = rect.height + 'px';
+                // Forcer un reflow puis réactiver les transitions
+                logoContainer.offsetHeight;
+                logoContainer.style.transition = '';
                 console.log('🐙 Logo poulpe détaché et reparenté dans body');
             }
+
+            // Show loading screen BEFORE hiding welcome (z-index 6001 > 6000)
+            loadingScreen.classList.add('active');
+            loadingScreen.classList.remove('hidden');
+            // Forcer le rendu du loading screen avant de cacher le welcome
+            loadingScreen.offsetHeight;
 
             // Hide welcome screen instantly (fade overlay is already black from clickedPlay)
             welcomeScreen.style.transition = 'none';
             welcomeScreen.style.opacity = '0';
             welcomeScreen.style.pointerEvents = 'none';
-
-            // Show loading screen IMMEDIATELY
-            loadingScreen.classList.add('active');
-            loadingScreen.classList.remove('hidden');
 
             // Immediately hide cursor - user should enter FPS mode directly
             document.body.classList.add('fps-cursor-hidden');
@@ -10103,8 +10122,12 @@
                     console.log('🐙 Poulpe logo: disparition');
                 }
 
-                // After loading screen fades out (500ms), trigger the fade-from-black reveal
-                setTimeout(() => {
+                // After loading screen fades out — use transitionend with fallback
+                let loadingFadeDone = false;
+                const onLoadingFade = () => {
+                    if (loadingFadeDone) return;
+                    loadingFadeDone = true;
+                    loadingScreen.removeEventListener('transitionend', onLoadingFade);
                     loadingScreen.style.display = 'none';
 
                     // Remove poulpe logo from DOM
@@ -10115,12 +10138,21 @@
                     // Now fade the black overlay to transparent — smooth reveal of 3D scene
                     revealOverlay.classList.add('revealed');
 
-                    // Remove overlay from DOM after transition completes (1200ms)
-                    setTimeout(() => {
+                    // Remove overlay after transition — transitionend with fallback
+                    let revealDone = false;
+                    const onRevealFade = () => {
+                        if (revealDone) return;
+                        revealDone = true;
+                        revealOverlay.removeEventListener('transitionend', onRevealFade);
                         revealOverlay.style.display = 'none';
+                        revealOverlay.style.willChange = 'auto';
                         window.dispatchEvent(new Event('scene-revealed'));
-                    }, 1300);
-                }, 550);
+                    };
+                    revealOverlay.addEventListener('transitionend', onRevealFade);
+                    setTimeout(onRevealFade, 1400); // fallback
+                };
+                loadingScreen.addEventListener('transitionend', onLoadingFade);
+                setTimeout(onLoadingFade, 650); // fallback
 
                 // Fullscreen is already requested from handlePlayClick (user gesture)
 
@@ -10152,11 +10184,18 @@
                             poulpeLogoErr.remove();
                         }
                         revealOverlay.classList.add('revealed');
-                        setTimeout(() => {
+                        let errRevealDone = false;
+                        const onErrReveal = () => {
+                            if (errRevealDone) return;
+                            errRevealDone = true;
+                            revealOverlay.removeEventListener('transitionend', onErrReveal);
                             revealOverlay.style.display = 'none';
+                            revealOverlay.style.willChange = 'auto';
                             window.dispatchEvent(new Event('scene-revealed'));
-                        }, 1300);
-                    }, 550);
+                        };
+                        revealOverlay.addEventListener('transitionend', onErrReveal);
+                        setTimeout(onErrReveal, 1400);
+                    }, 650);
                 }, 2000);
             }
         }
