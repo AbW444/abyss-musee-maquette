@@ -7080,8 +7080,6 @@
             screen7.rotation.set(0, -1.570796, 0); // -90° en Y
             screen7.scale.set(screen3ScaleX, 1, 1); // Scale X pour ajuster la largeur (panorama: 0.5625, sinon: 1)
             if (!screen7.userData.screenNumber) screen7.userData.screenNumber = 3; // Renuméroté: anciennement 6 → 3
-            screen7.userData.color = 0x000000; // Noir par défaut
-            screen7.userData.isColorSurface = true;
 
             screensGroup.add(screen7);
 
@@ -7496,14 +7494,14 @@
             const width24 = 235.076;
             const height24 = 231.29;
             const geometry24 = new THREE.PlaneGeometry(width24, height24);
-            const material24 = createWallFormMaterial(0x808080); // Gris moyen
+            const material24 = createWallFormMaterial(0x000000); // Noir pur
             const screen24 = new THREE.Mesh(geometry24, material24);
             screen24.position.set(600.959, -6.589, 116.138);
             screen24.rotation.set(0, 1.570796, 0); // 90° en Y
             screen24.scale.set(1, 1, 1);
             screen24.userData.screenNumber = 24;
             screen24.userData.isColorSurface = true;
-            screen24.userData.color = 0x808080;
+            screen24.userData.color = 0x000000;
             screensGroup.add(screen24);
 
             // Restore custom shapes (>24) - both in allScreens and screensGroup
@@ -7545,9 +7543,6 @@
                 ...customShapesToPreserve // Restore custom shapes (>24)
             };
             console.log('✅ Tous les écrans (1-24 + custom):', Object.keys(allScreens));
-
-            // Écran 3: démarrer en surface noire (overlay noir, particules masquées)
-            setScreenType(3, true);
 
             // CRITICAL: Update screen list UI immediately after allScreens is populated
             updateScreenList();
