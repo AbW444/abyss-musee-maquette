@@ -760,14 +760,10 @@
             overflow-y: auto;
             scrollbar-width: none;
             z-index: 2;
-            opacity: 0;
-            transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s ease;
+            transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), opacity var(--clickFadeMs) ease;
         }
         .welcome-content::-webkit-scrollbar {
             display: none;
-        }
-        body.welcomeReady .welcome-content {
-            opacity: 1;
         }
         body.hoverPlay .welcome-content {
             transform: translateY(-50%) translateX(var(--hoverTextShift));
@@ -842,11 +838,7 @@
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             border-radius: 50%;
-            opacity: 0;
-            transition: opacity 0.8s ease;
-        }
-        body.welcomeReady .play-button-container {
-            opacity: 1;
+            transition: opacity var(--clickFadeMs) ease;
         }
         body.clickedPlay .play-button-container {
             opacity: 0;
@@ -905,16 +897,12 @@
             width: var(--logoSize);
             height: var(--logoSize);
             z-index: 10;
-            opacity: 0;
             /* Transitions explicites. left synchro texte (0.65s), le reste sur logoMoveMs. */
-            transition: opacity 0.8s ease,
-                        left 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+            transition: left 0.65s cubic-bezier(0.22, 1, 0.36, 1),
                         top var(--logoMoveMs) cubic-bezier(0.22, 1, 0.36, 1),
                         width var(--logoMoveMs) cubic-bezier(0.22, 1, 0.36, 1),
-                        height var(--logoMoveMs) cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        body.welcomeReady .welcome-logo-container {
-            opacity: 1;
+                        height var(--logoMoveMs) cubic-bezier(0.22, 1, 0.36, 1),
+                        opacity 0.5s ease;
         }
 
         /* Recentrage du logo lors du hover */
@@ -1348,7 +1336,7 @@
         }
 
 
-        /* Initial Page Loader — sits above EVERYTHING until welcome screen is ready */
+        /* Initial Page Loader */
         #initial-loader {
             position: fixed;
             top: 0;
@@ -1357,9 +1345,9 @@
             height: 100vh;
             height: 100dvh;
             background: var(--color-bg);
-            z-index: 9999;
+            z-index: var(--z-loading);
             opacity: 1;
-            transition: opacity 0.6s ease;
+            transition: opacity 0.3s ease;
         }
 
         #initial-loader.fade-out {
@@ -2397,8 +2385,7 @@
 
     <!-- Welcome Screen -->
     <div id="welcome-screen">
-        <video id="welcome-video-bg" autoplay loop muted playsinline preload="auto">
-            <source src="videos/background_mobile.webm" type="video/webm">
+        <video id="welcome-video-bg" autoplay loop muted playsinline preload="none">
         </video>
 
         <!-- Overlay fondu noir au clic play (devant tout sauf logo) -->
@@ -3418,7 +3405,7 @@
                     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',  // Arrow keys
                     'ShiftLeft', 'ShiftRight',  // Sprint
                     'KeyB',  // Toggle to Admin mode
-                    'KeyP',  // Screenshot hi-res
+                    'KeyT',  // Toggle ceiling reflection
                     'Escape',  // Toggle fullscreen
                     'AltLeft', 'AltRight'  // Toggle info screen
                 ];
@@ -3616,34 +3603,15 @@
                 toggleAllInterfaces();
             }
 
-            // P: Hi-res screenshot — renders at 2x pixelRatio then downloads PNG
-            if (e.code === 'KeyP') {
+            // T: Toggle ceiling reflection
+            if (e.code === 'KeyT') {
                 e.preventDefault();
-                if (renderer && scene && camera) {
-                    // Save current state
-                    var prevPixelRatio = renderer.getPixelRatio();
-                    var prevSize = new THREE.Vector2();
-                    renderer.getSize(prevSize);
-
-                    // Render at 2x resolution for hi-res capture
-                    var hiresRatio = Math.max(prevPixelRatio, 2) * 2;
-                    renderer.setPixelRatio(hiresRatio);
-                    renderer.setSize(prevSize.x, prevSize.y);
-                    renderer.render(scene, camera);
-
-                    // Capture and download
-                    var dataURL = renderer.domElement.toDataURL('image/png');
-                    var link = document.createElement('a');
-                    var timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-                    link.download = 'dumbo-capture-' + timestamp + '.png';
-                    link.href = dataURL;
-                    link.click();
-
-                    // Restore original resolution
-                    renderer.setPixelRatio(prevPixelRatio);
-                    renderer.setSize(prevSize.x, prevSize.y);
-                    console.log('📸 Screenshot capturé (' + Math.round(prevSize.x * hiresRatio) + 'x' + Math.round(prevSize.y * hiresRatio) + 'px)');
+                ceilingReflectEnabled = !ceilingReflectEnabled;
+                // Swap material on screen4 (form 7 - ceiling)
+                if (allScreens[7]) {
+                    allScreens[7].material = ceilingReflectEnabled ? ceilingMaterial : ceilingOriginalMaterial;
                 }
+                console.log('🪟 Ceiling reflection:', ceilingReflectEnabled ? 'ON' : 'OFF');
             }
 
             // B: Toggle FPS mode (requires 5 consecutive presses)
@@ -5087,8 +5055,7 @@
             renderer = new THREE.WebGLRenderer({
                 antialias: true, // Enable MSAA on all devices for crisp edges
                 alpha: true,
-                powerPreference: 'high-performance',
-                preserveDrawingBuffer: true // Required for screenshot (P key)
+                powerPreference: 'high-performance'
             });
             // Cap DPR at 2 to prevent GPU memory exhaustion (3x = 9x framebuffer, causes OOM on many GPUs)
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -5704,6 +5671,14 @@
 
         // Global reference to GPU materials for uniform updates
         let gpuVolumeMaterials = [];
+
+        // Ceiling reflection system
+        let ceilingReflectEnabled = false;
+        let ceilingReflectionRT = null;
+        let ceilingReflectionCam = null;
+        let ceilingMaterial = null;
+        let ceilingOriginalMaterial = null;
+        let ceilingReflectFrame = 0;
         let gpuVideoTexture = null;
         let gpuFloorVideoTexture = null; // Separate texture for floor video (ecran_06.webm)
         let lastVideoTime = -1; // Track video frame changes for texture update optimization
@@ -7186,6 +7161,39 @@
             const height4 = 228.534;
             const geometry4 = new THREE.PlaneGeometry(width4, height4);
             const material4 = new THREE.MeshBasicMaterial({ color: 0x060606, side: THREE.DoubleSide });
+            ceilingOriginalMaterial = material4;
+
+            // Reflective ceiling ShaderMaterial (used when T is pressed)
+            const ceilingReflectMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    baseColor: { value: new THREE.Color(0x060606) },
+                    tReflection: { value: null },
+                    reflectStrength: { value: 0.35 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 baseColor;
+                    uniform sampler2D tReflection;
+                    uniform float reflectStrength;
+                    varying vec2 vUv;
+                    void main() {
+                        // Mirror UV horizontally for natural reflection
+                        vec2 reflUV = vec2(vUv.x, 1.0 - vUv.y);
+                        vec3 reflected = texture2D(tReflection, reflUV).rgb;
+                        vec3 finalColor = baseColor + reflected * reflectStrength;
+                        gl_FragColor = vec4(finalColor, 1.0);
+                    }
+                `,
+                side: THREE.DoubleSide
+            });
+            ceilingMaterial = ceilingReflectMat;
+
             const screen4 = new THREE.Mesh(geometry4, material4);
 
             // Position et orientation (from user JSON)
@@ -7588,6 +7596,25 @@
                 ...customShapesToPreserve // Restore custom shapes (>24)
             };
             console.log('✅ Tous les écrans (1-24 + custom):', Object.keys(allScreens));
+
+            // Setup ceiling reflection system (render target + camera)
+            if (!ceilingReflectionRT) {
+                ceilingReflectionRT = new THREE.WebGLRenderTarget(128, 64, {
+                    minFilter: THREE.LinearFilter,
+                    magFilter: THREE.LinearFilter
+                });
+                // Camera at ceiling position looking straight down
+                ceilingReflectionCam = new THREE.PerspectiveCamera(110, 2, 1, 500);
+                ceilingReflectionCam.layers.set(1); // Only render layer 1 objects
+            }
+            // Enable layer 1 on all volumetric screens (the light/color emitters)
+            [particles, particlesRight, screen7, wallOppA, wallOppB, screen3].forEach(function(obj) {
+                if (obj) obj.layers.enable(1);
+            });
+            // Link reflection texture to ceiling material
+            if (ceilingMaterial) {
+                ceilingMaterial.uniforms.tReflection.value = ceilingReflectionRT.texture;
+            }
 
             // CRITICAL: Update screen list UI immediately after allScreens is populated
             updateScreenList();
@@ -9067,6 +9094,32 @@
             if (animateFrameCount === 1) {
                 console.log('🖼️ RENDER() - Premier rendu de la scène');
             }
+
+            // Ceiling reflection: render scene into tiny RT every 3 frames
+            if (ceilingReflectEnabled && ceilingReflectionRT && ceilingReflectionCam && renderer) {
+                ceilingReflectFrame++;
+                if (ceilingReflectFrame % 3 === 0) {
+                    // Position reflection camera at ceiling, looking down
+                    ceilingReflectionCam.position.set(
+                        camera.position.x,
+                        109,  // Ceiling Y
+                        camera.position.z
+                    );
+                    ceilingReflectionCam.rotation.set(-Math.PI / 2, 0, 0); // Look straight down
+
+                    // Hide ceiling itself to avoid self-reflection
+                    var ceilMesh = allScreens[7];
+                    if (ceilMesh) ceilMesh.visible = false;
+
+                    renderer.setRenderTarget(ceilingReflectionRT);
+                    renderer.clear();
+                    renderer.render(scene, ceilingReflectionCam);
+                    renderer.setRenderTarget(null);
+
+                    if (ceilMesh) ceilMesh.visible = true;
+                }
+            }
+
             renderer.render(scene, camera);
         }
 
@@ -9916,22 +9969,13 @@
             console.log('💡 Cliquez sur PLAY pour démarrer');
             console.log('═══════════════════════════════════════════════════════');
 
+            // Remove initial black loader
             const initialLoader = document.getElementById('initial-loader');
-            const welcomeScreen = document.getElementById('welcome-screen');
-            let welcomeReady = false;
-
-            // Reveal welcome screen: fade out black loader, mark welcome as ready
-            function revealWelcomeScreen() {
-                if (welcomeReady) return;
-                welcomeReady = true;
-                console.log('✨ Welcome screen prêt — fondu au noir → accueil');
-                // Mark welcome screen as ready (fades in content, logo, buttons via CSS)
-                document.body.classList.add('welcomeReady');
-                // Fade out the black loader
-                if (initialLoader) {
-                    initialLoader.classList.add('fade-out');
-                    setTimeout(() => { initialLoader.remove(); }, 700);
-                }
+            if (initialLoader) {
+                initialLoader.classList.add('fade-out');
+                setTimeout(() => {
+                    initialLoader.remove();
+                }, 300);
             }
 
             // Desktop: pause poulpe video at frame 1 (static logo) + render to hi-res canvas
@@ -9998,15 +10042,25 @@
                     welcomeVideo.classList.add('loaded');
                     welcomeVideo.play().catch(function() {});
                     console.log('✅ Vidéo d\'arrière-plan visible');
-                    // Video is ready → reveal welcome screen
-                    revealWelcomeScreen();
                 }
 
                 // Use loadeddata + canplay (more reliable than canplaythrough)
                 welcomeVideo.addEventListener('loadeddata', showWelcomeVideo);
                 welcomeVideo.addEventListener('canplay', showWelcomeVideo);
 
-                // Already ready (cached from preload="auto")
+                // Fallback timeout: show video after 4s even if events don't fire
+                setTimeout(function() {
+                    if (!welcomeVideo.classList.contains('loaded') && welcomeVideo.readyState >= 2) {
+                        showWelcomeVideo();
+                        console.log('⏱️ Vidéo affichée via timeout fallback');
+                    }
+                }, 4000);
+
+                // Set source and start loading (no double-load from HTML)
+                welcomeVideo.src = 'videos/background_mobile.webm';
+                welcomeVideo.load();
+
+                // Already ready (cached)
                 if (welcomeVideo.readyState >= 2) {
                     showWelcomeVideo();
                 }
@@ -10021,21 +10075,8 @@
                 welcomeVideo.addEventListener('error', function() {
                     console.log('⚠️ Vidéo d\'arrière-plan non disponible - fond noir utilisé');
                     welcomeVideo.style.display = 'none';
-                    // Even without video, reveal the welcome screen
-                    revealWelcomeScreen();
                 });
-            } else {
-                // No video element at all — reveal immediately
-                revealWelcomeScreen();
             }
-
-            // Fallback: if nothing triggers ready within 2s, reveal anyway
-            setTimeout(function() {
-                if (!welcomeReady) {
-                    console.log('⏱️ Fallback: welcome screen révélé après timeout');
-                    revealWelcomeScreen();
-                }
-            }, 2000);
 
             // ═══ Règles typographiques françaises : anti-orphelins ═══
             // Insère des espaces insécables avant les petits mots pour éviter
@@ -10127,7 +10168,7 @@
                 // Fallback: also load default video for backward compatibility
                 ensureLoadingVideoPlaying();
                 await loadDefaultVideo();
-                await sleep(200);
+                await sleep(500);
 
                 // Step 2: Activate FPS mode (Spectator mode)
                 console.log('🎮 AUTO-LOAD: Activation du mode SPECTATEUR...');
@@ -10143,7 +10184,7 @@
                 // Play background music in Spectator mode
                 playAudio();
                 ensureLoadingVideoPlaying();
-                await sleep(150);
+                await sleep(300);
 
                 // Step 3: Apply settings
                 // Yield to browser so loading video/animation stays alive before heavy work
@@ -10155,25 +10196,19 @@
                 await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
                 // Force re-play loading video after heavy applySettings work
                 ensureLoadingVideoPlaying();
-                await sleep(150);
+                await sleep(300);
 
                 // Step 4: Synchroniser et lancer toutes les vidéos ensemble
                 console.log('🔄 AUTO-LOAD: Synchronisation des vidéos...');
                 ensureLoadingVideoPlaying();
                 syncStartAllVideos();
-                await sleep(100);
-
-                // Step 5: Wait for first frames to render before hiding loading screen
-                console.log('✅ AUTO-LOAD: Séquence terminée!');
-                // Let the 3D scene render several frames so textures are ready
-                await new Promise(r => requestAnimationFrame(() =>
-                    requestAnimationFrame(() =>
-                        requestAnimationFrame(() =>
-                            requestAnimationFrame(r)
-                        )
-                    )
-                ));
                 await sleep(200);
+
+                // Step 5: Wait for first frame to render before hiding loading screen
+                console.log('✅ AUTO-LOAD: Séquence terminée!');
+                // Let the 3D scene render a few frames before revealing
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))));
+                await sleep(300);
 
                 // Step 6: Hide loading screen + poulpe logo (reveal overlay stays black behind it)
                 loadingScreen.classList.add('hidden');
@@ -10447,10 +10482,10 @@
                 videoElement.style.display = 'none';
                 document.body.appendChild(videoElement);
 
-                // Primary: v5 (replaces v2_opti). Fallbacks: older versions
+                // On mobile, start with optimized v2; on desktop, start with best quality
                 const videoPaths = isMobile
-                    ? ['videos/ecran_panorama_v5.webm', 'videos/ecran_panorama_v2_opti.webm', 'videos/panorama_opti.webm', 'videos/ecran_panorama.webm']
-                    : ['videos/ecran_panorama_v5.webm', 'videos/ecran_panorama_v2_opti.webm', 'videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
+                    ? ['videos/ecran_panorama_v2_opti.webm', 'videos/panorama_opti.webm', 'videos/ecran_panorama.webm']
+                    : ['videos/ecran_panorama_v2_opti.webm', 'videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
 
                 function tryLoadVideo(pathIndex) {
                     if (pathIndex >= videoPaths.length) {
