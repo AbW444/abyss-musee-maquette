@@ -3603,16 +3603,13 @@
                 toggleAllInterfaces();
             }
 
-            // T: Toggle ceiling reflection effect
+            // T: Toggle ceiling reflection
             if (e.code === 'KeyT') {
                 e.preventDefault();
                 ceilingReflectEnabled = !ceilingReflectEnabled;
-                if (ceilingMaterial) {
-                    ceilingMaterial.uniforms.uReflectEnabled.value = ceilingReflectEnabled ? 1.0 : 0.0;
-                    // Link the video texture when enabling
-                    if (ceilingReflectEnabled && gpuVideoTexture) {
-                        ceilingMaterial.uniforms.videoTexture.value = gpuVideoTexture;
-                    }
+                // Swap material on screen4 (form 7 - ceiling)
+                if (allScreens[7]) {
+                    allScreens[7].material = ceilingReflectEnabled ? ceilingMaterial : ceilingOriginalMaterial;
                 }
                 console.log('🪟 Ceiling reflection:', ceilingReflectEnabled ? 'ON' : 'OFF');
             }
@@ -5674,8 +5671,14 @@
 
         // Global reference to GPU materials for uniform updates
         let gpuVolumeMaterials = [];
-        let ceilingReflectEnabled = false; // Toggle ceiling reflection with T key
-        let ceilingMaterial = null; // Reference to ceiling ShaderMaterial
+
+        // Ceiling reflection system
+        let ceilingReflectEnabled = false;
+        let ceilingReflectionRT = null;
+        let ceilingReflectionCam = null;
+        let ceilingMaterial = null;
+        let ceilingOriginalMaterial = null;
+        let ceilingReflectFrame = 0;
         let gpuVideoTexture = null;
         let gpuFloorVideoTexture = null; // Separate texture for floor video (ecran_06.webm)
         let lastVideoTime = -1; // Track video frame changes for texture update optimization
@@ -7157,64 +7160,40 @@
             const width4 = 964.573;
             const height4 = 228.534;
             const geometry4 = new THREE.PlaneGeometry(width4, height4);
-            const material4 = new THREE.ShaderMaterial({
+            const material4 = new THREE.MeshBasicMaterial({ color: 0x060606, side: THREE.DoubleSide });
+            ceilingOriginalMaterial = material4;
+
+            // Reflective ceiling ShaderMaterial (used when T is pressed)
+            const ceilingReflectMat = new THREE.ShaderMaterial({
                 uniforms: {
                     baseColor: { value: new THREE.Color(0x060606) },
-                    videoTexture: { value: null },
-                    uReflectEnabled: { value: 0.0 },
-                    uTime: { value: 0.0 },
-                    uReflectStrength: { value: 0.25 }
+                    tReflection: { value: null },
+                    reflectStrength: { value: 0.35 }
                 },
                 vertexShader: `
                     varying vec2 vUv;
-                    varying vec3 vNormalV;
-                    varying vec3 vPositionV;
                     void main() {
                         vUv = uv;
-                        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-                        vPositionV = mvPos.xyz;
-                        vNormalV = normalize(normalMatrix * normal);
-                        gl_Position = projectionMatrix * mvPos;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                     }
                 `,
                 fragmentShader: `
                     uniform vec3 baseColor;
-                    uniform sampler2D videoTexture;
-                    uniform float uReflectEnabled;
-                    uniform float uTime;
-                    uniform float uReflectStrength;
+                    uniform sampler2D tReflection;
+                    uniform float reflectStrength;
                     varying vec2 vUv;
-                    varying vec3 vNormalV;
-                    varying vec3 vPositionV;
-
                     void main() {
-                        vec3 finalColor = baseColor;
-
-                        if (uReflectEnabled > 0.5) {
-                            // Subtle UV distortion for a living glass feel
-                            vec2 reflUV = vUv;
-                            reflUV.x += sin(vUv.y * 3.0 + uTime * 0.15) * 0.015;
-                            reflUV.y += cos(vUv.x * 2.5 + uTime * 0.12) * 0.01;
-
-                            // Sample video texture (colors from the room below)
-                            vec3 videoColor = texture2D(videoTexture, reflUV).rgb;
-
-                            // Fresnel: more reflection at grazing angles
-                            vec3 viewDir = normalize(-vPositionV);
-                            float fresnel = 1.0 - max(dot(viewDir, normalize(vNormalV)), 0.0);
-                            fresnel = pow(fresnel, 2.0);
-                            float reflAmount = mix(uReflectStrength * 0.3, uReflectStrength, fresnel);
-
-                            // Blend: base color + reflected video colors
-                            finalColor = mix(baseColor, videoColor * 0.5, reflAmount);
-                        }
-
+                        // Mirror UV horizontally for natural reflection
+                        vec2 reflUV = vec2(vUv.x, 1.0 - vUv.y);
+                        vec3 reflected = texture2D(tReflection, reflUV).rgb;
+                        vec3 finalColor = baseColor + reflected * reflectStrength;
                         gl_FragColor = vec4(finalColor, 1.0);
                     }
                 `,
                 side: THREE.DoubleSide
             });
-            ceilingMaterial = material4;
+            ceilingMaterial = ceilingReflectMat;
+
             const screen4 = new THREE.Mesh(geometry4, material4);
 
             // Position et orientation (from user JSON)
@@ -7617,6 +7596,25 @@
                 ...customShapesToPreserve // Restore custom shapes (>24)
             };
             console.log('✅ Tous les écrans (1-24 + custom):', Object.keys(allScreens));
+
+            // Setup ceiling reflection system (render target + camera)
+            if (!ceilingReflectionRT) {
+                ceilingReflectionRT = new THREE.WebGLRenderTarget(128, 64, {
+                    minFilter: THREE.LinearFilter,
+                    magFilter: THREE.LinearFilter
+                });
+                // Camera at ceiling position looking straight down
+                ceilingReflectionCam = new THREE.PerspectiveCamera(110, 2, 1, 500);
+                ceilingReflectionCam.layers.set(1); // Only render layer 1 objects
+            }
+            // Enable layer 1 on all volumetric screens (the light/color emitters)
+            [particles, particlesRight, screen7, wallOppA, wallOppB, screen3].forEach(function(obj) {
+                if (obj) obj.layers.enable(1);
+            });
+            // Link reflection texture to ceiling material
+            if (ceilingMaterial) {
+                ceilingMaterial.uniforms.tReflection.value = ceilingReflectionRT.texture;
+            }
 
             // CRITICAL: Update screen list UI immediately after allScreens is populated
             updateScreenList();
@@ -9097,11 +9095,28 @@
                 console.log('🖼️ RENDER() - Premier rendu de la scène');
             }
 
-            // Update ceiling reflection time + texture link
-            if (ceilingReflectEnabled && ceilingMaterial) {
-                ceilingMaterial.uniforms.uTime.value = performance.now() * 0.001;
-                if (gpuVideoTexture && ceilingMaterial.uniforms.videoTexture.value !== gpuVideoTexture) {
-                    ceilingMaterial.uniforms.videoTexture.value = gpuVideoTexture;
+            // Ceiling reflection: render scene into tiny RT every 3 frames
+            if (ceilingReflectEnabled && ceilingReflectionRT && ceilingReflectionCam && renderer) {
+                ceilingReflectFrame++;
+                if (ceilingReflectFrame % 3 === 0) {
+                    // Position reflection camera at ceiling, looking down
+                    ceilingReflectionCam.position.set(
+                        camera.position.x,
+                        109,  // Ceiling Y
+                        camera.position.z
+                    );
+                    ceilingReflectionCam.rotation.set(-Math.PI / 2, 0, 0); // Look straight down
+
+                    // Hide ceiling itself to avoid self-reflection
+                    var ceilMesh = allScreens[7];
+                    if (ceilMesh) ceilMesh.visible = false;
+
+                    renderer.setRenderTarget(ceilingReflectionRT);
+                    renderer.clear();
+                    renderer.render(scene, ceilingReflectionCam);
+                    renderer.setRenderTarget(null);
+
+                    if (ceilMesh) ceilMesh.visible = true;
                 }
             }
 
