@@ -757,12 +757,11 @@
             max-width: 580px; /* ~60-65 caractères par ligne */
             max-height: calc(100vh - 120px + 2vh);
             max-height: calc(100dvh - 120px + 2vh);
-            opacity: 0;
-            transition: opacity 0.8s ease;
             overflow-y: auto;
             scrollbar-width: none;
             z-index: 2;
-            transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), opacity var(--clickFadeMs) ease;
+            opacity: 0;
+            transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s ease;
         }
         .welcome-content::-webkit-scrollbar {
             display: none;
@@ -844,7 +843,7 @@
             -webkit-backdrop-filter: blur(24px);
             border-radius: 50%;
             opacity: 0;
-            transition: opacity var(--clickFadeMs) ease, opacity 0.8s ease;
+            transition: opacity 0.8s ease;
         }
         body.welcomeReady .play-button-container {
             opacity: 1;
@@ -908,17 +907,17 @@
             z-index: 10;
             opacity: 0;
             /* Transitions explicites. left synchro texte (0.65s), le reste sur logoMoveMs. */
-            transition: opacity 0.8s ease, left 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+            transition: opacity 0.8s ease,
+                        left 0.65s cubic-bezier(0.22, 1, 0.36, 1),
                         top var(--logoMoveMs) cubic-bezier(0.22, 1, 0.36, 1),
                         width var(--logoMoveMs) cubic-bezier(0.22, 1, 0.36, 1),
-                        height var(--logoMoveMs) cubic-bezier(0.22, 1, 0.36, 1),
-                        opacity 0.5s ease;
+                        height var(--logoMoveMs) cubic-bezier(0.22, 1, 0.36, 1);
         }
-
-        /* Recentrage du logo lors du hover */
         body.welcomeReady .welcome-logo-container {
             opacity: 1;
         }
+
+        /* Recentrage du logo lors du hover */
         body.hoverPlay .welcome-logo-container {
             left: calc((var(--textLeft) + var(--hoverTextShift)) / 2 - var(--logoSize) / 2);
         }
@@ -10416,10 +10415,10 @@
                 videoElement.style.display = 'none';
                 document.body.appendChild(videoElement);
 
-                // On mobile, start with optimized v2; on desktop, start with best quality
+                // Primary: v5 (replaces v2_opti). Fallbacks: older versions
                 const videoPaths = isMobile
-                    ? ['videos/ecran_panorama_v2_opti.webm', 'videos/panorama_opti.webm', 'videos/ecran_panorama.webm']
-                    : ['videos/ecran_panorama_v2_opti.webm', 'videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
+                    ? ['videos/ecran_panorama_v5.webm', 'videos/ecran_panorama_v2_opti.webm', 'videos/panorama_opti.webm', 'videos/ecran_panorama.webm']
+                    : ['videos/ecran_panorama_v5.webm', 'videos/ecran_panorama_v2_opti.webm', 'videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
 
                 function tryLoadVideo(pathIndex) {
                     if (pathIndex >= videoPaths.length) {
