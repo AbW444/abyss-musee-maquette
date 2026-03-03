@@ -776,7 +776,7 @@
             font-family: var(--font-sans);
             font-size: 64px;
             font-weight: 900;
-            letter-spacing: 12px;
+            letter-spacing: 6px;
             margin-bottom: 2px;
             color: var(--color-text);
             line-height: 1.1;
@@ -3405,6 +3405,7 @@
                     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',  // Arrow keys
                     'ShiftLeft', 'ShiftRight',  // Sprint
                     'KeyB',  // Toggle to Admin mode
+                    'KeyT',  // Toggle Fresnel+Noise effect
                     'Escape',  // Toggle fullscreen
                     'AltLeft', 'AltRight'  // Toggle info screen
                 ];
@@ -3600,6 +3601,17 @@
             if (e.code === 'KeyN') {
                 e.preventDefault();
                 toggleAllInterfaces();
+            }
+
+            // T: Toggle Fresnel+Noise effect on particles
+            if (e.code === 'KeyT') {
+                e.preventDefault();
+                fresnelNoiseEnabled = !fresnelNoiseEnabled;
+                const val = fresnelNoiseEnabled ? 1.0 : 0.0;
+                for (const mat of gpuVolumeMaterials) {
+                    mat.uniforms.uFresnelNoiseEnabled.value = val;
+                }
+                console.log('🎨 Fresnel+Noise:', fresnelNoiseEnabled ? 'ON' : 'OFF');
             }
 
             // B: Toggle FPS mode (requires 5 consecutive presses)
@@ -5529,8 +5541,11 @@
             uniform float uPointSize;
             uniform float uDepthPeakSmooth;
             uniform vec2 uTexelSize;
+            uniform float uFresnelNoiseEnabled;
 
             varying vec2 vUV;
+            varying vec3 vNormalV;
+            varying vec3 vPositionV;
 
             void main() {
                 vUV = particleUV;
@@ -5574,6 +5589,14 @@
 
                 gl_Position = projectionMatrix * mvPosition;
 
+                // Pass view-space normal and position for Fresnel effect
+                #ifdef USE_INSTANCING
+                    vNormalV = normalize(normalMatrix * mat3(instanceMatrix) * normal);
+                #else
+                    vNormalV = normalize(normalMatrix * vec3(0.0, 0.0, 1.0));
+                #endif
+                vPositionV = mvPosition.xyz;
+
                 #ifndef USE_INSTANCING
                     gl_PointSize = uPointSize * (300.0 / max(1.0, -mvPosition.z));
                 #endif
@@ -5589,12 +5612,64 @@
             uniform float uBlackThreshold;
             uniform float uDepthCullPower;
             uniform float uLuminescence;
+            uniform float uFresnelNoiseEnabled;
+            uniform float uTime;
 
             #ifdef USE_MAP
                 uniform sampler2D map;
             #endif
 
             varying vec2 vUV;
+            varying vec3 vNormalV;
+            varying vec3 vPositionV;
+
+            // --- Simplex 3D noise (compact, cheap) ---
+            vec3 mod289(vec3 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
+            vec4 mod289(vec4 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
+            vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+            vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+            float snoise(vec3 v) {
+                const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+                const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+                vec3 i = floor(v + dot(v, C.yyy));
+                vec3 x0 = v - i + dot(i, C.xxx);
+                vec3 g = step(x0.yzx, x0.xyz);
+                vec3 l = 1.0 - g;
+                vec3 i1 = min(g.xyz, l.zxy);
+                vec3 i2 = max(g.xyz, l.zxy);
+                vec3 x1 = x0 - i1 + C.xxx;
+                vec3 x2 = x0 - i2 + C.yyy;
+                vec3 x3 = x0 - D.yyy;
+                i = mod289(i);
+                vec4 p = permute(permute(permute(
+                    i.z + vec4(0.0, i1.z, i2.z, 1.0))
+                    + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+                    + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+                float n_ = 0.142857142857;
+                vec3 ns = n_ * D.wyz - D.xzx;
+                vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+                vec4 x_ = floor(j * ns.z);
+                vec4 y_ = floor(j - 7.0 * x_);
+                vec4 x = x_ * ns.x + ns.yyyy;
+                vec4 y = y_ * ns.x + ns.yyyy;
+                vec4 h = 1.0 - abs(x) - abs(y);
+                vec4 b0 = vec4(x.xy, y.xy);
+                vec4 b1 = vec4(x.zw, y.zw);
+                vec4 s0 = floor(b0)*2.0 + 1.0;
+                vec4 s1 = floor(b1)*2.0 + 1.0;
+                vec4 sh = -step(h, vec4(0.0));
+                vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+                vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+                vec3 p0 = vec3(a0.xy, h.x);
+                vec3 p1 = vec3(a0.zw, h.y);
+                vec3 p2 = vec3(a1.xy, h.z);
+                vec3 p3 = vec3(a1.zw, h.w);
+                vec4 norm = taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
+                p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+                vec4 m = max(0.6 - vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)), 0.0);
+                m = m * m;
+                return 42.0 * dot(m*m, vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
+            }
 
             void main() {
                 vec4 texColor = texture2D(videoTexture, vUV);
@@ -5647,6 +5722,24 @@
 
                 color = clamp(color, 0.0, 1.0);
 
+                // --- Fresnel + Noise effect (toggled by T key) ---
+                if (uFresnelNoiseEnabled > 0.5) {
+                    // Fresnel rim light
+                    vec3 viewDir = normalize(-vPositionV);
+                    vec3 n = normalize(vNormalV);
+                    float fresnel = 1.0 - max(dot(viewDir, n), 0.0);
+                    fresnel = pow(fresnel, 3.0);
+                    // Subtle bioluminescent rim glow (tinted by particle color)
+                    vec3 rimColor = mix(vec3(0.4, 0.6, 1.0), color * 1.5, 0.5);
+                    color += rimColor * fresnel * 0.4;
+
+                    // Noise variation on brightness (organic living texture)
+                    float noiseVal = snoise(vec3(vUV * 8.0, uTime * 0.3)) * 0.12;
+                    color *= 1.0 + noiseVal;
+
+                    color = clamp(color, 0.0, 1.0);
+                }
+
                 #ifdef USE_MAP
                     vec4 mapTexel = texture2D(map, gl_PointCoord);
                     if (mapTexel.a < 0.1) discard;
@@ -5659,6 +5752,7 @@
 
         // Global reference to GPU materials for uniform updates
         let gpuVolumeMaterials = [];
+        let fresnelNoiseEnabled = false; // Toggle with T key
         let gpuVideoTexture = null;
         let gpuFloorVideoTexture = null; // Separate texture for floor video (ecran_06.webm)
         let lastVideoTime = -1; // Track video frame changes for texture update optimization
@@ -5697,7 +5791,9 @@
                 uDepthCullPower: { value: enableDepthCull ? depthCullPower : 0.0 },
                 uLuminescence: { value: luminescence },
                 uDepthPeakSmooth: { value: depthPeakSmooth },
-                uTexelSize: { value: new THREE.Vector2(1.0 / 800.0, 1.0 / 450.0) }
+                uTexelSize: { value: new THREE.Vector2(1.0 / 800.0, 1.0 / 450.0) },
+                uFresnelNoiseEnabled: { value: 0.0 },
+                uTime: { value: 0.0 }
             };
 
             if (shapeTexture) {
@@ -9022,6 +9118,15 @@
             if (animateFrameCount === 1) {
                 console.log('🖼️ RENDER() - Premier rendu de la scène');
             }
+
+            // Update uTime for Fresnel+Noise animation
+            if (fresnelNoiseEnabled) {
+                const t = performance.now() * 0.001;
+                for (const mat of gpuVolumeMaterials) {
+                    mat.uniforms.uTime.value = t;
+                }
+            }
+
             renderer.render(scene, camera);
         }
 
