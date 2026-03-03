@@ -5055,7 +5055,8 @@
             renderer = new THREE.WebGLRenderer({
                 antialias: true, // Enable MSAA on all devices for crisp edges
                 alpha: true,
-                powerPreference: 'high-performance'
+                powerPreference: 'high-performance',
+                preserveDrawingBuffer: true // Required for screenshot (C) & video recording (V)
             });
             // Cap DPR at 2 to prevent GPU memory exhaustion (3x = 9x framebuffer, causes OOM on many GPUs)
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -11922,6 +11923,132 @@
                 e.stopImmediatePropagation();
             }
         }, true);
+    })();
+
+    /* ═══════════════════════════════════════════════════════════════
+       SCREENSHOT (C key) — Hi-res color-accurate PNG, auto-download
+       ═══════════════════════════════════════════════════════════════ */
+    (function() {
+        document.addEventListener('keydown', function(e) {
+            if (e.code !== 'KeyC' || e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return;
+            // Only in FPS experience (not welcome screen, not admin)
+            if (typeof fpsMode === 'undefined' || !fpsMode) return;
+            if (typeof renderer === 'undefined' || !renderer) return;
+
+            e.preventDefault();
+
+            // Save current size
+            var size = renderer.getSize(new THREE.Vector2());
+            var dpr = renderer.getPixelRatio();
+            var origW = size.x;
+            var origH = size.y;
+
+            // Upscale to 2x for hi-res capture
+            var scale = 2;
+            renderer.setPixelRatio(dpr * scale);
+            renderer.setSize(origW, origH);
+
+            // Force a fresh render so canvas has latest frame at hi-res
+            if (typeof scene !== 'undefined' && typeof camera !== 'undefined') {
+                renderer.render(scene, camera);
+            }
+
+            // Capture directly from the displayed canvas (color-accurate, includes tone mapping)
+            renderer.domElement.toBlob(function(blob) {
+                // Restore original size immediately
+                renderer.setPixelRatio(dpr);
+                renderer.setSize(origW, origH);
+
+                if (!blob) return;
+
+                // Auto-download — no save dialog
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'DUMBO_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.png';
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
+
+                console.log('📸 Screenshot saved (' + (origW * dpr * scale) + 'x' + (origH * dpr * scale) + ')');
+            }, 'image/png');
+        });
+    })();
+
+    /* ═══════════════════════════════════════════════════════════════
+       VIDEO RECORDING (V key) — WebM capture, auto-download
+       ═══════════════════════════════════════════════════════════════ */
+    (function() {
+        var mediaRecorder = null;
+        var recordedChunks = [];
+        var isRecording = false;
+
+        document.addEventListener('keydown', function(e) {
+            if (e.code !== 'KeyV' || e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return;
+            if (typeof fpsMode === 'undefined' || !fpsMode) return;
+            if (typeof renderer === 'undefined' || !renderer) return;
+
+            e.preventDefault();
+
+            if (!isRecording) {
+                // ── START recording ──
+                recordedChunks = [];
+                var canvas = renderer.domElement;
+                var stream = canvas.captureStream(60); // 60 fps
+
+                // Pick best available codec
+                var mimeType = 'video/webm;codecs=vp9';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'video/webm;codecs=vp8';
+                }
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'video/webm';
+                }
+
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 10000000 // 10 Mbps
+                });
+
+                mediaRecorder.ondataavailable = function(ev) {
+                    if (ev.data && ev.data.size > 0) {
+                        recordedChunks.push(ev.data);
+                    }
+                };
+
+                mediaRecorder.onstop = function() {
+                    var blob = new Blob(recordedChunks, { type: mimeType });
+                    recordedChunks = [];
+
+                    // Auto-download
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'DUMBO_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.webm';
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(function() { URL.revokeObjectURL(url); }, 10000);
+
+                    console.log('🎬 Recording saved (' + (blob.size / 1048576).toFixed(1) + ' MB)');
+                };
+
+                mediaRecorder.start(1000); // collect data every 1s
+                isRecording = true;
+                console.log('🔴 Recording started (V to stop)');
+
+            } else {
+                // ── STOP recording ──
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+                isRecording = false;
+                console.log('⏹️ Recording stopped — downloading...');
+            }
+        });
     })();
     </script>
 </body>
