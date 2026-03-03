@@ -971,8 +971,21 @@
 
         /* Poulpe MP4 sur tous les devices, cacher PNG/WEBM mobile */
         .welcome-logo-mobile { display: none; }
-        .welcome-logo-poulpe { display: block; }
+        .welcome-logo-poulpe { display: none; }
         .loading-video-mobile { display: none; }
+
+        /* ─── Dumbo SVG Wave Swimming Animation ─── */
+        #dumbo-swim-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+        #dumbo-swim-svg path {
+            fill: rgba(255, 255, 255, 0.9);
+        }
 
         /* Pause Screen - Ultra Modern */
         #pause-screen {
@@ -2392,13 +2405,29 @@
         <div id="welcome-fade-overlay"></div>
 
         <div class="welcome-logo-container" id="welcome-logo-container">
-            <!-- Mobile: static PNG logo + animated webm loading icon -->
+            <!-- SVG Dumbo wave swimming animation (replaces video-based logo) -->
+            <svg id="dumbo-swim-svg" viewBox="0 0 210 180" xmlns="http://www.w3.org/2000/svg">
+                <!-- Body/mantle -->
+                <path d="M 35 85 C 35 50 55 25 85 25 C 112 25 128 50 128 78 C 128 110 112 142 85 145 C 55 148 35 118 35 85 Z"/>
+                <!-- Top ear fin -->
+                <path d="M 62 38 C 48 20 28 4 16 2 C 10 0 8 8 14 18 C 25 35 48 48 62 45 Z"/>
+                <!-- Bottom ear fin -->
+                <path d="M 55 130 C 44 148 28 165 18 172 C 12 176 12 168 18 158 C 30 142 46 130 55 128 Z"/>
+                <!-- Tentacle 1 (top) -->
+                <path d="M 120 48 C 140 38 165 30 185 32 C 194 33 196 40 188 44 C 168 50 145 54 124 56 Z"/>
+                <!-- Tentacle 2 -->
+                <path d="M 124 66 C 146 56 174 48 196 50 C 206 51 208 58 200 62 C 180 68 155 72 128 72 Z"/>
+                <!-- Tentacle 3 -->
+                <path d="M 124 84 C 148 74 178 68 198 70 C 208 71 210 78 202 82 C 182 88 156 92 128 90 Z"/>
+                <!-- Tentacle 4 (bottom) -->
+                <path d="M 120 102 C 142 92 170 88 190 92 C 200 94 200 102 192 106 C 172 112 148 114 124 110 Z"/>
+            </svg>
+            <!-- Fallback: original video elements (hidden by CSS) -->
             <img src="img/presences_rares_logo.png" alt="Logo" class="welcome-logo welcome-logo-mobile" id="welcome-logo">
-            <video class="welcome-logo-video welcome-logo-mobile" id="welcome-logo-video" loop muted playsinline preload="auto">
+            <video class="welcome-logo-video welcome-logo-mobile" id="welcome-logo-video" loop muted playsinline preload="none">
                 <source src="videos/dumbo_icone_chargement.webm" type="video/webm">
             </video>
-            <!-- Desktop: poulpe video paused at frame 1 (logo) → plays as loading icon -->
-            <video class="welcome-logo-poulpe" id="welcome-logo-poulpe" loop muted playsinline preload="auto">
+            <video class="welcome-logo-poulpe" id="welcome-logo-poulpe" loop muted playsinline preload="none">
                 <source src="videos/poulpe_icone_chargement_desktop.mp4" type="video/mp4">
             </video>
         </div>
@@ -11824,6 +11853,132 @@
                 e.stopImmediatePropagation();
             }
         }, true);
+    })();
+    </script>
+
+    <!-- ─── Dumbo SVG Wave Propagation Swimming Animation ─── -->
+    <script>
+    (function initDumboSwimAnimation() {
+        var svg = document.getElementById('dumbo-swim-svg');
+        if (!svg) return;
+
+        var pathElements = svg.querySelectorAll('path');
+        if (!pathElements.length) return;
+
+        // Wave parameters — y(x,t) = A(x) * headLock(x) * sin(ωt − kx)
+        var omega = 2.2;          // vitesse temporelle (rad/s)
+        var k = 5.5;              // fréquence spatiale
+        var maxAmplitude = 14;    // amplitude max (unités viewBox)
+        var power = 1.8;          // exposant progression amplitude
+        var xFactor = 0.15;       // facteur compression longitudinale
+
+        // Parse SVG path — handles M, C, L, Q, S, T, Z
+        function parsePath(d) {
+            var segs = [];
+            var re = /([MCLQSTZmclqstz])\s*((?:[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?[\s,]*)*)/g;
+            var m;
+            while ((m = re.exec(d)) !== null) {
+                var cmd = m[1];
+                var raw = m[2].trim();
+                var nums = raw ? raw.split(/[\s,]+/).map(Number) : [];
+                segs.push({ cmd: cmd, nums: nums, orig: nums.slice() });
+            }
+            return segs;
+        }
+
+        function serializePath(segs) {
+            var parts = [];
+            for (var i = 0; i < segs.length; i++) {
+                var s = segs[i];
+                if (s.cmd === 'Z' || s.cmd === 'z') {
+                    parts.push(s.cmd);
+                } else {
+                    parts.push(s.cmd + ' ' + s.nums.join(' '));
+                }
+            }
+            return parts.join(' ');
+        }
+
+        // smoothstep: dissipation avant (tête fixe)
+        function smoothstep(edge0, edge1, x) {
+            var t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+            return t * t * (3 - 2 * t);
+        }
+
+        // Parse all paths, find global X range
+        var paths = [];
+        var xMin = Infinity, xMax = -Infinity;
+
+        for (var i = 0; i < pathElements.length; i++) {
+            var el = pathElements[i];
+            var segs = parsePath(el.getAttribute('d'));
+            for (var j = 0; j < segs.length; j++) {
+                var s = segs[j];
+                if (s.cmd === 'Z' || s.cmd === 'z') continue;
+                for (var n = 0; n < s.orig.length; n += 2) {
+                    var x = s.orig[n];
+                    if (x < xMin) xMin = x;
+                    if (x > xMax) xMax = x;
+                }
+            }
+            paths.push({ el: el, segs: segs });
+        }
+
+        var xRange = xMax - xMin || 1;
+
+        // Animation loop
+        var rafId = 0;
+
+        function animate(time) {
+            var t = time * 0.001;
+
+            for (var p = 0; p < paths.length; p++) {
+                var segs = paths[p].segs;
+
+                for (var j = 0; j < segs.length; j++) {
+                    var seg = segs[j];
+                    if (seg.cmd === 'Z' || seg.cmd === 'z') continue;
+
+                    for (var n = 0; n < seg.orig.length; n += 2) {
+                        var ox = seg.orig[n];
+                        var oy = seg.orig[n + 1];
+
+                        // Position normalisée sur l'axe du corps (0 = avant, 1 = arrière)
+                        var nx = (ox - xMin) / xRange;
+
+                        // 1️⃣ Amplitude progressive : pow(x, 1.8) → arrière très mobile
+                        var amp = Math.pow(nx, power) * maxAmplitude;
+
+                        // 2️⃣ Dissipation avant : tête reste stable
+                        var hl = smoothstep(0.0, 0.2, nx);
+
+                        // Onde propagée : sin(ωt − kx)
+                        var wave = Math.sin(omega * t - k * nx);
+
+                        // 3️⃣ Déplacement latéral (Y) + micro-compression longitudinale (X)
+                        seg.nums[n] = ox + amp * hl * wave * xFactor;
+                        seg.nums[n + 1] = oy + amp * hl * wave;
+                    }
+                }
+
+                paths[p].el.setAttribute('d', serializePath(segs));
+            }
+
+            rafId = requestAnimationFrame(animate);
+        }
+
+        rafId = requestAnimationFrame(animate);
+
+        // Cleanup: stop animation when SVG is removed from DOM
+        var observer = new MutationObserver(function() {
+            if (!document.contains(svg)) {
+                cancelAnimationFrame(rafId);
+                observer.disconnect();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        console.log('🐙 Dumbo SVG wave propagation: y(x,t) = A(x)·sin(ωt−kx) — active');
     })();
     </script>
 </body>
