@@ -3418,6 +3418,7 @@
                     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',  // Arrow keys
                     'ShiftLeft', 'ShiftRight',  // Sprint
                     'KeyB',  // Toggle to Admin mode
+                    'KeyP',  // Screenshot hi-res
                     'Escape',  // Toggle fullscreen
                     'AltLeft', 'AltRight'  // Toggle info screen
                 ];
@@ -3613,6 +3614,36 @@
             if (e.code === 'KeyN') {
                 e.preventDefault();
                 toggleAllInterfaces();
+            }
+
+            // P: Hi-res screenshot — renders at 2x pixelRatio then downloads PNG
+            if (e.code === 'KeyP') {
+                e.preventDefault();
+                if (renderer && scene && camera) {
+                    // Save current state
+                    var prevPixelRatio = renderer.getPixelRatio();
+                    var prevSize = new THREE.Vector2();
+                    renderer.getSize(prevSize);
+
+                    // Render at 2x resolution for hi-res capture
+                    var hiresRatio = Math.max(prevPixelRatio, 2) * 2;
+                    renderer.setPixelRatio(hiresRatio);
+                    renderer.setSize(prevSize.x, prevSize.y);
+                    renderer.render(scene, camera);
+
+                    // Capture and download
+                    var dataURL = renderer.domElement.toDataURL('image/png');
+                    var link = document.createElement('a');
+                    var timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                    link.download = 'dumbo-capture-' + timestamp + '.png';
+                    link.href = dataURL;
+                    link.click();
+
+                    // Restore original resolution
+                    renderer.setPixelRatio(prevPixelRatio);
+                    renderer.setSize(prevSize.x, prevSize.y);
+                    console.log('📸 Screenshot capturé (' + Math.round(prevSize.x * hiresRatio) + 'x' + Math.round(prevSize.y * hiresRatio) + 'px)');
+                }
             }
 
             // B: Toggle FPS mode (requires 5 consecutive presses)
@@ -5056,7 +5087,8 @@
             renderer = new THREE.WebGLRenderer({
                 antialias: true, // Enable MSAA on all devices for crisp edges
                 alpha: true,
-                powerPreference: 'high-performance'
+                powerPreference: 'high-performance',
+                preserveDrawingBuffer: true // Required for screenshot (P key)
             });
             // Cap DPR at 2 to prevent GPU memory exhaustion (3x = 9x framebuffer, causes OOM on many GPUs)
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
