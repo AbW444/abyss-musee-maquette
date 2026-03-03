@@ -928,51 +928,19 @@
             transition: opacity 0.5s ease;
         }
 
-        .welcome-logo,
-        .welcome-logo-video,
-        .welcome-logo-poulpe {
+        /* Dumbo SVG logo — fills the logo container */
+        .dumbo-svg-logo {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: contain;
         }
-        /* Screen blend: le noir de la vidéo mp4 disparaît contre l'arrière-plan */
+        /* Screen blend: le noir disparaît, le SVG clair reste visible */
         .welcome-logo-container {
             mix-blend-mode: screen;
             overflow: visible;
         }
-
-        /* PC: poulpe video hidden — rendered to high-res canvas by JS for crisp screen blend */
-        .welcome-logo-poulpe-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            filter: contrast(1.12) brightness(1.08);
-        }
-
-        .welcome-logo {
-            transition: opacity 0.2s ease;
-        }
-
-        .welcome-logo-video {
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
-
-        .welcome-logo-video.active {
-            opacity: 1;
-        }
-
-        /* Poulpe MP4 sur tous les devices, cacher PNG/WEBM mobile */
-        .welcome-logo-mobile { display: none; }
-        .welcome-logo-poulpe { display: block; }
-        .loading-video-mobile { display: none; }
 
         /* Pause Screen - Ultra Modern */
         #pause-screen {
@@ -2392,15 +2360,10 @@
         <div id="welcome-fade-overlay"></div>
 
         <div class="welcome-logo-container" id="welcome-logo-container">
-            <!-- Mobile: static PNG logo + animated webm loading icon -->
-            <img src="img/presences_rares_logo.png" alt="Logo" class="welcome-logo welcome-logo-mobile" id="welcome-logo">
-            <video class="welcome-logo-video welcome-logo-mobile" id="welcome-logo-video" loop muted playsinline preload="auto">
-                <source src="videos/dumbo_icone_chargement.webm" type="video/webm">
-            </video>
-            <!-- Desktop: poulpe video paused at frame 1 (logo) → plays as loading icon -->
-            <video class="welcome-logo-poulpe" id="welcome-logo-poulpe" loop muted playsinline preload="auto">
-                <source src="videos/poulpe_icone_chargement_desktop.mp4" type="video/mp4">
-            </video>
+            <!-- Real Dumbo octopus SVG silhouette — animated by JS wave propagation on path points -->
+            <svg id="dumbo-svg" class="dumbo-svg-logo" viewBox="0 0 116.19 104.15" xmlns="http://www.w3.org/2000/svg">
+              <path id="dumbo-path" fill="#fff" d="M116.18,64.45c-.19-.47-.82-.74-1.08-1.2-.28-.39-.28-.99-.46-1.24-.2-.3-.63-.42-.97-.56-2.89-1.03-1.03-3.58-1.4-5.62-.09-1.37-1.1-2.59-2.45-3.24-1.08-.7-2.22-1.43-3.2-2.25-.42-.46-.03-1.03-.41-1.3-.24-.16-.74-.29-1.1-.37-1.86-.29-2.82-1.78-4.14-2.81-1.08-.95-1.99-2.09-3.43-2.55-1.43-.44-2.5-1.4-3.93-1.83-3.22-.83-6.5-.65-9.82-.8-2.52-.02-4.94-.36-7.39-.74-1.97-.24-4.01-.33-5.93-.77-3.47-.82-6.6-3-9.59-4.73-1.7-1.02-3.52-1.92-5.16-3.01-.93-.77-3.22-1.88-2.37-3.08.44-.62,1.14-1.18,1.64-1.77,1.38-1.54,2.13-2.86,2.63-4.75.86-3.35.99-6.84.8-10.22-.2-2.83-.28-5.74-.93-8.53-.2-.77-.42-1.61-1.02-2.21-1.28-1.12-3.34-1.02-4.97-.53-3.37,1.09-6.18,3.96-7.98,6.55-2.4,3.75-3.57,8.16-5.04,12.29-.36,1.17-.55,2.59-2.33,2.33-3.83-.45-8-.34-11.51,1.19-1.72.73-3.17,1.73-4.59,2.86-3.01,2.33-5.59,5.02-7.2,8.32-1.53,3.02-3.1,6.78-2.9,10.25.12,2.07,1.11,4,2.04,5.94.65,1.3,1.07,2.65,1.59,3.98.58,1.49,1.59,2.95,2.05,4.47.84,2.66-7.08,9.28-9.15,11.64-.85.98-1.69,1.8-2.66,2.74-1.46,1.78-3.4,3.45-3.77,5.69-.3,1.92,1.29,3.59,3.39,3.85,2.02.28,4.17-.48,6.12-.96,4.75-1.25,9.99-2.22,13.9-5.03,1.29-1.02,3.47-1.63,3.99-3.2.15-.29.33-.41.65-.23.88.6,1.6,1.65,2.35,2.26,2.85,2.35,5.81,4.71,8.5,7.11.96.84,1.85,1.75,2.83,2.58,1.25,1.08,2.77,1.87,4.26,2.77.93.58,2.04.94,3.03,1.33,3.01,1.52,5.11,4.15,7.84,6.07.95.7,2.03,1.11,3.07,1.72.66.39,1.29.88,1.91,1.3,1.19.79,2.64,1.46,4.03,2.09,1.17.42,2.17,1.09,3.31,1.51,1.08.36,2.28.35,3.39.63.79.17,1.54.52,2.32.55.52.03,1.05,0,1.57.11.48.09.95.31,1.4.5,1.69.76,3.59.8,5.31.2.96-.34,1.49-1.21,2.19-1.32.3-.06.63.02.93.07.87.21,1.79.12,2.72-.01.72-.02,1.83,0,2.21-.53.51-.91-1.03-1.22-1.69-1.38-1.53-.38-1.76-2.08-1.74-2.94,0-.09-.04-.36.1-.46.27-.19.56.32.68.51s.22.44.28.56c.26.62.71,1.11,1.36,1.28.95.22,2.01.43,2.95.27,1.11-.24,2.35-.09,3.09-.99.32-.36.52-.81.8-1.19.43-.66,1.65-1.38.7-1.64-.51-.13-1.11-.12-1.61-.31-.63-.23-1.26-.79-2.03-1.07-1.23-.43-2.34-.44-3.49.05-.05.02-.1.05-.14.08-.58.39-1,.53-1.28.22s-.18-.81.17-1.04c.13-.09.28-.17.42-.24.67-.3,1.34-.51,1.89-.88.42-.27.84-.29,1.35-.42.95-.23,2.23,0,2.85-.86.19-.22.32-.53.45-.81.17-.35.31-.82.7-.98.64-.21,1.4-.15,1.99-.42.62-.24,1.53.16,2.01-.31.4-.49.03-1.2.04-1.75.05-.7-.2-1.58.24-2.18.57-.24.68,1.05.78,1.36.11.45.57,1.2,1.11.84.42-.27.77-.63,1.3-.72.87-.11,1.52-.64,1.77-1.46.3-.76.65-1.41-.2-1.68-.96-.21-2.19-.39-3.08-.01-.3.13-.62.29-.94.35-.58.11-1.21-.16-1.93-.11-.32.01-.71.08-1.02.08-.36-.02.11-.72.01-.95-.05-.54-1.12-1.09-1.22-1.68-.08-.5.39-.89.56-1.33.23-.45.02-.75-.54-.94-.62-.2-1.71-.29-1.86-1.01,0-.28.75-.32,1.32-.54.55-.2,1.03-.52,1.57-.74.65-.26,1.58-.25,2.14-.7.26-.19.44-.49.28-.78-.62-.9-2.24-.8-3.24-1.16-.86-.2-1.55-.52-2.31-.86-1.32-.52-2.56-1.48-2.96-2.75-.13-.49.2-.94.46-1.47.18-.39.14-.76-.1-1.12-.27-.42-.95-1.11-.14-1.21.72.03,1.44.56,2.13.35.77-.21,1.53.04,2.23.33,1.37.45,2.82.83,4.24.88.59,0,1.2-.05,1.75.19.43.19.81.52,1.19.79.69.51,1.6.84,2.14,1.38.38.35.69.78,1.09,1.09.89.56,1.91,1.03,2.4,1.96.43.65,1.16,1.4,2.07.92.74-.34,1.69-1.21,1.62-1.73-.06-.47-.35-.88-.27-1.38.13-.8.05-1.58.22-2.42.13-.65.4-1.46.09-2.06-.38-.88-2.13-.6-2.9-.69-.15-.02-.29-.09-.4-.19l-.12-.11c-.33-.3-.17-.86.27-.94.6-.11,1.28-.06,1.86-.14.93-.15,3.37.69,3.48-.2v-.03Z"/>
+            </svg>
         </div>
 
         <div class="welcome-content" id="welcome-content">
@@ -2548,12 +2511,8 @@
     <!-- Fade-from-black overlay (reveals 3D scene smoothly after loading) -->
     <div id="scene-reveal-overlay"></div>
 
-    <!-- Loading Screen (mobile only — desktop uses reparented poulpe logo) -->
-    <div id="loading-screen">
-        <video class="loading-video loading-video-mobile" autoplay loop muted playsinline preload="auto">
-            <source src="videos/dumbo_icone_chargement.webm" type="video/webm">
-        </video>
-    </div>
+    <!-- Loading Screen (black bg — animated SVG logo is reparented on top from welcome-logo-container) -->
+    <div id="loading-screen"></div>
 
     <a href="index.html" id="title-link">
         <div id="title">Volumetric Particles</div>
@@ -9694,11 +9653,9 @@
             document.body.classList.remove('hoverPlay');
             document.body.classList.add('clickedPlay');
 
-            // Lancer le poulpe vidéo immédiatement (tous devices)
-            const poulpeVideo = document.getElementById('welcome-logo-poulpe');
-            if (poulpeVideo) {
-                poulpeVideo.play().catch(() => {});
-                console.log('🐙 Poulpe vidéo: lecture lancée');
+            // Lancer l'animation SVG du poulpe immédiatement (tous devices)
+            if (window.DumboAnim) {
+                window.DumboAnim.start();
             }
 
             // Phase 2: Après le fondu du texte — délais réduits sur mobile pour fluidité
@@ -9979,61 +9936,278 @@
                 }, 300);
             }
 
-            // Desktop: pause poulpe video at frame 1 (static logo) + render to hi-res canvas
-            const poulpeVideo = document.getElementById('welcome-logo-poulpe');
-            if (poulpeVideo) {
-                function initPoulpePause() {
-                    poulpeVideo.currentTime = 0;
-                    poulpeVideo.pause();
-                    console.log('🐙 Poulpe vidéo desktop: pausé à la frame 1');
-                }
-                function setupPoulpeCanvas() {
-                    // Render poulpe at native video resolution → canvas, then CSS downscales crisply
-                    const w = poulpeVideo.videoWidth || 512;
-                    const h = poulpeVideo.videoHeight || 512;
-                    const logoCanvas = document.createElement('canvas');
-                    logoCanvas.width = w;
-                    logoCanvas.height = h;
-                    logoCanvas.className = 'welcome-logo-poulpe-canvas';
-                    logoCanvas.id = 'welcome-logo-poulpe-canvas';
-                    poulpeVideo.parentNode.insertBefore(logoCanvas, poulpeVideo.nextSibling);
-                    poulpeVideo.style.visibility = 'hidden';
-                    poulpeVideo.style.width = '0';
-                    poulpeVideo.style.height = '0';
-                    const ctx = logoCanvas.getContext('2d');
-                    let poulpeRafId = 0;
-                    function renderPoulpeFrame() {
-                        if (poulpeVideo.readyState >= 2) {
-                            ctx.drawImage(poulpeVideo, 0, 0, w, h);
-                        }
-                        poulpeRafId = requestAnimationFrame(renderPoulpeFrame);
-                    }
-                    renderPoulpeFrame();
-                    // Stop rendering when welcome screen is gone
-                    const obs = new MutationObserver(function() {
-                        const ws = document.getElementById('welcome-screen');
-                        if (!ws || ws.style.display === 'none') {
-                            // Keep rendering during loading (logo is reparented)
-                            setTimeout(function() {
-                                if (!document.getElementById('welcome-logo-poulpe-canvas')) {
-                                    cancelAnimationFrame(poulpeRafId);
-                                    obs.disconnect();
+            // ─── Dumbo SVG Animation: wave propagation on real path ───
+            // Parses the real SVG path, displaces points based on x-position
+            // y(x,t) = A(x) · sin(ωt − kx) — tentacles wave, body stays fixed
+            window.DumboAnim = (function() {
+                var running = false;
+                var rafId = 0;
+                var pathEl = document.getElementById('dumbo-path');
+                var svgEl = document.getElementById('dumbo-svg');
+                var originalD = pathEl ? pathEl.getAttribute('d') : '';
+                var segments = null; // parsed path segments
+                var allPoints = null; // flat array of {x,y} absolute coordinates
+                var bodyX = 30; // approximate body center x (left side)
+                var maxX = 116; // rightmost point (tentacle tips)
+
+                // ── SVG Path Parser ──
+                // Tokenizes path data and converts all commands to absolute coordinates
+                function parsePath(d) {
+                    var tokens = d.match(/[MmCcSsLlHhVvZz]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g) || [];
+                    var segs = [];
+                    var pts = [];
+                    var cx = 0, cy = 0;
+                    var prevCp2x = 0, prevCp2y = 0;
+                    var idx = 0;
+
+                    function num() { return parseFloat(tokens[idx++]); }
+                    function isNum() { return idx < tokens.length && /^[-+.\d]/.test(tokens[idx]); }
+                    function addPt(x, y) { var i = pts.length; pts.push({x: x, y: y}); return i; }
+
+                    while (idx < tokens.length) {
+                        var cmd = tokens[idx++];
+                        switch (cmd) {
+                            case 'M':
+                                cx = num(); cy = num();
+                                segs.push({cmd: 'M', pi: [addPt(cx, cy)]});
+                                prevCp2x = cx; prevCp2y = cy;
+                                // Implicit lineto after M
+                                while (isNum()) {
+                                    cx = num(); cy = num();
+                                    segs.push({cmd: 'L', pi: [addPt(cx, cy)]});
+                                    prevCp2x = cx; prevCp2y = cy;
                                 }
-                            }, 10000);
+                                break;
+                            case 'm':
+                                cx += num(); cy += num();
+                                segs.push({cmd: 'M', pi: [addPt(cx, cy)]});
+                                prevCp2x = cx; prevCp2y = cy;
+                                while (isNum()) {
+                                    cx += num(); cy += num();
+                                    segs.push({cmd: 'L', pi: [addPt(cx, cy)]});
+                                    prevCp2x = cx; prevCp2y = cy;
+                                }
+                                break;
+                            case 'c':
+                                while (isNum()) {
+                                    var x1 = cx + num(), y1 = cy + num();
+                                    var x2 = cx + num(), y2 = cy + num();
+                                    var x3 = cx + num(), y3 = cy + num();
+                                    segs.push({cmd: 'C', pi: [addPt(x1,y1), addPt(x2,y2), addPt(x3,y3)]});
+                                    prevCp2x = x2; prevCp2y = y2;
+                                    cx = x3; cy = y3;
+                                }
+                                break;
+                            case 'C':
+                                while (isNum()) {
+                                    var ax1 = num(), ay1 = num();
+                                    var ax2 = num(), ay2 = num();
+                                    var ax3 = num(), ay3 = num();
+                                    segs.push({cmd: 'C', pi: [addPt(ax1,ay1), addPt(ax2,ay2), addPt(ax3,ay3)]});
+                                    prevCp2x = ax2; prevCp2y = ay2;
+                                    cx = ax3; cy = ay3;
+                                }
+                                break;
+                            case 's':
+                                while (isNum()) {
+                                    // Reflected cp1 = 2*current - prevCp2
+                                    var sx1 = 2 * cx - prevCp2x, sy1 = 2 * cy - prevCp2y;
+                                    var sx2 = cx + num(), sy2 = cy + num();
+                                    var sx3 = cx + num(), sy3 = cy + num();
+                                    segs.push({cmd: 'C', pi: [addPt(sx1,sy1), addPt(sx2,sy2), addPt(sx3,sy3)]});
+                                    prevCp2x = sx2; prevCp2y = sy2;
+                                    cx = sx3; cy = sy3;
+                                }
+                                break;
+                            case 'S':
+                                while (isNum()) {
+                                    var rsx1 = 2 * cx - prevCp2x, rsy1 = 2 * cy - prevCp2y;
+                                    var rsx2 = num(), rsy2 = num();
+                                    var rsx3 = num(), rsy3 = num();
+                                    segs.push({cmd: 'C', pi: [addPt(rsx1,rsy1), addPt(rsx2,rsy2), addPt(rsx3,rsy3)]});
+                                    prevCp2x = rsx2; prevCp2y = rsy2;
+                                    cx = rsx3; cy = rsy3;
+                                }
+                                break;
+                            case 'l':
+                                while (isNum()) {
+                                    cx += num(); cy += num();
+                                    segs.push({cmd: 'L', pi: [addPt(cx, cy)]});
+                                    prevCp2x = cx; prevCp2y = cy;
+                                }
+                                break;
+                            case 'L':
+                                while (isNum()) {
+                                    cx = num(); cy = num();
+                                    segs.push({cmd: 'L', pi: [addPt(cx, cy)]});
+                                    prevCp2x = cx; prevCp2y = cy;
+                                }
+                                break;
+                            case 'h':
+                                while (isNum()) {
+                                    cx += num();
+                                    segs.push({cmd: 'L', pi: [addPt(cx, cy)]});
+                                    prevCp2x = cx; prevCp2y = cy;
+                                }
+                                break;
+                            case 'H':
+                                while (isNum()) {
+                                    cx = num();
+                                    segs.push({cmd: 'L', pi: [addPt(cx, cy)]});
+                                    prevCp2x = cx; prevCp2y = cy;
+                                }
+                                break;
+                            case 'v':
+                                while (isNum()) {
+                                    cy += num();
+                                    segs.push({cmd: 'L', pi: [addPt(cx, cy)]});
+                                    prevCp2x = cx; prevCp2y = cy;
+                                }
+                                break;
+                            case 'V':
+                                while (isNum()) {
+                                    cy = num();
+                                    segs.push({cmd: 'L', pi: [addPt(cx, cy)]});
+                                    prevCp2x = cx; prevCp2y = cy;
+                                }
+                                break;
+                            case 'Z': case 'z':
+                                segs.push({cmd: 'Z', pi: []});
+                                prevCp2x = cx; prevCp2y = cy;
+                                break;
                         }
-                    });
-                    obs.observe(document.body, { childList: true, subtree: true });
-                    console.log('🎨 Poulpe canvas: rendu natif ' + w + 'x' + h + 'px');
+                    }
+                    return {segments: segs, points: pts};
                 }
-                poulpeVideo.addEventListener('loadeddata', function() {
-                    initPoulpePause();
-                    setupPoulpeCanvas();
-                });
-                if (poulpeVideo.readyState >= 2) {
-                    initPoulpePause();
-                    setupPoulpeCanvas();
+
+                // ── Rebuild path string from segments + displaced points ──
+                function buildPath(segs, pts) {
+                    var d = '';
+                    for (var i = 0; i < segs.length; i++) {
+                        var s = segs[i];
+                        if (s.cmd === 'M') {
+                            d += 'M' + pts[s.pi[0]].x.toFixed(2) + ',' + pts[s.pi[0]].y.toFixed(2);
+                        } else if (s.cmd === 'C') {
+                            d += 'C' + pts[s.pi[0]].x.toFixed(2) + ',' + pts[s.pi[0]].y.toFixed(2) +
+                                 ' ' + pts[s.pi[1]].x.toFixed(2) + ',' + pts[s.pi[1]].y.toFixed(2) +
+                                 ' ' + pts[s.pi[2]].x.toFixed(2) + ',' + pts[s.pi[2]].y.toFixed(2);
+                        } else if (s.cmd === 'L') {
+                            d += 'L' + pts[s.pi[0]].x.toFixed(2) + ',' + pts[s.pi[0]].y.toFixed(2);
+                        } else if (s.cmd === 'Z') {
+                            d += 'Z';
+                        }
+                    }
+                    return d;
                 }
-            }
+
+                function smoothstep(a, b, x) {
+                    var t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+                    return t * t * (3 - 2 * t);
+                }
+
+                // ── Initialize: parse path once ──
+                if (originalD) {
+                    var parsed = parsePath(originalD);
+                    segments = parsed.segments;
+                    // Store base positions (deep copy)
+                    allPoints = [];
+                    for (var i = 0; i < parsed.points.length; i++) {
+                        allPoints.push({x: parsed.points[i].x, y: parsed.points[i].y});
+                    }
+                    // Find actual bounds for wave parameters
+                    var minX = Infinity, mxX = -Infinity;
+                    for (var j = 0; j < allPoints.length; j++) {
+                        if (allPoints[j].x < minX) minX = allPoints[j].x;
+                        if (allPoints[j].x > mxX) mxX = allPoints[j].x;
+                    }
+                    bodyX = minX + (mxX - minX) * 0.35; // body is ~left 35%
+                    maxX = mxX;
+                    console.log('🐙 Path parsed: ' + allPoints.length + ' points, body threshold x=' +
+                        bodyX.toFixed(1) + ', max x=' + maxX.toFixed(1));
+                }
+
+                function update(timestamp) {
+                    if (!running || !segments || !allPoints) return;
+                    var t = timestamp / 1000;
+
+                    // ── Wave parameters ──
+                    var omega = 2.0;   // temporal speed (rad/s)
+                    var kWave = 0.08;  // spatial frequency (per SVG unit)
+                    var maxAmp = 3.5;  // max displacement in SVG units
+
+                    // ── Displace each point ──
+                    var displaced = new Array(allPoints.length);
+                    var range = maxX - bodyX;
+                    for (var i = 0; i < allPoints.length; i++) {
+                        var bx = allPoints[i].x;
+                        var by = allPoints[i].y;
+
+                        // Normalized position: 0 at body, 1 at tentacle tips
+                        var norm = (bx - bodyX) / range;
+                        if (norm < 0) norm = 0;
+                        if (norm > 1) norm = 1;
+
+                        // 1. Progressive amplitude: A(x) = pow(norm, 2)
+                        //    Tentacle tips move most, body stays fixed
+                        var ampFactor = norm * norm;
+
+                        // 2. Head lock: smooth transition from 0 to full
+                        var headLock = smoothstep(0, 0.15, norm);
+
+                        // Combined amplitude
+                        var amp = maxAmp * ampFactor * headLock;
+
+                        // 3. Wave propagation: sin(ωt - k·x)
+                        var wave = Math.sin(omega * t - kWave * bx);
+                        // Secondary wave for organic complexity
+                        var wave2 = 0.25 * Math.sin(omega * t * 0.7 - kWave * bx * 0.5 + 1.5);
+
+                        // 4. Micro longitudinal compression (subtle x displacement)
+                        var compressX = amp * 0.15 * Math.sin(omega * t * 0.9 - kWave * bx + 0.8);
+
+                        // 5. Apply displacement perpendicular to swimming direction
+                        //    Swimming LEFT → perpendicular is Y (vertical)
+                        displaced[i] = {
+                            x: bx + compressX,
+                            y: by + amp * (wave + wave2)
+                        };
+                    }
+
+                    // Rebuild and set path
+                    pathEl.setAttribute('d', buildPath(segments, displaced));
+
+                    // ── Subtle whole-body drift (micro-locomotion) ──
+                    if (svgEl) {
+                        var driftX = 1.2 * Math.sin(t * 0.7);
+                        var driftY = 0.8 * Math.sin(t * 0.5 + 0.6);
+                        var rock = 1.5 * Math.sin(t * 1.2); // gentle rotation
+                        svgEl.style.transform =
+                            'translate(' + driftX.toFixed(2) + 'px,' + driftY.toFixed(2) + 'px) ' +
+                            'rotate(' + rock.toFixed(2) + 'deg)';
+                    }
+
+                    rafId = requestAnimationFrame(update);
+                }
+
+                return {
+                    start: function() {
+                        if (running) return;
+                        running = true;
+                        rafId = requestAnimationFrame(update);
+                        console.log('🐙 Dumbo SVG animation: started (path deformation)');
+                    },
+                    stop: function() {
+                        running = false;
+                        if (rafId) cancelAnimationFrame(rafId);
+                        // Reset to original path
+                        if (pathEl && originalD) pathEl.setAttribute('d', originalD);
+                        if (svgEl) svgEl.style.transform = '';
+                        console.log('🐙 Dumbo SVG animation: stopped');
+                    },
+                    isRunning: function() { return running; }
+                };
+            })();
+            console.log('🐙 Dumbo SVG logo: ready');
 
             // Handle background video loading
             const welcomeVideo = document.getElementById('welcome-video-bg');
@@ -10138,17 +10312,10 @@
             });
         };
 
-        // Helper: keep loading video alive during heavy JS work
+        // Helper: keep SVG animation alive during heavy JS work
         function ensureLoadingVideoPlaying() {
-            // Mobile: loading screen video
-            const loadingVideo = document.querySelector('#loading-screen .loading-video');
-            if (loadingVideo && loadingVideo.paused) {
-                loadingVideo.play().catch(() => {});
-            }
-            // Desktop: poulpe video (reparented as loading indicator)
-            const poulpeVideo = document.getElementById('welcome-logo-poulpe');
-            if (poulpeVideo && poulpeVideo.paused && document.body.classList.contains('clickedPlay')) {
-                poulpeVideo.play().catch(() => {});
+            if (window.DumboAnim && !window.DumboAnim.isRunning() && document.body.classList.contains('clickedPlay')) {
+                window.DumboAnim.start();
             }
         }
 
@@ -10214,11 +10381,12 @@
                 // Step 6: Hide loading screen + poulpe logo (reveal overlay stays black behind it)
                 loadingScreen.classList.add('hidden');
 
-                // Fade out the poulpe logo
+                // Stop SVG animation + fade out logo
+                if (window.DumboAnim) window.DumboAnim.stop();
                 const poulpeLogo = document.getElementById('welcome-logo-container');
                 if (poulpeLogo && poulpeLogo.classList.contains('detached')) {
                     poulpeLogo.style.opacity = '0';
-                    console.log('🐙 Poulpe logo: disparition');
+                    console.log('🐙 Dumbo SVG: disparition');
                 }
 
                 // After loading screen fades out — use transitionend with fallback
@@ -10270,9 +10438,10 @@
                 console.error('❌ AUTO-LOAD: Erreur:', error);
 
                 // Hide loading screen anyway after 2s with fade-from-black reveal
+                if (window.DumboAnim) window.DumboAnim.stop();
                 setTimeout(() => {
                     loadingScreen.classList.add('hidden');
-                    // Also hide poulpe logo on error
+                    // Also hide SVG logo on error
                     const poulpeLogoErr = document.getElementById('welcome-logo-container');
                     if (poulpeLogoErr && poulpeLogoErr.classList.contains('detached')) {
                         poulpeLogoErr.style.opacity = '0';
