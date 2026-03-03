@@ -10683,8 +10683,8 @@
 
                 // On mobile, start with optimized fallback; on desktop, start with v5 (best quality)
                 const videoPaths = isMobile
-                    ? ['videos/ecran_panorama_v5.webm', 'videos/panorama_opti.webm', 'videos/ecran_panorama.webm']
-                    : ['videos/ecran_panorama_v5.webm', 'videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
+                    ? ['videos/panorama_v5.webm', 'videos/panorama_opti.webm', 'videos/ecran_panorama.webm']
+                    : ['videos/panorama_v5.webm', 'videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
 
                 function tryLoadVideo(pathIndex) {
                     if (pathIndex >= videoPaths.length) {
