@@ -3405,6 +3405,7 @@
                     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',  // Arrow keys
                     'ShiftLeft', 'ShiftRight',  // Sprint
                     'KeyB',  // Toggle to Admin mode
+                    'KeyT',  // Toggle ceiling reflection
                     'Escape',  // Toggle fullscreen
                     'AltLeft', 'AltRight'  // Toggle info screen
                 ];
@@ -3600,6 +3601,20 @@
             if (e.code === 'KeyN') {
                 e.preventDefault();
                 toggleAllInterfaces();
+            }
+
+            // T: Toggle ceiling reflection effect
+            if (e.code === 'KeyT') {
+                e.preventDefault();
+                ceilingReflectEnabled = !ceilingReflectEnabled;
+                if (ceilingMaterial) {
+                    ceilingMaterial.uniforms.uReflectEnabled.value = ceilingReflectEnabled ? 1.0 : 0.0;
+                    // Link the video texture when enabling
+                    if (ceilingReflectEnabled && gpuVideoTexture) {
+                        ceilingMaterial.uniforms.videoTexture.value = gpuVideoTexture;
+                    }
+                }
+                console.log('🪟 Ceiling reflection:', ceilingReflectEnabled ? 'ON' : 'OFF');
             }
 
             // B: Toggle FPS mode (requires 5 consecutive presses)
@@ -5659,6 +5674,8 @@
 
         // Global reference to GPU materials for uniform updates
         let gpuVolumeMaterials = [];
+        let ceilingReflectEnabled = false; // Toggle ceiling reflection with T key
+        let ceilingMaterial = null; // Reference to ceiling ShaderMaterial
         let gpuVideoTexture = null;
         let gpuFloorVideoTexture = null; // Separate texture for floor video (ecran_06.webm)
         let lastVideoTime = -1; // Track video frame changes for texture update optimization
@@ -7140,7 +7157,64 @@
             const width4 = 964.573;
             const height4 = 228.534;
             const geometry4 = new THREE.PlaneGeometry(width4, height4);
-            const material4 = new THREE.MeshBasicMaterial({ color: 0x060606, side: THREE.DoubleSide });
+            const material4 = new THREE.ShaderMaterial({
+                uniforms: {
+                    baseColor: { value: new THREE.Color(0x060606) },
+                    videoTexture: { value: null },
+                    uReflectEnabled: { value: 0.0 },
+                    uTime: { value: 0.0 },
+                    uReflectStrength: { value: 0.25 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    varying vec3 vNormalV;
+                    varying vec3 vPositionV;
+                    void main() {
+                        vUv = uv;
+                        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+                        vPositionV = mvPos.xyz;
+                        vNormalV = normalize(normalMatrix * normal);
+                        gl_Position = projectionMatrix * mvPos;
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 baseColor;
+                    uniform sampler2D videoTexture;
+                    uniform float uReflectEnabled;
+                    uniform float uTime;
+                    uniform float uReflectStrength;
+                    varying vec2 vUv;
+                    varying vec3 vNormalV;
+                    varying vec3 vPositionV;
+
+                    void main() {
+                        vec3 finalColor = baseColor;
+
+                        if (uReflectEnabled > 0.5) {
+                            // Subtle UV distortion for a living glass feel
+                            vec2 reflUV = vUv;
+                            reflUV.x += sin(vUv.y * 3.0 + uTime * 0.15) * 0.015;
+                            reflUV.y += cos(vUv.x * 2.5 + uTime * 0.12) * 0.01;
+
+                            // Sample video texture (colors from the room below)
+                            vec3 videoColor = texture2D(videoTexture, reflUV).rgb;
+
+                            // Fresnel: more reflection at grazing angles
+                            vec3 viewDir = normalize(-vPositionV);
+                            float fresnel = 1.0 - max(dot(viewDir, normalize(vNormalV)), 0.0);
+                            fresnel = pow(fresnel, 2.0);
+                            float reflAmount = mix(uReflectStrength * 0.3, uReflectStrength, fresnel);
+
+                            // Blend: base color + reflected video colors
+                            finalColor = mix(baseColor, videoColor * 0.5, reflAmount);
+                        }
+
+                        gl_FragColor = vec4(finalColor, 1.0);
+                    }
+                `,
+                side: THREE.DoubleSide
+            });
+            ceilingMaterial = material4;
             const screen4 = new THREE.Mesh(geometry4, material4);
 
             // Position et orientation (from user JSON)
@@ -9022,6 +9096,15 @@
             if (animateFrameCount === 1) {
                 console.log('🖼️ RENDER() - Premier rendu de la scène');
             }
+
+            // Update ceiling reflection time + texture link
+            if (ceilingReflectEnabled && ceilingMaterial) {
+                ceilingMaterial.uniforms.uTime.value = performance.now() * 0.001;
+                if (gpuVideoTexture && ceilingMaterial.uniforms.videoTexture.value !== gpuVideoTexture) {
+                    ceilingMaterial.uniforms.videoTexture.value = gpuVideoTexture;
+                }
+            }
+
             renderer.render(scene, camera);
         }
 
