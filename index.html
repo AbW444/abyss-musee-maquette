@@ -969,12 +969,10 @@
             opacity: 1;
         }
 
-        /* Poulpe MP4 sur tous les devices, cacher WEBM mobile */
-        .welcome-logo-video.welcome-logo-mobile { display: none; }
+        /* Poulpe MP4 sur tous les devices, cacher PNG/WEBM mobile */
+        .welcome-logo-mobile { display: none; }
         .welcome-logo-poulpe { display: block; }
         .loading-video-mobile { display: none; }
-        /* PNG logo visible as fallback until poulpe canvas is ready */
-        .welcome-logo.welcome-logo-mobile { display: block; }
 
         /* Pause Screen - Ultra Modern */
         #pause-screen {
@@ -1279,8 +1277,8 @@
             flex-shrink: 0;
             color: #fff;
             stroke: #fff;
-            background: rgba(0,0,0,0.7);
-            border: 1px solid var(--color-border);
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
             border-radius: 8px;
             padding: 4px;
         }
@@ -1290,14 +1288,14 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background: rgba(0,0,0,0.7);
+            background: rgba(255,255,255,0.06);
             padding: 6px 10px;
             border-radius: 6px;
-            border: 1px solid var(--color-border);
+            border: 1px solid rgba(255,255,255,0.12);
             font-family: var(--font-mono);
             font-size: 12px;
             color: rgba(255,255,255,0.95);
-            font-weight: 400;
+            font-weight: 700;
             white-space: nowrap;
             line-height: 1;
             min-width: 28px;
@@ -1326,10 +1324,15 @@
             font-style: italic;
         }
 
-        /* ALT key badge — same background as buttons, lighter font */
+        /* ALT key badge — bolder, no background */
         .instruction-line .key.key-alt {
-            font-weight: 400;
+            background: transparent;
+            border: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            font-weight: 700;
             font-size: 11.5px;
+            color: rgba(255,255,255,0.95);
         }
 
 
@@ -3402,7 +3405,6 @@
                     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',  // Arrow keys
                     'ShiftLeft', 'ShiftRight',  // Sprint
                     'KeyB',  // Toggle to Admin mode
-                    'KeyT',  // Toggle wall texture effect
                     'Escape',  // Toggle fullscreen
                     'AltLeft', 'AltRight'  // Toggle info screen
                 ];
@@ -3598,17 +3600,6 @@
             if (e.code === 'KeyN') {
                 e.preventDefault();
                 toggleAllInterfaces();
-            }
-
-            // T: Toggle wall texture effect (Grain + Fresnel)
-            if (e.code === 'KeyT') {
-                e.preventDefault();
-                wallTextureEnabled = !wallTextureEnabled;
-                const val = wallTextureEnabled ? 1.0 : 0.0;
-                for (const mat of wallFormMaterials) {
-                    mat.uniforms.uEffectEnabled.value = val;
-                }
-                console.log('🎨 Wall texture (Grain+Fresnel):', wallTextureEnabled ? 'ON' : 'OFF');
             }
 
             // B: Toggle FPS mode (requires 5 consecutive presses)
@@ -5668,8 +5659,6 @@
 
         // Global reference to GPU materials for uniform updates
         let gpuVolumeMaterials = [];
-        let wallFormMaterials = []; // Track wall/form ShaderMaterials for T key toggle
-        let wallTextureEnabled = false; // Toggle with T key
         let gpuVideoTexture = null;
         let gpuFloorVideoTexture = null; // Separate texture for floor video (ecran_06.webm)
         let lastVideoTime = -1; // Track video frame changes for texture update optimization
@@ -7100,33 +7089,22 @@
             // (gradient + dithering - amélioration qualité visuelle)
             // ============================================================
             function createWallFormMaterial(baseColorHex, gradientStrength = 0.03) {
-                const mat = new THREE.ShaderMaterial({
+                return new THREE.ShaderMaterial({
                     uniforms: {
                         baseColor: { value: new THREE.Color(baseColorHex) },
-                        gradientStrength: { value: gradientStrength },
-                        uEffectEnabled: { value: 0.0 },
-                        uTime: { value: 0.0 }
+                        gradientStrength: { value: gradientStrength }
                     },
                     vertexShader: `
                         varying vec2 vUv;
-                        varying vec3 vNormalV;
-                        varying vec3 vPositionV;
                         void main() {
                             vUv = uv;
-                            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-                            vPositionV = mvPos.xyz;
-                            vNormalV = normalize(normalMatrix * normal);
-                            gl_Position = projectionMatrix * mvPos;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                         }
                     `,
                     fragmentShader: `
                         uniform vec3 baseColor;
                         uniform float gradientStrength;
-                        uniform float uEffectEnabled;
-                        uniform float uTime;
                         varying vec2 vUv;
-                        varying vec3 vNormalV;
-                        varying vec3 vPositionV;
 
                         // Dithering Bayer 4x4 ultra subtil
                         float bayerDither4x4(vec2 screenPos) {
@@ -7141,23 +7119,6 @@
                             return bayer[index];
                         }
 
-                        // Cheap hash-based noise (no heavy simplex needed for grain)
-                        float hash(vec2 p) {
-                            vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-                            p3 += dot(p3, p3.yzx + 33.33);
-                            return fract((p3.x + p3.y) * p3.z);
-                        }
-                        float noise2d(vec2 p) {
-                            vec2 i = floor(p);
-                            vec2 f = fract(p);
-                            f = f * f * (3.0 - 2.0 * f);
-                            float a = hash(i);
-                            float b = hash(i + vec2(1.0, 0.0));
-                            float c = hash(i + vec2(0.0, 1.0));
-                            float d = hash(i + vec2(1.0, 1.0));
-                            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-                        }
-
                         void main() {
                             // Gradient vertical subtil (du haut vers le bas)
                             float gradient = vUv.y * gradientStrength;
@@ -7167,27 +7128,11 @@
 
                             // Couleur finale
                             vec3 finalColor = baseColor + vec3(gradient + dither);
-
-                            // --- Grain + Fresnel (toggled by T) ---
-                            if (uEffectEnabled > 0.5) {
-                                // Grain: subtle noise variation
-                                float grain = (noise2d(vUv * 40.0 + uTime * 0.1) - 0.5) * 0.04;
-                                finalColor += vec3(grain);
-
-                                // Fresnel: edges lighten when viewed at grazing angle
-                                vec3 viewDir = normalize(-vPositionV);
-                                float fresnel = 1.0 - max(dot(viewDir, normalize(vNormalV)), 0.0);
-                                fresnel = pow(fresnel, 3.0);
-                                finalColor += vec3(fresnel * 0.06);
-                            }
-
                             gl_FragColor = vec4(finalColor, 1.0);
                         }
                     `,
                     side: THREE.DoubleSide
                 });
-                wallFormMaterials.push(mat);
-                return mat;
             }
 
             // SCREEN 4: Custom shape (color surface) - FORME 7 (plafond)
@@ -7287,31 +7232,20 @@
                 uniforms: {
                     baseColor: { value: new THREE.Color(0x080808) },
                     gradientStrength: { value: 0.03 },
-                    shadowStrength: { value: 0.025 },
-                    uEffectEnabled: { value: 0.0 },
-                    uTime: { value: 0.0 }
+                    shadowStrength: { value: 0.025 } // 2.5% assombrissement aux bords
                 },
                 vertexShader: `
                     varying vec2 vUv;
-                    varying vec3 vNormalV;
-                    varying vec3 vPositionV;
                     void main() {
                         vUv = uv;
-                        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-                        vPositionV = mvPos.xyz;
-                        vNormalV = normalize(normalMatrix * normal);
-                        gl_Position = projectionMatrix * mvPos;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                     }
                 `,
                 fragmentShader: `
                     uniform vec3 baseColor;
                     uniform float gradientStrength;
                     uniform float shadowStrength;
-                    uniform float uEffectEnabled;
-                    uniform float uTime;
                     varying vec2 vUv;
-                    varying vec3 vNormalV;
-                    varying vec3 vPositionV;
 
                     float bayerDither4x4(vec2 screenPos) {
                         int x = int(mod(screenPos.x, 4.0));
@@ -7325,45 +7259,25 @@
                         return bayer[index];
                     }
 
-                    float hash(vec2 p) {
-                        vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-                        p3 += dot(p3, p3.yzx + 33.33);
-                        return fract((p3.x + p3.y) * p3.z);
-                    }
-                    float noise2d(vec2 p) {
-                        vec2 i = floor(p);
-                        vec2 f = fract(p);
-                        f = f * f * (3.0 - 2.0 * f);
-                        float a = hash(i);
-                        float b = hash(i + vec2(1.0, 0.0));
-                        float c = hash(i + vec2(0.0, 1.0));
-                        float d = hash(i + vec2(1.0, 1.0));
-                        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-                    }
-
                     void main() {
+                        // Gradient vertical
                         float gradient = vUv.y * gradientStrength;
+
+                        // Ombre fake mur-sol : dégradé radial depuis les bords
                         vec2 center = vec2(0.5, 0.5);
                         float distFromCenter = distance(vUv, center);
                         float shadow = smoothstep(0.3, 0.7, distFromCenter) * shadowStrength;
+
+                        // Dithering
                         float dither = (bayerDither4x4(gl_FragCoord.xy) - 0.5) * 0.006;
+
+                        // Couleur finale (assombrie aux bords)
                         vec3 finalColor = baseColor + vec3(gradient + dither) - vec3(shadow);
-
-                        if (uEffectEnabled > 0.5) {
-                            float grain = (noise2d(vUv * 40.0 + uTime * 0.1) - 0.5) * 0.04;
-                            finalColor += vec3(grain);
-                            vec3 viewDir = normalize(-vPositionV);
-                            float fresnel = 1.0 - max(dot(viewDir, normalize(vNormalV)), 0.0);
-                            fresnel = pow(fresnel, 3.0);
-                            finalColor += vec3(fresnel * 0.06);
-                        }
-
                         gl_FragColor = vec4(finalColor, 1.0);
                     }
                 `,
                 side: THREE.DoubleSide
             });
-            wallFormMaterials.push(material11);
             const screen11 = new THREE.Mesh(geometry11, material11);
             screen11.position.set(-274.876, -111.773, 112.79);
             screen11.rotation.set(1.570796, 0, 0);
@@ -9108,15 +9022,6 @@
             if (animateFrameCount === 1) {
                 console.log('🖼️ RENDER() - Premier rendu de la scène');
             }
-
-            // Update uTime for wall texture effect (only when enabled)
-            if (wallTextureEnabled) {
-                const t = performance.now() * 0.001;
-                for (const mat of wallFormMaterials) {
-                    mat.uniforms.uTime.value = t;
-                }
-            }
-
             renderer.render(scene, camera);
         }
 
@@ -9693,7 +9598,7 @@
             // Lancer le poulpe vidéo immédiatement (tous devices)
             const poulpeVideo = document.getElementById('welcome-logo-poulpe');
             if (poulpeVideo) {
-                safeVideoPlay(poulpeVideo);
+                poulpeVideo.play().catch(() => {});
                 console.log('🐙 Poulpe vidéo: lecture lancée');
             }
 
@@ -9746,7 +9651,7 @@
                 var threshold = 120;
                 if (dist < threshold) {
                     var t = 1 - dist / threshold;
-                    playButtonMobile.style.transform = 'scale(' + (1 + 0.35 * t) + ')';
+                    playButtonMobile.style.transform = 'scale(' + (1 + 0.15 * t) + ')';
                 } else {
                     playButtonMobile.style.transform = '';
                 }
@@ -9998,43 +9903,13 @@
                     poulpeVideo.style.height = '0';
                     const ctx = logoCanvas.getContext('2d');
                     let poulpeRafId = 0;
-                    let poulpeRendering = false;
-
                     function renderPoulpeFrame() {
                         if (poulpeVideo.readyState >= 2) {
                             ctx.drawImage(poulpeVideo, 0, 0, w, h);
                         }
-                        // Only keep looping if video is playing (animation)
-                        if (!poulpeVideo.paused) {
-                            poulpeRafId = requestAnimationFrame(renderPoulpeFrame);
-                        } else {
-                            poulpeRendering = false;
-                        }
+                        poulpeRafId = requestAnimationFrame(renderPoulpeFrame);
                     }
-
-                    function startPoulpeRendering() {
-                        if (!poulpeRendering) {
-                            poulpeRendering = true;
-                            poulpeRafId = requestAnimationFrame(renderPoulpeFrame);
-                        }
-                    }
-
-                    // Render once immediately (static logo frame)
                     renderPoulpeFrame();
-
-                    // Hide PNG fallback now that canvas is ready
-                    const pngFallback = document.getElementById('welcome-logo');
-                    if (pngFallback) pngFallback.style.display = 'none';
-
-                    // Start/stop RAF loop based on video play/pause state
-                    poulpeVideo.addEventListener('play', startPoulpeRendering);
-                    poulpeVideo.addEventListener('pause', function() {
-                        // Render one last frame then stop
-                        if (poulpeVideo.readyState >= 2) {
-                            ctx.drawImage(poulpeVideo, 0, 0, w, h);
-                        }
-                    });
-
                     // Stop rendering when welcome screen is gone
                     const obs = new MutationObserver(function() {
                         const ws = document.getElementById('welcome-screen');
@@ -10043,8 +9918,6 @@
                             setTimeout(function() {
                                 if (!document.getElementById('welcome-logo-poulpe-canvas')) {
                                     cancelAnimationFrame(poulpeRafId);
-                                    poulpeRendering = false;
-                                    poulpeVideo.removeEventListener('play', startPoulpeRendering);
                                     obs.disconnect();
                                 }
                             }, 10000);
@@ -10069,7 +9942,7 @@
                 function showWelcomeVideo() {
                     if (welcomeVideo.classList.contains('loaded')) return;
                     welcomeVideo.classList.add('loaded');
-                    safeVideoPlay(welcomeVideo);
+                    welcomeVideo.play().catch(function() {});
                     console.log('✅ Vidéo d\'arrière-plan visible');
                 }
 
@@ -10077,13 +9950,13 @@
                 welcomeVideo.addEventListener('loadeddata', showWelcomeVideo);
                 welcomeVideo.addEventListener('canplay', showWelcomeVideo);
 
-                // Fallback timeout: show video after 6s even if events don't fire
+                // Fallback timeout: show video after 4s even if events don't fire
                 setTimeout(function() {
-                    if (!welcomeVideo.classList.contains('loaded') && welcomeVideo.readyState >= 1) {
+                    if (!welcomeVideo.classList.contains('loaded') && welcomeVideo.readyState >= 2) {
                         showWelcomeVideo();
                         console.log('⏱️ Vidéo affichée via timeout fallback');
                     }
-                }, 6000);
+                }, 4000);
 
                 // Set source and start loading (no double-load from HTML)
                 welcomeVideo.src = 'videos/background_mobile.webm';
@@ -10097,7 +9970,7 @@
                 // Handle power-saving pause (Chrome pauses muted background videos)
                 document.addEventListener('visibilitychange', function() {
                     if (!document.hidden && welcomeVideo && welcomeVideo.paused && welcomeVideo.isConnected) {
-                        safeVideoPlay(welcomeVideo);
+                        welcomeVideo.play().catch(function() {});
                     }
                 });
 
@@ -10166,34 +10039,17 @@
             });
         };
 
-        // Safe video play — handles AbortError (Chrome power-saving) with retry
-        function safeVideoPlay(video) {
-            if (!video || !video.play) return Promise.resolve();
-            return video.play().catch(err => {
-                if (err.name === 'AbortError') {
-                    // Chrome paused video to save power — retry after short delay
-                    return new Promise(resolve => {
-                        setTimeout(() => {
-                            video.play().catch(() => {});
-                            resolve();
-                        }, 200);
-                    });
-                }
-                // Other errors (NotAllowedError etc.) — swallow silently
-            });
-        }
-
         // Helper: keep loading video alive during heavy JS work
         function ensureLoadingVideoPlaying() {
             // Mobile: loading screen video
             const loadingVideo = document.querySelector('#loading-screen .loading-video');
             if (loadingVideo && loadingVideo.paused) {
-                safeVideoPlay(loadingVideo);
+                loadingVideo.play().catch(() => {});
             }
             // Desktop: poulpe video (reparented as loading indicator)
             const poulpeVideo = document.getElementById('welcome-logo-poulpe');
             if (poulpeVideo && poulpeVideo.paused && document.body.classList.contains('clickedPlay')) {
-                safeVideoPlay(poulpeVideo);
+                poulpeVideo.play().catch(() => {});
             }
         }
 
@@ -10314,14 +10170,6 @@
             } catch (error) {
                 console.error('❌ AUTO-LOAD: Erreur:', error);
 
-                // CRITICAL: Force Spectator mode even on error — never expose Admin mode
-                fpsMode = true;
-                document.getElementById('ui')?.classList.add('hidden');
-                document.getElementById('screen-manager-panel')?.classList.add('hidden');
-                document.getElementById('shape-selector')?.classList.add('hidden');
-                document.getElementById('fps-settings-panel')?.classList.add('hidden');
-                document.getElementById('fps-counter')?.classList.add('hidden');
-
                 // Hide loading screen anyway after 2s with fade-from-black reveal
                 setTimeout(() => {
                     loadingScreen.classList.add('hidden');
@@ -10400,7 +10248,7 @@
                     // CRITICAL: Start playing the source video
                     videoElement.muted = true;
                     videoElement.loop = true;
-                    safeVideoPlay(videoElement).catch(err => {
+                    videoElement.play().catch(err => {
                         console.warn('⚠️ Autoplay vidéo source bloqué:', err);
                     });
 
@@ -10434,13 +10282,12 @@
                     reject(error);
                 };
 
-                // Timeout fallback (generous — slow connections need more time)
-                const videoTimeout = isMobile ? 20000 : 12000;
+                // Timeout fallback
                 setTimeout(() => {
                     if (!currentVideo) {
                         reject(new Error('Timeout loading video'));
                     }
-                }, videoTimeout);
+                }, 5000);
             });
         }
 
@@ -10469,7 +10316,7 @@
                     screenVideos[6] = videoElement;
 
                     videoElement.currentTime = 0.1;
-                    safeVideoPlay(videoElement).then(() => {
+                    videoElement.play().then(() => {
                         setTimeout(() => {
                             videoElement.pause();
                             console.log('🏠 Vidéo écran 6 prête');
@@ -10571,7 +10418,7 @@
                         screenVideos[1] = videoElement;
 
                         videoElement.currentTime = 0.1;
-                        safeVideoPlay(videoElement).then(() => {
+                        videoElement.play().then(() => {
                             setTimeout(() => {
                                 videoElement.pause();
                                 console.log('Mode panoramique activé');
@@ -10599,7 +10446,7 @@
 
                     // On mobile, force a play() attempt to trigger loading
                     if (isMobile) {
-                        safeVideoPlay(videoElement).then(() => {
+                        videoElement.play().then(() => {
                             videoElement.pause();
                         }).catch(() => {});
                     }
@@ -10627,7 +10474,7 @@
             // Lancer la vidéo du sol si disponible
             if (floorVideo) {
                 floorVideo.currentTime = 0;
-                safeVideoPlay(floorVideo).catch(err => {
+                floorVideo.play().catch(err => {
                     console.warn('⚠️ Erreur play sol:', err);
                 });
                 console.log('✅ Vidéo sol lancée');
@@ -10636,7 +10483,7 @@
             // Mode panoramique: vidéo principale
             if (panoramicVideo) {
                 panoramicVideo.currentTime = 0;
-                safeVideoPlay(panoramicVideo).catch(err => {
+                panoramicVideo.play().catch(err => {
                     console.warn('⚠️ Erreur play panorama:', err);
                 });
                 console.log('✅ Vidéo panoramique lancée');
@@ -10659,7 +10506,7 @@
             // Petit délai pour s'assurer que currentTime est appliqué
             setTimeout(() => {
                 videos.forEach(video => {
-                    safeVideoPlay(video).catch(err => {
+                    video.play().catch(err => {
                         console.warn('⚠️ Erreur play:', err);
                     });
                 });
