@@ -3402,6 +3402,7 @@
                     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',  // Arrow keys
                     'ShiftLeft', 'ShiftRight',  // Sprint
                     'KeyB',  // Toggle to Admin mode
+                    'KeyT',  // Toggle wall texture effect
                     'Escape',  // Toggle fullscreen
                     'AltLeft', 'AltRight'  // Toggle info screen
                 ];
@@ -3597,6 +3598,17 @@
             if (e.code === 'KeyN') {
                 e.preventDefault();
                 toggleAllInterfaces();
+            }
+
+            // T: Toggle wall texture effect (Grain + Fresnel)
+            if (e.code === 'KeyT') {
+                e.preventDefault();
+                wallTextureEnabled = !wallTextureEnabled;
+                const val = wallTextureEnabled ? 1.0 : 0.0;
+                for (const mat of wallFormMaterials) {
+                    mat.uniforms.uEffectEnabled.value = val;
+                }
+                console.log('🎨 Wall texture (Grain+Fresnel):', wallTextureEnabled ? 'ON' : 'OFF');
             }
 
             // B: Toggle FPS mode (requires 5 consecutive presses)
@@ -5656,6 +5668,8 @@
 
         // Global reference to GPU materials for uniform updates
         let gpuVolumeMaterials = [];
+        let wallFormMaterials = []; // Track wall/form ShaderMaterials for T key toggle
+        let wallTextureEnabled = false; // Toggle with T key
         let gpuVideoTexture = null;
         let gpuFloorVideoTexture = null; // Separate texture for floor video (ecran_06.webm)
         let lastVideoTime = -1; // Track video frame changes for texture update optimization
@@ -7086,22 +7100,33 @@
             // (gradient + dithering - amélioration qualité visuelle)
             // ============================================================
             function createWallFormMaterial(baseColorHex, gradientStrength = 0.03) {
-                return new THREE.ShaderMaterial({
+                const mat = new THREE.ShaderMaterial({
                     uniforms: {
                         baseColor: { value: new THREE.Color(baseColorHex) },
-                        gradientStrength: { value: gradientStrength }
+                        gradientStrength: { value: gradientStrength },
+                        uEffectEnabled: { value: 0.0 },
+                        uTime: { value: 0.0 }
                     },
                     vertexShader: `
                         varying vec2 vUv;
+                        varying vec3 vNormalV;
+                        varying vec3 vPositionV;
                         void main() {
                             vUv = uv;
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+                            vPositionV = mvPos.xyz;
+                            vNormalV = normalize(normalMatrix * normal);
+                            gl_Position = projectionMatrix * mvPos;
                         }
                     `,
                     fragmentShader: `
                         uniform vec3 baseColor;
                         uniform float gradientStrength;
+                        uniform float uEffectEnabled;
+                        uniform float uTime;
                         varying vec2 vUv;
+                        varying vec3 vNormalV;
+                        varying vec3 vPositionV;
 
                         // Dithering Bayer 4x4 ultra subtil
                         float bayerDither4x4(vec2 screenPos) {
@@ -7116,6 +7141,23 @@
                             return bayer[index];
                         }
 
+                        // Cheap hash-based noise (no heavy simplex needed for grain)
+                        float hash(vec2 p) {
+                            vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+                            p3 += dot(p3, p3.yzx + 33.33);
+                            return fract((p3.x + p3.y) * p3.z);
+                        }
+                        float noise2d(vec2 p) {
+                            vec2 i = floor(p);
+                            vec2 f = fract(p);
+                            f = f * f * (3.0 - 2.0 * f);
+                            float a = hash(i);
+                            float b = hash(i + vec2(1.0, 0.0));
+                            float c = hash(i + vec2(0.0, 1.0));
+                            float d = hash(i + vec2(1.0, 1.0));
+                            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+                        }
+
                         void main() {
                             // Gradient vertical subtil (du haut vers le bas)
                             float gradient = vUv.y * gradientStrength;
@@ -7125,11 +7167,27 @@
 
                             // Couleur finale
                             vec3 finalColor = baseColor + vec3(gradient + dither);
+
+                            // --- Grain + Fresnel (toggled by T) ---
+                            if (uEffectEnabled > 0.5) {
+                                // Grain: subtle noise variation
+                                float grain = (noise2d(vUv * 40.0 + uTime * 0.1) - 0.5) * 0.04;
+                                finalColor += vec3(grain);
+
+                                // Fresnel: edges lighten when viewed at grazing angle
+                                vec3 viewDir = normalize(-vPositionV);
+                                float fresnel = 1.0 - max(dot(viewDir, normalize(vNormalV)), 0.0);
+                                fresnel = pow(fresnel, 3.0);
+                                finalColor += vec3(fresnel * 0.06);
+                            }
+
                             gl_FragColor = vec4(finalColor, 1.0);
                         }
                     `,
                     side: THREE.DoubleSide
                 });
+                wallFormMaterials.push(mat);
+                return mat;
             }
 
             // SCREEN 4: Custom shape (color surface) - FORME 7 (plafond)
@@ -7229,20 +7287,31 @@
                 uniforms: {
                     baseColor: { value: new THREE.Color(0x080808) },
                     gradientStrength: { value: 0.03 },
-                    shadowStrength: { value: 0.025 } // 2.5% assombrissement aux bords
+                    shadowStrength: { value: 0.025 },
+                    uEffectEnabled: { value: 0.0 },
+                    uTime: { value: 0.0 }
                 },
                 vertexShader: `
                     varying vec2 vUv;
+                    varying vec3 vNormalV;
+                    varying vec3 vPositionV;
                     void main() {
                         vUv = uv;
-                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+                        vPositionV = mvPos.xyz;
+                        vNormalV = normalize(normalMatrix * normal);
+                        gl_Position = projectionMatrix * mvPos;
                     }
                 `,
                 fragmentShader: `
                     uniform vec3 baseColor;
                     uniform float gradientStrength;
                     uniform float shadowStrength;
+                    uniform float uEffectEnabled;
+                    uniform float uTime;
                     varying vec2 vUv;
+                    varying vec3 vNormalV;
+                    varying vec3 vPositionV;
 
                     float bayerDither4x4(vec2 screenPos) {
                         int x = int(mod(screenPos.x, 4.0));
@@ -7256,25 +7325,45 @@
                         return bayer[index];
                     }
 
-                    void main() {
-                        // Gradient vertical
-                        float gradient = vUv.y * gradientStrength;
+                    float hash(vec2 p) {
+                        vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+                        p3 += dot(p3, p3.yzx + 33.33);
+                        return fract((p3.x + p3.y) * p3.z);
+                    }
+                    float noise2d(vec2 p) {
+                        vec2 i = floor(p);
+                        vec2 f = fract(p);
+                        f = f * f * (3.0 - 2.0 * f);
+                        float a = hash(i);
+                        float b = hash(i + vec2(1.0, 0.0));
+                        float c = hash(i + vec2(0.0, 1.0));
+                        float d = hash(i + vec2(1.0, 1.0));
+                        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+                    }
 
-                        // Ombre fake mur-sol : dégradé radial depuis les bords
+                    void main() {
+                        float gradient = vUv.y * gradientStrength;
                         vec2 center = vec2(0.5, 0.5);
                         float distFromCenter = distance(vUv, center);
                         float shadow = smoothstep(0.3, 0.7, distFromCenter) * shadowStrength;
-
-                        // Dithering
                         float dither = (bayerDither4x4(gl_FragCoord.xy) - 0.5) * 0.006;
-
-                        // Couleur finale (assombrie aux bords)
                         vec3 finalColor = baseColor + vec3(gradient + dither) - vec3(shadow);
+
+                        if (uEffectEnabled > 0.5) {
+                            float grain = (noise2d(vUv * 40.0 + uTime * 0.1) - 0.5) * 0.04;
+                            finalColor += vec3(grain);
+                            vec3 viewDir = normalize(-vPositionV);
+                            float fresnel = 1.0 - max(dot(viewDir, normalize(vNormalV)), 0.0);
+                            fresnel = pow(fresnel, 3.0);
+                            finalColor += vec3(fresnel * 0.06);
+                        }
+
                         gl_FragColor = vec4(finalColor, 1.0);
                     }
                 `,
                 side: THREE.DoubleSide
             });
+            wallFormMaterials.push(material11);
             const screen11 = new THREE.Mesh(geometry11, material11);
             screen11.position.set(-274.876, -111.773, 112.79);
             screen11.rotation.set(1.570796, 0, 0);
@@ -9019,6 +9108,15 @@
             if (animateFrameCount === 1) {
                 console.log('🖼️ RENDER() - Premier rendu de la scène');
             }
+
+            // Update uTime for wall texture effect (only when enabled)
+            if (wallTextureEnabled) {
+                const t = performance.now() * 0.001;
+                for (const mat of wallFormMaterials) {
+                    mat.uniforms.uTime.value = t;
+                }
+            }
+
             renderer.render(scene, camera);
         }
 
