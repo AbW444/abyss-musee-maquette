@@ -5024,7 +5024,7 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                 antialias: true, // Enable MSAA on all devices for crisp edges
                 alpha: true,
                 powerPreference: 'high-performance',
-                preserveDrawingBuffer: true // Required for screenshot (C) & video recording (V)
+                preserveDrawingBuffer: true // Required for screenshot (C)
             });
             // Cap DPR at 2 to prevent GPU memory exhaustion (3x = 9x framebuffer, causes OOM on many GPUs)
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -11939,85 +11939,6 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
         });
     })();
 
-    /* ═══════════════════════════════════════════════════════════════
-       VIDEO RECORDING (V key) — WebM capture, auto-download
-       ═══════════════════════════════════════════════════════════════ */
-    (function() {
-        var mediaRecorder = null;
-        var recordedChunks = [];
-        var isRecording = false;
-
-        function autoDownload(blob, filename) {
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none';
-            document.body.appendChild(a);
-            setTimeout(function() {
-                a.click();
-                setTimeout(function() {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, 10000);
-            }, 50);
-        }
-
-        document.addEventListener('keydown', function(e) {
-            if (e.code !== 'KeyV' || e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return;
-            if (typeof fpsMode === 'undefined' || !fpsMode) return;
-            if (typeof renderer === 'undefined' || !renderer) return;
-
-            e.preventDefault();
-
-            if (!isRecording) {
-                // ── START recording ──
-                recordedChunks = [];
-                var canvas = renderer.domElement;
-                var stream = canvas.captureStream(60); // 60 fps
-
-                // Pick best available codec
-                var mimeType = 'video/webm;codecs=vp9';
-                if (!MediaRecorder.isTypeSupported(mimeType)) {
-                    mimeType = 'video/webm;codecs=vp8';
-                }
-                if (!MediaRecorder.isTypeSupported(mimeType)) {
-                    mimeType = 'video/webm';
-                }
-
-                mediaRecorder = new MediaRecorder(stream, {
-                    mimeType: mimeType,
-                    videoBitsPerSecond: 25000000 // 25 Mbps for high quality
-                });
-
-                mediaRecorder.ondataavailable = function(ev) {
-                    if (ev.data && ev.data.size > 0) {
-                        recordedChunks.push(ev.data);
-                    }
-                };
-
-                mediaRecorder.onstop = function() {
-                    var blob = new Blob(recordedChunks, { type: mimeType });
-                    recordedChunks = [];
-                    var ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-                    autoDownload(blob, 'DUMBO_' + ts + '.webm');
-                    console.log('🎬 Recording saved (' + (blob.size / 1048576).toFixed(1) + ' MB)');
-                };
-
-                mediaRecorder.start(100); // collect data every 100ms for smoother output
-                isRecording = true;
-                console.log('🔴 Recording started (V to stop)');
-
-            } else {
-                // ── STOP recording ──
-                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                    mediaRecorder.stop();
-                }
-                isRecording = false;
-                console.log('⏹️ Recording stopped — downloading...');
-            }
-        });
-    })();
 
     /* ═══════════════════════════════════════════════════════════════
        EYE HEIGHT (+ / -) — Adjust camera height in FPS mode
