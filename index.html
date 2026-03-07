@@ -45,9 +45,9 @@
             --color-border-hover: rgba(255,255,255,0.25);
             --color-border-strong: rgba(255,255,255,0.3);
 
-            --color-text: rgba(255,255,255,0.95);
-            --color-text-secondary: rgba(255,255,255,0.80);
-            --color-text-dim: rgba(255,255,255,0.52);
+            --color-text: rgba(255,255,255,1.0);
+            --color-text-secondary: rgba(255,255,255,0.96);
+            --color-text-dim: rgba(255,255,255,0.62);
             --color-text-hint: rgba(255,255,255,0.35);
 
             --color-accent: rgba(100,150,255,0.5);
@@ -211,10 +211,10 @@
                       text-decoration: none; color: #fff; transition: opacity var(--transition-fast); }
         #title-link:hover { opacity: 1 !important; }
 
-        #title { font-size: 22px; font-weight: 600; opacity: 0.7;
+        #title { font-size: 22px; font-weight: 600; opacity: 0.84;
                  text-transform: uppercase; letter-spacing: 2px; }
 
-        #subtitle { font-size: var(--text-md); font-weight: 400; opacity: 0.5;
+        #subtitle { font-size: var(--text-md); font-weight: 400; opacity: 0.6;
                     margin-top: var(--space-xs); letter-spacing: 0.5px;
                     text-transform: none; }
 
@@ -227,7 +227,7 @@
         button:hover { background: var(--color-surface-active); }
         button:active { transform: scale(0.97); }
 
-        button.small { padding: var(--space-sm); font-size: var(--text-sm); opacity: 0.7; }
+        button.small { padding: var(--space-sm); font-size: var(--text-sm); opacity: 0.84; }
         button.small:hover { opacity: 1; }
 
         .preview { width: 100%; aspect-ratio: 1; border-radius: var(--radius-md); margin: var(--space-sm) 0;
@@ -805,7 +805,7 @@
             font-family: var(--font-sans);
             font-size: 14.5px;
             font-weight: 300;
-            color: rgba(255,255,255,0.75);
+            color: rgba(255,255,255,0.90);
             line-height: 1.7;
             margin-bottom: 14px;
             letter-spacing: 0.2px;
@@ -813,13 +813,13 @@
         }
         .welcome-text strong {
             font-weight: 400;
-            color: rgba(255,255,255,0.92);
+            color: rgba(255,255,255,1.0);
         }
         .welcome-context {
             font-family: var(--font-mono);
             font-size: 11px;
             font-weight: 300;
-            color: rgba(255,255,255,0.40);
+            color: rgba(255,255,255,0.48);
             line-height: 1.6;
             margin-top: 22px;
             padding-top: 16px;
@@ -1018,7 +1018,7 @@
             font-family: var(--font-sans);
             font-size: clamp(15px, 4vw, 18px);
             font-weight: 400;
-            color: rgba(255,255,255,0.95);
+            color: rgba(255,255,255,1.0);
             margin-bottom: 16px;
             letter-spacing: 1.8px;
             text-transform: uppercase;
@@ -1028,7 +1028,7 @@
             font-family: var(--font-sans);
             font-size: clamp(12px, 3.2vw, 14px);
             font-weight: 300;
-            color: rgba(255,255,255,0.95);
+            color: rgba(255,255,255,1.0);
             line-height: 1.65;
             margin-bottom: 12px;
             letter-spacing: 0.2px;
@@ -1036,7 +1036,7 @@
         }
         .pause-text strong {
             font-weight: 400;
-            color: rgba(255,255,255,0.92);
+            color: rgba(255,255,255,1.0);
         }
         .pause-text br:only-child {
             display: none;
@@ -1046,7 +1046,7 @@
             font-family: var(--font-sans);
             font-size: clamp(12px, 3.2vw, 14px);
             font-weight: 300;
-            color: rgba(255,255,255,0.95);
+            color: rgba(255,255,255,1.0);
             line-height: 1.8;
             margin: 14px 0;
             letter-spacing: 0.2px;
@@ -1059,17 +1059,17 @@
         }
         .pause-conceptual-list .list-item {
             display: block;
-            color: rgba(255,255,255,0.95);
+            color: rgba(255,255,255,1.0);
         }
         .pause-conceptual-list .list-item::before {
             content: '· ';
-            color: rgba(255,255,255,0.95);
+            color: rgba(255,255,255,1.0);
         }
         .pause-meta {
             font-family: var(--font-mono);
             font-size: clamp(8px, 2.5vw, 10px);
             font-weight: 300;
-            color: rgba(255,255,255,0.40);
+            color: rgba(255,255,255,0.48);
             line-height: 1.6;
             margin-top: 20px;
             padding-top: 15px;
@@ -1194,7 +1194,7 @@
             left: 50%;
             transform: translateX(-50%);
             font-size: 11px;
-            color: rgba(255,255,255,0.23);
+            color: rgba(255,255,255,0.28);
             font-style: italic;
             letter-spacing: 0.3px;
         }
@@ -1221,7 +1221,7 @@
             border-radius: 0;
             border: none;
             font-size: 14px;
-            color: rgba(255,255,255,0.80);
+            color: rgba(255,255,255,0.96);
             pointer-events: none;
             z-index: var(--z-ui);
             display: flex;
@@ -1268,7 +1268,7 @@
         }
         .instruction-line.secondary {
             font-size: 13px;
-            color: rgba(255,255,255,0.69);
+            color: rgba(255,255,255,0.83);
         }
 
         /* SVG icons in instruction lines */
@@ -1295,7 +1295,7 @@
             border: 1px solid rgba(255,255,255,0.12);
             font-family: var(--font-mono);
             font-size: 12px;
-            color: rgba(255,255,255,0.95);
+            color: rgba(255,255,255,1.0);
             font-weight: 700;
             white-space: nowrap;
             line-height: 1;
@@ -1312,7 +1312,7 @@
             border: 1px solid rgba(255,255,255,0.1);
             font-family: var(--font-mono);
             font-size: 10px;
-            color: rgba(255,255,255,0.80);
+            color: rgba(255,255,255,0.96);
             font-weight: 500;
             white-space: nowrap;
             line-height: 1;
@@ -1333,7 +1333,7 @@
             -webkit-backdrop-filter: none;
             font-weight: 700;
             font-size: 11.5px;
-            color: rgba(255,255,255,0.95);
+            color: rgba(255,255,255,1.0);
         }
 
 
@@ -1683,7 +1683,7 @@
             border: 1px solid rgba(255,255,255,0.08);
             text-align: left;
             font-size: 12px;
-            color: rgba(255,255,255,0.95);
+            color: rgba(255,255,255,1.0);
             max-width: 220px;
             opacity: 1;
             transition: opacity 0.5s ease;
@@ -1695,7 +1695,7 @@
         #mobile-instructions .instruction-separator {
             text-align: center;
             font-size: 10px;
-            color: rgba(255,255,255,0.46);
+            color: rgba(255,255,255,0.55);
             font-style: italic;
             margin: -6px 0;
             line-height: 1;
@@ -1726,7 +1726,7 @@
             font-weight: 600;
         }
         #gyro-debug-overlay .dbg-dim {
-            color: rgba(255,255,255,0.46);
+            color: rgba(255,255,255,0.55);
         }
 
         /* Gyroscope permission button */
@@ -1750,7 +1750,7 @@
         }
         #gyro-permission-btn p {
             font-size: 13px;
-            color: rgba(255,255,255,0.80);
+            color: rgba(255,255,255,0.96);
             margin-bottom: 20px;
             line-height: 1.5;
         }
@@ -2126,7 +2126,7 @@
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1.2px;
-            color: rgba(255,255,255,0.58);
+            color: rgba(255,255,255,0.70);
             margin: 0 0 10px 0;
             font-weight: 600;
         }
@@ -2146,7 +2146,7 @@
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 6px;
-            color: rgba(255,255,255,0.52);
+            color: rgba(255,255,255,0.62);
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -2172,7 +2172,7 @@
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: rgba(255,255,255,0.69);
+            color: rgba(255,255,255,0.83);
             margin-bottom: 4px;
         }
         .blur-tune-row label span.bt-val {
@@ -2413,7 +2413,7 @@
 
             <p class="welcome-text" data-fr="Les images utilisées ici proviennent de captations sous-marines réelles, tournées en grande profondeur. Elles montrent des organismes rarement observés, dans des conditions de lumière, de turbidité et de distance propres au milieu abyssal." data-en="The images used here come from real underwater captures, filmed at great depth. They show rarely observed organisms, in conditions of light, turbidity and distance specific to the abyssal environment.">Les images utilisées ici proviennent de captations sous-marines réelles, tournées en grande profondeur. Elles montrent des organismes rarement observés, dans des conditions de lumière, de turbidité et de distance propres au milieu abyssal.</p>
 
-            <p class="welcome-text" data-fr="Ces images sont traduites en volumes par un protocole fondé sur la luminance. Pas de reconstitution. Pas de fiction. Une tentative de rendre perceptibles des formes de vie qui résistent à l'image." data-en="These images are translated into volumes through a luminance-based protocol. No reconstruction. No fiction. An attempt to make perceptible life forms that resist the image.">Ces images sont traduites en volumes par un protocole fondé sur la luminance. Pas de reconstitution. Pas de fiction. Une tentative de rendre perceptibles des formes de vie qui résistent à l'image.<br><br><i style="font-weight:200;font-size:0.88em"><span data-fr="*Dumbo : Grimpoteuthis spp. Opisthoteuthidae. Pieuvres abyssales à nageoires, 1000-7000 m. Parmi les rares organismes des grands fonds à être entrés dans l'imaginaire collectif, leur silhouette en fait une vitrine involontaire d'un milieu qui en a peu." data-en="*Dumbo: Grimpoteuthis spp. Opisthoteuthidae. Abyssal finned octopuses, 1000-7000 m. Among the rare deep-sea organisms to have entered the collective imagination, their silhouette makes them an involuntary showcase of an environment that has few.">*Dumbo : Grimpoteuthis spp. Opisthoteuthidae. Pieuvres abyssales à nageoires, 1000-7000 m. Parmi les rares organismes des grands fonds à être entrés dans l'imaginaire collectif, leur silhouette en fait une vitrine involontaire d'un milieu qui en a peu.</span></i></p>
+            <p class="welcome-text" data-fr="Ces images sont traduites en volumes par un protocole fondé sur la luminance. Pas de reconstitution. Pas de fiction. Une tentative de rendre perceptibles des formes de vie qui résistent à l'image." data-en="These images are translated into volumes through a luminance-based protocol. No reconstruction. No fiction. An attempt to make perceptible life forms that resist the image.">Ces images sont traduites en volumes par un protocole fondé sur la luminance. Pas de reconstitution. Pas de fiction. Une tentative de rendre perceptibles des formes de vie qui résistent à l'image.<br><br><i style="font-weight:200;font-size:0.88em;line-height:0.85;display:inline-block"><span data-fr="*Dumbo : Grimpoteuthis spp. Opisthoteuthidae. Pieuvres abyssales à nageoires, 1000-7000 m. Parmi les rares organismes des grands fonds à être entrés dans l'imaginaire collectif, leur silhouette en fait une vitrine involontaire d'un milieu qui en a peu." data-en="*Dumbo: Grimpoteuthis spp. Opisthoteuthidae. Abyssal finned octopuses, 1000-7000 m. Among the rare deep-sea organisms to have entered the collective imagination, their silhouette makes them an involuntary showcase of an environment that has few.">*Dumbo : Grimpoteuthis spp. Opisthoteuthidae. Pieuvres abyssales à nageoires, 1000-7000 m. Parmi les rares organismes des grands fonds à être entrés dans l'imaginaire collectif, leur silhouette en fait une vitrine involontaire d'un milieu qui en a peu.</span></i></p>
 
             <div class="welcome-context" data-fr="Projet de recherche par le design, maquette non définitive. Images issues de sources scientifiques réelles. Traductions visuelles réalisées dans un cadre expérimental." data-en="Design research project, non-definitive prototype. Images from real scientific sources. Visual translations produced in an experimental framework.">Projet de recherche par le design, maquette non définitive.<br>
 Images issues de sources scientifiques réelles.<br>
@@ -4204,7 +4204,7 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                     font-weight: 600;
                     text-transform: uppercase;
                     letter-spacing: 1px;
-                    color: rgba(255,255,255,0.58);
+                    color: rgba(255,255,255,0.70);
                     margin-top: 8px;
                     border-top: 1px solid rgba(255,255,255,0.1);
                 `;
