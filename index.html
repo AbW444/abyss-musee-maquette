@@ -96,6 +96,7 @@
             /* ─── Transitions ─── */
             --transition-fast: 0.15s ease;
             --transition-normal: 0.25s ease;
+            --transition-fade: 0.3s ease;
 
             /* ─── Slider ─── */
             --slider-thumb: 16px;
@@ -200,7 +201,7 @@
         #ui { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
               z-index: var(--z-ui);
               padding: var(--space-xl); max-width: 420px; width: 90%;
-              transition: transform 0.4s ease, top 0.4s ease, bottom 0.4s ease, max-width 0.4s ease, padding 0.4s ease;
+              transition: transform 0.4s ease, top 0.4s ease, bottom 0.4s ease, max-width 0.4s ease, padding 0.4s ease, opacity var(--transition-fade), visibility var(--transition-fade);
               max-height: 85vh; max-height: 85dvh; overflow-y: auto; }
 
         #ui.loaded { top: auto; bottom: 20px; left: auto; right: 20px;
@@ -243,10 +244,25 @@
         label { font-size: var(--text-md); font-weight: 600; margin-top: var(--space-lg); display: block;
                 text-transform: uppercase; letter-spacing: 0.8px; color: var(--color-text-secondary); }
 
-        .hidden { display: none !important; }
+        .hidden {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            visibility: hidden !important;
+        }
 
         #controls { margin-top: var(--space-lg); padding-top: var(--space-lg);
-                    border-top: 1px solid var(--color-border); }
+                    border-top: 1px solid var(--color-border);
+                    transition: opacity var(--transition-fade), max-height 0.4s ease, margin-top 0.3s ease, padding-top 0.3s ease, border-color 0.3s ease;
+                    max-height: 2000px; overflow: hidden; }
+        #controls.hidden {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            visibility: hidden !important;
+            max-height: 0 !important;
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+            border-top-color: transparent !important;
+        }
 
         /* ─── Unified Slider Style ─── */
         .slider, .volume-slider, .fps-param input[type="range"] {
@@ -303,7 +319,8 @@
         .slider-wrapper .slider { margin: 0; }
         .center-mark { position: absolute; top: 50%; transform: translateY(-50%);
                        width: 2px; height: 12px; background: rgba(255,255,255,0.4);
-                       pointer-events: none; border-radius: 1px; }
+                       pointer-events: none; border-radius: 1px;
+                       transition: opacity 0.2s ease; }
 
         .hint { font-size: var(--text-xs); color: var(--color-text-dim); margin-top: var(--space-sm); text-align: left;
                 font-style: italic; }
@@ -311,7 +328,8 @@
         #shape-selector { position: fixed; top: 20px; right: 20px; z-index: var(--z-ui);
                           display: flex; gap: var(--space-sm); background: var(--color-panel-light);
                           padding: var(--space-sm); border-radius: var(--radius-lg);
-                          border: 1px solid var(--color-border); }
+                          border: 1px solid var(--color-border);
+                          transition: opacity var(--transition-fade), visibility var(--transition-fade); }
 
         .shape-btn { width: 40px; height: 40px; background: rgba(255,255,255,0.06);
                      border: 1px solid var(--color-border); border-radius: var(--radius-md);
@@ -348,7 +366,16 @@
         .version-item.current { background: var(--color-surface-active); font-weight: 600; }
 
         /* Video controls */
-        .video-controls { margin-top: var(--space-md); }
+        .video-controls { margin-top: var(--space-md);
+                          transition: opacity var(--transition-fade), max-height 0.4s ease, margin-top 0.3s ease;
+                          max-height: 500px; overflow: hidden; }
+        .video-controls.hidden {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            visibility: hidden !important;
+            max-height: 0 !important;
+            margin-top: 0 !important;
+        }
         .video-control-btn { padding: var(--space-sm) var(--space-md); font-size: var(--text-sm); margin: 0; width: 100%; }
 
         .video-timeline { margin-top: var(--space-sm); }
@@ -409,8 +436,8 @@
             max-height: calc(100vh - 40px);
             max-height: calc(100dvh - 40px);
             overflow-y: auto;
+            transition: opacity var(--transition-fade), visibility var(--transition-fade);
         }
-        #screen-manager-panel.hidden { display: none; }
         #screen-manager-panel h2 {
             font-size: var(--text-md);
             text-transform: uppercase;
@@ -600,8 +627,9 @@
             max-width: 320px;
             width: 320px;
             font-size: var(--text-md);
+            transition: opacity var(--transition-fade), visibility var(--transition-fade);
         }
-        #fps-settings-panel.hidden { display: none !important; }
+        /* fps-settings-panel uses generic .hidden fade */
         #fps-settings-panel h3 {
             margin: 0 0 var(--space-md) 0;
             font-size: var(--text-md);
@@ -681,12 +709,13 @@
             height: 100dvh;
             background: #000;
             z-index: var(--z-welcome);
-            transition: opacity 0.6s ease;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
             overflow: hidden;
         }
         #welcome-screen.hidden {
             opacity: 0;
             pointer-events: none;
+            visibility: hidden;
         }
         /* PC: forme floue — deux états : base (1400px) → hover (2400px).
            Seule la width change entre les deux. */
@@ -984,17 +1013,22 @@
             height: 100vh;
             height: 100dvh;
             background: transparent;
-            display: none;
+            display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 40px 0;
             box-sizing: border-box;
             z-index: var(--z-pause);
-            transition: opacity 0.4s ease;
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
         }
         #pause-screen.active {
-            display: flex;
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
         }
         .pause-content {
             max-width: 700px;
@@ -1185,6 +1219,13 @@
             background: rgba(100,150,255,0.35);
             border-color: rgba(100,150,255,0.8);
         }
+        /* Fade transitions for icon swaps inside buttons */
+        #sound-waves, #mute-slash, .fs-enter-icon, .fs-exit-icon {
+            transition: opacity 0.2s ease;
+        }
+        .fs-exit-icon {
+            position: absolute;
+        }
         .mute-button.active-state:hover, .pause-close-btn.active-state:hover, .lang-button.active-state:hover {
             background: rgba(100,150,255,0.45);
         }
@@ -1235,6 +1276,7 @@
             left: 24px;
             top: auto;
             min-width: 160px;
+            transition: opacity var(--transition-fade), visibility var(--transition-fade);
         }
 
         .game-instructions {
@@ -1244,6 +1286,7 @@
             top: auto;
             min-width: 200px;
             opacity: 1;
+            transition: opacity var(--transition-fade), visibility var(--transition-fade);
         }
         .game-instructions .instruction-line {
             transition: opacity 0.6s ease;
@@ -1265,6 +1308,7 @@
             align-items: center;
             gap: 12px;
             line-height: 1.35;
+            transition: opacity var(--transition-fade), visibility var(--transition-fade);
         }
         .instruction-line.secondary {
             font-size: 13px;
@@ -1365,22 +1409,27 @@
             height: 100vh;
             height: 100dvh;
             background: var(--color-bg);
-            display: none;
+            display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: var(--z-loading);
-            opacity: 1;
-            transition: opacity 0.5s ease;
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
         }
 
         #loading-screen.active {
-            display: flex;
             opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
         }
 
         #loading-screen.hidden {
             opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
         }
 
         /* Fade-from-black overlay: sits behind loading screen, reveals 3D scene smoothly */
@@ -1393,16 +1442,16 @@
             height: 100dvh;
             background: var(--color-bg);
             z-index: calc(var(--z-loading) - 1);
-            opacity: 1;
+            opacity: 0;
             pointer-events: none;
-            display: none;
+            visibility: hidden;
             will-change: opacity;
-            transition: opacity 1.2s ease;
+            transition: opacity 1.2s ease, visibility 1.2s ease;
         }
 
         #scene-reveal-overlay.active {
-            display: block;
             opacity: 1;
+            visibility: visible;
         }
 
         #scene-reveal-overlay.revealed {
@@ -1459,6 +1508,7 @@
             color: var(--color-fps-ok);
             min-width: 90px;
             text-align: center;
+            transition: opacity var(--transition-fade), visibility var(--transition-fade);
         }
         #fps-counter .fps-value {
             font-size: 26px;
@@ -1578,6 +1628,7 @@
             width: 120px;
             height: 120px;
             touch-action: none;
+            transition: opacity var(--transition-fade), visibility var(--transition-fade);
         }
         #mobile-joystick .joystick-base {
             position: absolute;
@@ -1686,11 +1737,12 @@
             color: rgba(255,255,255,1.0);
             max-width: 220px;
             opacity: 1;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
         }
         #mobile-instructions.hidden {
             opacity: 0;
             pointer-events: none;
+            visibility: hidden;
         }
         #mobile-instructions .instruction-separator {
             text-align: center;
@@ -1742,6 +1794,7 @@
             border-radius: var(--radius-xl);
             border: 1px solid var(--color-border);
             text-align: center;
+            transition: opacity var(--transition-fade);
         }
         #gyro-permission-btn h3 {
             font-size: 18px;
@@ -2265,7 +2318,7 @@
             <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
             <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
         </svg>
-        <svg class="fs-exit-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+        <svg class="fs-exit-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0;">
             <path d="M8 3v3a2 2 0 0 1-2 2H3"></path>
             <path d="M21 8h-3a2 2 0 0 1-2-2V3"></path>
             <path d="M3 16h3a2 2 0 0 1 2 2v3"></path>
@@ -2334,7 +2387,7 @@
     </div>
 
     <!-- Gyroscope Debug Overlay (mobile only) -->
-    <div id="gyro-debug-overlay" style="display:none;">
+    <div id="gyro-debug-overlay" style="opacity:0; pointer-events:none;">
         <div id="gyro-debug-content"></div>
     </div>
 
@@ -2346,8 +2399,8 @@
     </div>
 
     <!-- Persistent Instructions (ALT + ESC — always visible in FPS mode) -->
-    <div class="persistent-instructions" id="persistent-instructions" style="display:none;">
-        <div class="instruction-line secondary" id="esc-fullscreen-instruction" style="display:none;">
+    <div class="persistent-instructions" id="persistent-instructions" style="opacity:0; visibility:hidden; pointer-events:none;">
+        <div class="instruction-line secondary" id="esc-fullscreen-instruction" style="opacity:0; visibility:hidden;">
             <span class="key">ESC</span>
             <span data-fr="Quitter le mode plein écran" data-en="Exit fullscreen mode">Quitter le mode plein écran</span>
         </div>
@@ -2485,7 +2538,7 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                 <button class="mute-button" id="mute-button" onclick="toggleMute()" ontouchstart="showVolumeSlider()" onmouseenter="showVolumeSlider()">
                     <svg id="mute-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path id="sound-waves" d="M12 6v12M8 9v6M16 8v8M4 11v2M20 10v4"></path>
-                        <line id="mute-slash" x1="4" y1="4" x2="20" y2="20" stroke-width="2" style="display:none;"></line>
+                        <line id="mute-slash" x1="4" y1="4" x2="20" y2="20" stroke-width="2" style="opacity:0;"></line>
                     </svg>
                 </button>
             </div>
@@ -2501,7 +2554,7 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                     <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
                     <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
                 </svg>
-                <svg class="fs-exit-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none;">
+                <svg class="fs-exit-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="opacity:0;">
                     <path d="M8 3v3a2 2 0 0 1-2 2H3"></path>
                     <path d="M21 8h-3a2 2 0 0 1-2-2V3"></path>
                     <path d="M3 16h3a2 2 0 0 1 2 2v3"></path>
@@ -2689,7 +2742,7 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                 <div class="slider-wrapper">
                     <input type="range" class="slider" id="size" min="0.1" max="2.0" step="0.01" value="0.39">
                     <div class="center-mark" id="size-mark-2d" style="left: 47.4%;"></div>
-                    <div class="center-mark" id="size-mark-3d" style="left: 13.2%; display: none;"></div>
+                    <div class="center-mark" id="size-mark-3d" style="left: 13.2%; opacity: 0;"></div>
                 </div>
             </div>
 
@@ -9057,7 +9110,10 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
             // Also hide when game-instructions is visible to avoid overlap
             const persistentInstr = document.getElementById('persistent-instructions');
             if (persistentInstr) {
-                persistentInstr.style.display = (fpsMode && !isPaused && !gameInstructionsVisible) ? 'flex' : 'none';
+                const showPersistent = fpsMode && !isPaused && !gameInstructionsVisible;
+                persistentInstr.style.opacity = showPersistent ? '1' : '0';
+                persistentInstr.style.visibility = showPersistent ? 'visible' : 'hidden';
+                persistentInstr.style.pointerEvents = showPersistent ? '' : 'none';
             }
 
             if (animateFrameCount === 1) {
@@ -9128,11 +9184,11 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                 const mark2D = document.getElementById('size-mark-2d');
                 const mark3D = document.getElementById('size-mark-3d');
                 if (is3DMode) {
-                    mark2D.style.display = 'none';
-                    mark3D.style.display = 'block';
+                    mark2D.style.opacity = '0';
+                    mark3D.style.opacity = '1';
                 } else {
-                    mark2D.style.display = 'block';
-                    mark3D.style.display = 'none';
+                    mark2D.style.opacity = '1';
+                    mark3D.style.opacity = '0';
                 }
 
                 if (currentVideo) {
@@ -9546,14 +9602,14 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                 if (this.isMuted) {
                     // Mute everything
                     if (this.music) this.music.volume = 0;
-                    soundWaves.style.display = 'none';
-                    muteSlash.style.display = 'block';
+                    soundWaves.style.opacity = '0';
+                    muteSlash.style.opacity = '1';
                     if (muteBtn) muteBtn.classList.add('active-state');
                 } else {
                     // Unmute
                     if (this.music) this.music.volume = this.currentMusicVolume;
-                    soundWaves.style.display = 'block';
-                    muteSlash.style.display = 'none';
+                    soundWaves.style.opacity = '1';
+                    muteSlash.style.opacity = '0';
                     if (muteBtn) muteBtn.classList.remove('active-state');
 
                     // Play confirmation sound
@@ -10756,17 +10812,20 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                     if (permission === 'granted') {
                         gyroPermissionGranted = true;
                         enableGyroscope();
-                        permissionBtn.style.display = 'none';
+                        permissionBtn.style.opacity = '0';
+                        setTimeout(() => { permissionBtn.style.display = 'none'; }, 300);
                     }
                 } catch (error) {
                     console.warn('Gyroscope permission denied:', error);
-                    permissionBtn.style.display = 'none';
+                    permissionBtn.style.opacity = '0';
+                    setTimeout(() => { permissionBtn.style.display = 'none'; }, 300);
                 }
             } else {
                 // Non-iOS ou ancien navigateur
                 gyroPermissionGranted = true;
                 enableGyroscope();
-                permissionBtn.style.display = 'none';
+                permissionBtn.style.opacity = '0';
+                setTimeout(() => { permissionBtn.style.display = 'none'; }, 300);
             }
         };
 
@@ -10855,7 +10914,7 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
         // Debug overlay update
         function updateGyroDebug(compensatedAlpha) {
             const overlay = document.getElementById('gyro-debug-overlay');
-            if (!overlay || overlay.style.display === 'none') return;
+            if (!overlay || overlay.style.opacity === '0') return;
             const content = document.getElementById('gyro-debug-content');
             if (!content) return;
 
@@ -11318,8 +11377,8 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
             if (btn) {
                 const enterIcon = btn.querySelector('.fs-enter-icon');
                 const exitIcon = btn.querySelector('.fs-exit-icon');
-                if (enterIcon) enterIcon.style.display = isFS ? 'none' : 'block';
-                if (exitIcon) exitIcon.style.display = isFS ? 'block' : 'none';
+                if (enterIcon) enterIcon.style.opacity = isFS ? '0' : '1';
+                if (exitIcon) exitIcon.style.opacity = isFS ? '1' : '0';
                 // Active state: bleu quand plein écran actif
                 if (isFS) {
                     btn.classList.add('active-state');
@@ -11332,8 +11391,8 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
             if (pauseBtn) {
                 const enterIcon = pauseBtn.querySelector('.fs-enter-icon');
                 const exitIcon = pauseBtn.querySelector('.fs-exit-icon');
-                if (enterIcon) enterIcon.style.display = isFS ? 'none' : 'block';
-                if (exitIcon) exitIcon.style.display = isFS ? 'block' : 'none';
+                if (enterIcon) enterIcon.style.opacity = isFS ? '0' : '1';
+                if (exitIcon) exitIcon.style.opacity = isFS ? '1' : '0';
                 // Active state: blue when fullscreen is engaged
                 if (isFS) {
                     pauseBtn.classList.add('active-state');
@@ -11351,9 +11410,9 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
         function updateEscInstructionVisibility() {
             const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
             const escInstr = document.getElementById('esc-fullscreen-instruction');
-            if (escInstr) escInstr.style.display = isFS ? '' : 'none';
+            if (escInstr) { escInstr.style.opacity = isFS ? '1' : '0'; escInstr.style.visibility = isFS ? 'visible' : 'hidden'; }
             const pauseEscInstr = document.getElementById('pause-esc-fullscreen-instruction');
-            if (pauseEscInstr) pauseEscInstr.style.display = isFS ? '' : 'none';
+            if (pauseEscInstr) { pauseEscInstr.style.opacity = isFS ? '1' : '0'; pauseEscInstr.style.visibility = isFS ? 'visible' : 'hidden'; }
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -11415,8 +11474,11 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                 if (isIOS && !gyroPermissionGranted &&
                     typeof DeviceOrientationEvent !== 'undefined' &&
                     typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    // Afficher le bouton de permission
-                    document.getElementById('gyro-permission-btn').style.display = 'block';
+                    // Afficher le bouton de permission en fondu
+                    const gpBtn = document.getElementById('gyro-permission-btn');
+                    gpBtn.style.opacity = '0';
+                    gpBtn.style.display = 'block';
+                    requestAnimationFrame(() => { gpBtn.style.opacity = '1'; });
                 }
 
                 // Appeler la fonction originale
@@ -11445,7 +11507,7 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                     if (el) {
                         el.classList.remove('hidden');
                         el.style.opacity = '0';
-                        el.style.transition = 'opacity 0.8s ease';
+                        el.style.transition = 'opacity 0.8s ease, visibility 0.8s ease';
                         // Forcer display: flex/block selon l'élément
                         if (id === 'mobile-joystick') {
                             el.style.display = 'block';
