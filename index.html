@@ -13,6 +13,9 @@
     <link rel="icon" type="image/png" sizes="16x16" href="img/presences_rares_favicon_v2.png">
     <link rel="apple-touch-icon" sizes="180x180" href="img/presences_rares_favicon_v2.png">
 
+    <!-- Preload background video for instant welcome screen -->
+    <link rel="preload" href="videos/background_mobile.webm" as="video" type="video/webm" fetchpriority="high">
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2439,7 +2442,8 @@
 
     <!-- Welcome Screen -->
     <div id="welcome-screen">
-        <video id="welcome-video-bg" autoplay loop muted playsinline preload="none">
+        <video id="welcome-video-bg" autoplay loop muted playsinline preload="auto">
+            <source src="videos/background_mobile.webm" type="video/webm">
         </video>
 
         <!-- Overlay fondu noir au clic play (devant tout sauf logo) -->
@@ -10060,6 +10064,8 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
             }
 
             // Handle background video loading
+            // Source is set directly in HTML with preload="auto" and <link rel="preload">
+            // so the browser starts fetching the video as early as possible.
             const welcomeVideo = document.getElementById('welcome-video-bg');
             if (welcomeVideo) {
                 function showWelcomeVideo() {
@@ -10073,19 +10079,15 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                 welcomeVideo.addEventListener('loadeddata', showWelcomeVideo);
                 welcomeVideo.addEventListener('canplay', showWelcomeVideo);
 
-                // Fallback timeout: show video after 4s even if events don't fire
+                // Fallback timeout: show video after 1.5s even if events don't fire
                 setTimeout(function() {
-                    if (!welcomeVideo.classList.contains('loaded') && welcomeVideo.readyState >= 2) {
+                    if (!welcomeVideo.classList.contains('loaded') && welcomeVideo.readyState >= 1) {
                         showWelcomeVideo();
                         console.log('⏱️ Vidéo affichée via timeout fallback');
                     }
-                }, 4000);
+                }, 1500);
 
-                // Set source and start loading (no double-load from HTML)
-                welcomeVideo.src = 'videos/background_mobile.webm';
-                welcomeVideo.load();
-
-                // Already ready (cached)
+                // Already ready (cached / preloaded)
                 if (welcomeVideo.readyState >= 2) {
                     showWelcomeVideo();
                 }
