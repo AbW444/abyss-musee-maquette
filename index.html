@@ -2597,7 +2597,7 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
     <div id="video-paused-indicator">VIDEO PAUSED</div>
 
     <!-- FPS Counter -->
-    <div id="fps-counter">
+    <div id="fps-counter" class="hidden">
         <span class="fps-value">60</span>
         <span class="fps-label">FPS</span>
     </div>
@@ -2698,7 +2698,7 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
     </div>
 
     <!-- Screen Management Panel (Left side) -->
-    <div id="screen-manager-panel">
+    <div id="screen-manager-panel" class="hidden">
         <button class="panel-close-btn" onclick="document.getElementById('screen-manager-panel').classList.add('hidden')" title="Fermer (N pour réafficher)">×</button>
         <h2>Gestion des Écrans</h2>
         <div class="screen-list" id="screen-list"></div>
@@ -2713,7 +2713,7 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
         </p>
     </div>
 
-    <div id="ui">
+    <div id="ui" class="hidden">
         <button class="panel-close-btn" onclick="document.getElementById('ui').classList.add('hidden')" title="Fermer (N pour réafficher)">×</button>
         <div id="load-section">
             <div class="preview" id="preview">Empty</div>
@@ -3108,7 +3108,8 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
 
         // Free camera (no orbit controls, no pivot)
         let freeCameraEnabled = true;
-        let fpsMode = false; // Mode Normal/Admin par défaut - Touche B pour activer mode FPS
+        let fpsMode = false; // Mode FPS/Spectateur - Touche B pour basculer (après init)
+        let fpsInitialized = false; // True une fois que autoLoadSequence a activé le mode FPS
         let bPressCount = 0; // Compteur d'appuis consécutifs sur B
         let bPressTimeout = null; // Timeout pour réinitialiser le compteur
         let showHitbox = false; // Affichage de la hitbox activé avec touche H
@@ -3423,6 +3424,11 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
 
         // Keyboard controls
         document.addEventListener('keydown', function(e) {
+            // PRE-INIT: Block all keys except basic navigation until FPS mode initialized
+            if (!fpsInitialized) {
+                return; // No keyboard interaction before autoLoadSequence completes
+            }
+
             // SPECTATOR MODE: Only allow movement keys and mode toggle
             if (fpsMode) {
                 const allowedKeys = [
@@ -3639,9 +3645,14 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                 console.log('🪟 Ceiling reflection:', ceilingReflectEnabled ? 'ON' : 'OFF');
             }
 
-            // B: Toggle FPS mode (requires 5 consecutive presses)
+            // B: Toggle FPS mode (requires 5 consecutive presses + FPS must have been initialized)
             if (e.code === 'KeyB') {
                 e.preventDefault();
+
+                // Block mode toggle until autoLoadSequence has initialized FPS mode
+                if (!fpsInitialized) {
+                    return;
+                }
 
                 // Clear existing timeout
                 if (bPressTimeout) {
@@ -3864,10 +3875,10 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
             }
         }
 
-        // Toggle all interfaces (touche N) - ONLY accessible in Admin mode
+        // Toggle all interfaces (touche N) - ONLY accessible in Admin mode (after FPS init)
         function toggleAllInterfaces() {
-            // Only allow in Admin mode (not FPS/Spectator mode)
-            if (fpsMode) return;
+            // Only allow in Admin mode (not FPS/Spectator mode), and only after init
+            if (fpsMode || !fpsInitialized) return;
 
             const ui = document.getElementById('ui');
             const screenManager = document.getElementById('screen-manager-panel');
@@ -4020,8 +4031,8 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
             });
             screenOutlines = {};
 
-            // Only show in Admin mode
-            if (fpsMode) return;
+            // Only show in Admin mode (and only after FPS has been initialized)
+            if (fpsMode || !fpsInitialized) return;
 
             // Create labels and outlines for ALL screens and shapes
             Object.keys(allScreens).forEach(screenNum => {
@@ -5424,8 +5435,10 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                 previewEl.classList.add('loaded');
                 previewVideo.play();
 
-                // Show controls
-                document.getElementById('video-controls').classList.remove('hidden');
+                // Show controls ONLY if in Admin mode (not in FPS/Spectator mode)
+                if (!fpsMode) {
+                    document.getElementById('video-controls').classList.remove('hidden');
+                }
 
                 // Reset sliders to default ONLY on first load
                 if (isFirstLoad) {
@@ -5449,8 +5462,10 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                     updateValueDisplay('luminescence');
                     updateValueDisplay('depthPeakSmooth');
 
-                    // Keep both load-section and controls visible
-                    document.getElementById('controls').classList.remove('hidden');
+                    // Keep both load-section and controls visible ONLY in Admin mode
+                    if (!fpsMode) {
+                        document.getElementById('controls').classList.remove('hidden');
+                    }
                     document.getElementById('ui').classList.add('loaded');
                     // Interfaces visibility managed by mode system (Spectator/Admin)
                 }
@@ -9369,7 +9384,7 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
 
         // Toggle FPS panel with F key (Admin mode only)
         document.addEventListener('keydown', function(e) {
-            if (e.code === 'KeyF' && !e.ctrlKey && !e.shiftKey && !e.altKey && !fpsMode) {
+            if (e.code === 'KeyF' && !e.ctrlKey && !e.shiftKey && !e.altKey && !fpsMode && fpsInitialized) {
                 const panel = document.getElementById('fps-settings-panel');
                 panel.classList.toggle('hidden');
                 console.log(panel.classList.contains('hidden') ? '🔧 FPS Settings cachés (F pour afficher)' : '🔧 FPS Settings affichés (F pour cacher)');
@@ -10200,6 +10215,7 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                 // Step 2: Activate FPS mode (Spectator mode)
                 console.log('🎮 AUTO-LOAD: Activation du mode SPECTATEUR...');
                 fpsMode = true;
+                fpsInitialized = true; // Admin mode now unlocked via B key (5x)
 
                 // Hide all interfaces in Spectator mode
                 document.getElementById('ui')?.classList.add('hidden');
@@ -11931,10 +11947,12 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
             console.log(css);
         };
 
-        /* ── 5xB toggle on welcome screen ── */
+        /* ── 5xB toggle on welcome screen — DISABLED (dev tool, requires fpsInitialized) ── */
         document.addEventListener('keydown', function(e) {
             if (e.code !== 'KeyB') return;
             if (!ws || ws.classList.contains('hidden')) return;
+            // Block blur tuning panel until FPS mode has been initialized (admin mode unlocked)
+            if (typeof fpsInitialized === 'undefined' || !fpsInitialized) return;
 
             if (bTimer) clearTimeout(bTimer);
             bCount++;
