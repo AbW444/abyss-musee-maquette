@@ -5080,7 +5080,7 @@
             // Position de spawn au centre de la forme 11, à quelques unités au-dessus du sol
             // Sol de la forme 11: y = -111.773, on spawn à fpsCameraHeight
             // On mobile, spawn further back to give more perspective
-            const spawnX = isMobile ? -374.876 : -274.876;
+            const spawnX = isMobile ? -324.876 : -274.876;
             camera.position.set(spawnX, fpsSettings.fpsCameraHeight, 112.79);
             console.log(`📍 Position caméra: (${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)})`);
 
@@ -8947,11 +8947,14 @@
                     // ===== MODE FPS: Vitesse graduée avec accélération =====
 
                     if (isMoving) {
-                        // On mobile, scale max speed by analog joystick magnitude
+                        // On mobile, scale max speed by analog joystick magnitude (-15% on mobile)
+                        const mobileSpeedCap = fpsSettings.fpsMaxSpeed * 0.85;
                         const effectiveMaxSpeed = (isMobile && mobileSpeedMultiplier > 0)
-                            ? fpsSettings.fpsMaxSpeed * mobileSpeedMultiplier
-                            : fpsSettings.fpsMaxSpeed;
-                        currentSpeed = Math.min(currentSpeed + fpsSettings.fpsAcceleration, effectiveMaxSpeed);
+                            ? mobileSpeedCap * mobileSpeedMultiplier
+                            : (isMobile ? mobileSpeedCap : fpsSettings.fpsMaxSpeed);
+                        // Acceleration halved (2x longer ramp-up time)
+                        const accel = fpsSettings.fpsAcceleration * 0.5;
+                        currentSpeed = Math.min(currentSpeed + accel, effectiveMaxSpeed);
                         if (cameraKeys.sprint) {
                             currentSpeed = Math.min(currentSpeed, fpsSettings.fpsMaxSpeed * 1.5);
                         }
