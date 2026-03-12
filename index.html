@@ -758,11 +758,6 @@
             height: 100%;
             object-fit: cover;
             z-index: 0;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-        }
-        #welcome-video-bg.loaded {
-            opacity: 1;
         }
         #welcome-fade-overlay {
             position: absolute;
@@ -10109,29 +10104,8 @@
             // so the browser starts fetching the video as early as possible.
             const welcomeVideo = document.getElementById('welcome-video-bg');
             if (welcomeVideo) {
-                function showWelcomeVideo() {
-                    if (welcomeVideo.classList.contains('loaded')) return;
-                    welcomeVideo.classList.add('loaded');
-                    welcomeVideo.play().catch(function() {});
-                    console.log('✅ Vidéo d\'arrière-plan visible');
-                }
-
-                // Use loadeddata + canplay (more reliable than canplaythrough)
-                welcomeVideo.addEventListener('loadeddata', showWelcomeVideo);
-                welcomeVideo.addEventListener('canplay', showWelcomeVideo);
-
-                // Fallback timeout: show video after 1.5s even if events don't fire
-                setTimeout(function() {
-                    if (!welcomeVideo.classList.contains('loaded') && welcomeVideo.readyState >= 1) {
-                        showWelcomeVideo();
-                        console.log('⏱️ Vidéo affichée via timeout fallback');
-                    }
-                }, 1500);
-
-                // Already ready (cached / preloaded)
-                if (welcomeVideo.readyState >= 2) {
-                    showWelcomeVideo();
-                }
+                // Just play the video directly — no transition, no hidden state
+                welcomeVideo.play().catch(function() {});
 
                 // Handle power-saving pause (Chrome pauses muted background videos)
                 document.addEventListener('visibilitychange', function() {
