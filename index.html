@@ -894,10 +894,10 @@
             width: 160px;
             height: 161px;
             animation: playRondRotate 6s linear infinite;
-            transition: transform 0.45s cubic-bezier(0.25, 0.1, 0.25, 1.04);
+            transition: transform 0.7s cubic-bezier(0.23, 1, 0.32, 1);
         }
         body.hoverPlay .play-button-container .play-rond {
-            transform: scale(1.06) translateZ(0);
+            transform: scale(1.10) translateZ(0);
         }
         @keyframes playRondRotate {
             from { transform: rotate(0deg); }
@@ -907,8 +907,8 @@
             animation: playRondRotateHover 6s linear infinite;
         }
         @keyframes playRondRotateHover {
-            from { transform: rotate(0deg) scale(1.06) translateZ(0); }
-            to { transform: rotate(360deg) scale(1.06) translateZ(0); }
+            from { transform: rotate(0deg) scale(1.10) translateZ(0); }
+            to { transform: rotate(360deg) scale(1.10) translateZ(0); }
         }
         .play-button-container .play-fleche {
             width: 53px;
@@ -916,10 +916,10 @@
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%) translateX(4px) translateZ(0);
-            transition: transform 0.45s cubic-bezier(0.25, 0.1, 0.25, 1.04);
+            transition: transform 0.7s cubic-bezier(0.23, 1, 0.32, 1);
         }
         body.hoverPlay .play-button-container .play-fleche {
-            transform: translate(-50%, -50%) translateX(4px) scale(1.08) translateZ(0);
+            transform: translate(-50%, -50%) translateX(4px) scale(1.12) translateZ(0);
         }
 
         /* Logo container - PNG/WEBM (mobile) + poulpe MP4 (desktop) */
@@ -1026,7 +1026,8 @@
             opacity: 0;
             pointer-events: none;
             visibility: hidden;
-            transition: opacity 0.4s ease, visibility 0.4s ease;
+            transition: opacity 0.5s cubic-bezier(0.23, 1, 0.32, 1), visibility 0.5s ease;
+            will-change: opacity;
         }
         #pause-screen.active {
             opacity: 1;
@@ -1047,6 +1048,8 @@
             padding: 48px;
             text-align: left;
             pointer-events: all;
+            transform: translateZ(0);
+            will-change: opacity, backdrop-filter;
         }
         .pause-content::-webkit-scrollbar {
             display: none; /* Chrome/Safari */
@@ -1233,8 +1236,8 @@
             background: rgba(100,150,255,0.45);
         }
         .pause-credits {
-            position: absolute;
-            bottom: 18px;
+            position: fixed;
+            bottom: 24px;
             left: 50%;
             transform: translateX(-50%);
             font-size: 11px;
@@ -1244,6 +1247,7 @@
             text-align: center;
             width: max-content;
             max-width: 90vw;
+            z-index: var(--z-pause-controls);
         }
 
         /* Pause fullscreen button — fixed top-right, same margin as bottom buttons */
@@ -1839,7 +1843,7 @@
                 --playRight: clamp(30px, 8vw, 60px);
                 --playBottom: clamp(80px, 15vh, 120px);
                 --logoSize: clamp(88px, 23vw, 108px); /* 1.3x par rapport à l'original */
-                --playSize: clamp(79px, 19.4vw, 106px);
+                --playSize: clamp(65px, 16vw, 88px);
                 --playGap: 24px;
                 --hoverTextShift: 0px;
                 --clickTextExitX: 100px;
@@ -1924,13 +1928,14 @@
             .welcome-project-name {
                 font-size: clamp(28px, 8vw, 42px);
                 letter-spacing: 4px;
+                margin-top: 18px;
             }
             .welcome-project-name span[style*="vertical-align:super"] {
-                margin-left: 4px !important;
+                margin-left: 1px !important;
             }
             .welcome-title {
                 font-size: clamp(14px, 4vw, 18px);
-                margin-bottom: 24px;
+                margin-bottom: 14px;
             }
             .welcome-subtitle-inline {
                 font-size: clamp(10px, 3vw, 12px);
@@ -1965,14 +1970,17 @@
                 bottom: auto !important;
                 right: auto !important;
                 left: auto !important;
-                transform: none;
+                transform: scale(1);
                 margin: 32px auto;
                 width: var(--playSize);
                 height: var(--playSize);
                 background: none !important;
                 backdrop-filter: none !important;
                 -webkit-backdrop-filter: none !important;
-                transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity var(--clickFadeMs) ease;
+                transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity var(--clickFadeMs) ease;
+            }
+            .play-button-container.mobile-play:active {
+                transform: scale(1.2);
             }
             .play-button-container.desktop-play {
                 display: none !important;
@@ -2472,18 +2480,18 @@
         </div>
 
         <div class="welcome-content" id="welcome-content">
-            <span class="welcome-project-name">DUMBO<span style="font-size:0.35em;font-weight:300;vertical-align:super;letter-spacing:0;margin-left:-10px">*</span></span>
+            <span class="welcome-project-name">DUMBO<span style="font-size:0.35em;font-weight:100;vertical-align:super;letter-spacing:0;margin-left:-10px">*</span></span>
             <h1 class="welcome-title">
                 <span data-fr="Présences aquatiques rares" data-en="Rare Aquatic Presences">Présences aquatiques rares</span>
             </h1>
 
             <p class="welcome-text" data-fr="À grande profondeur, la lumière ne pénètre plus. Ce qui reste, c'est une luminance résiduelle, diffuse, portée par l'eau elle-même. Les organismes qui y vivent n'ont jamais été conçus pour être vus." data-en="At great depth, light no longer penetrates. What remains is a residual luminance, diffuse, carried by the water itself. The organisms that live there were never meant to be seen.">À grande profondeur, la lumière ne pénètre plus. Ce qui reste, c'est une luminance résiduelle, diffuse, portée par l'eau elle-même. Les organismes qui y vivent n'ont jamais été conçus pour être vus.</p>
 
-            <p class="welcome-text" data-fr="Ces captations viennent de là. Des engins téléopérés descendus à des milliers de mètres, dans des conditions de turbidité et de pression où l'image devient un document autant qu'une limite. On y voit des céphalopodes, des poissons cartilagineux, des silhouettes que les projecteurs du submersible tirent brièvement de l'obscurité." data-en="These captures come from there. Remotely operated vehicles descended to thousands of meters, in conditions of turbidity and pressure where the image becomes a document as much as a limit. One sees cephalopods, cartilaginous fish, silhouettes that the submersible's lights briefly pull from the darkness.">Ces captations viennent de là. Des engins téléopérés descendus à des milliers de mètres, dans des conditions de turbidité et de pression où l'image devient un document autant qu'une limite. On y voit des céphalopodes, des poissons cartilagineux, des silhouettes que les projecteurs du submersible tirent brièvement de l'obscurité.</p>
+            <p class="welcome-text" data-fr="Ces captations viennent d'engins téléopérés descendus à des milliers de mètres, dans des conditions de turbidité et de pression où l'image devient un document autant qu'une limite. On y voit des céphalopodes, des poissons cartilagineux, des silhouettes que les projecteurs du submersible tirent brièvement de l'obscurité." data-en="These captures come from there. Remotely operated vehicles descended to thousands of meters, in conditions of turbidity and pressure where the image becomes a document as much as a limit. One sees cephalopods, cartilaginous fish, silhouettes that the submersible's lights briefly pull from the darkness.">Ces captations viennent d'engins téléopérés descendus à des milliers de mètres, dans des conditions de turbidité et de pression où l'image devient un document autant qu'une limite. On y voit des céphalopodes, des poissons cartilagineux, des silhouettes que les projecteurs du submersible tirent brièvement de l'obscurité.</p>
 
             <p class="welcome-text" data-fr="Ce projet les traduit en volumes. La luminance de chaque image, porteuse des conditions d'éclairage du milieu, détermine le relief des formes exposées. Pas de reconstitution. Pas de fiction. Une tentative de donner du poids à ce qui résiste à l'image." data-en="This project translates them into volumes. The luminance of each image, carrying the lighting conditions of the environment, determines the relief of the exposed forms. No reconstruction. No fiction. An attempt to give weight to what resists the image.">Ce projet les traduit en volumes. La luminance de chaque image, porteuse des conditions d'éclairage du milieu, détermine le relief des formes exposées. Pas de reconstitution. Pas de fiction. Une tentative de donner du poids à ce qui résiste à l'image.<br><br><i style="font-size:0.88em;line-height:1.275;display:inline-block;letter-spacing:0.16px"><span data-fr="*Dumbo : Grimpoteuthis spp. Pieuvres abyssales à nageoires. 1000–7000 m. Parmi les rares créatures des grands fonds à être entrées dans l'imaginaire collectif." data-en="*Dumbo: Grimpoteuthis spp. Abyssal finned octopuses. 1000–7000 m. Among the rare deep-sea creatures to have entered the collective imagination."><span style="font-weight:200">*Dumbo</span><span style="font-weight:100"> : Grimpoteuthis spp. Pieuvres abyssales à nageoires. 1000–7000 m. Parmi les rares créatures des grands fonds à être entrées dans l'imaginaire collectif.</span></span></i></p>
 
-            <div class="welcome-context" data-fr="Recherche par le design. Images issues de captations scientifiques réelles." data-en="Design research. Images from real scientific captures.">Recherche par le design. Images issues de captations scientifiques réelles.</div>
+            <div class="welcome-context" data-fr="Recherche par le design. Images issues de captations scientifiques réelles." data-en="Design research. Images from real scientific captures.">Recherche par le design.<br>Images issues de captations scientifiques réelles.</div>
           </div>
 
         <!-- Bouton Play mobile: déplacé dans welcome-content par JS en portrait -->
@@ -2535,7 +2543,7 @@
 
             <p class="pause-text" data-fr="Cet espace a été conçu comme une épreuve perceptive : tester comment ces volumes traduits se comportent à distance, dans un contexte d'exposition, en jouant sur l'échelle et la durée du regard." data-en="This space was designed as a perceptual test: testing how these translated volumes behave at a distance, in an exhibition context, playing on scale and the duration of the gaze.">Cet espace a été conçu comme une épreuve perceptive : tester comment ces volumes traduits se comportent à distance, dans un contexte d'exposition, en jouant sur l'échelle et la durée du regard.</p>
 
-            <div class="pause-meta" data-fr="Navigation libre. Déplacement lent recommandé. Les contenus peuvent évoluer au cours du projet." data-en="Free navigation. Slow movement recommended. Content may evolve during the project.">Navigation libre. Déplacement lent recommandé. Les contenus peuvent évoluer au cours du projet.</div>
+            <div class="pause-meta" data-fr="Navigation libre. Déplacement lent recommandé. Les contenus peuvent évoluer au cours du projet." data-en="Free navigation. Slow movement recommended. Content may evolve during the project.">Navigation libre.<br>Déplacement lent recommandé.<br>Les contenus peuvent évoluer au cours du projet.</div>
         </div>
 
         <div class="pause-controls" onclick="event.stopPropagation()">
@@ -8535,7 +8543,8 @@
 
         // Collision detection function (for FPS mode) - VERSION FINALE
         // FIX: Épaisseur minimale pour les PlaneGeometry qui n'ont pas d'épaisseur intrinsèque
-        const WALL_THICKNESS = 10; // Épaisseur minimale des murs pour la collision (en unités)
+        // On mobile, thicker collision walls to prevent clipping through at lower framerates
+        const WALL_THICKNESS = (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2)) ? 20 : 10;
 
         function checkCollision(newPosition, prevPosition) {
             if (!fpsMode) return false;
@@ -9032,10 +9041,17 @@
                             camera.position.y += playerVelocityY;
                         }
                     } else {
-                        // Pas de sol détecté - tomber
-                        isOnGround = false;
-                        playerVelocityY += fpsSettings.fpsGravity;
-                        camera.position.y += playerVelocityY;
+                        // Pas de sol détecté — sur mobile, maintenir la hauteur au lieu de tomber
+                        if (isMobile) {
+                            // Empêcher la chute : rester à la hauteur de spawn
+                            camera.position.y = fpsSettings.fpsCameraHeight;
+                            playerVelocityY = 0;
+                            isOnGround = true;
+                        } else {
+                            isOnGround = false;
+                            playerVelocityY += fpsSettings.fpsGravity;
+                            camera.position.y += playerVelocityY;
+                        }
                     }
 
                     // Head bobbing: dual-sine (vertical + lateral)
