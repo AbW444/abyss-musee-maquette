@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="img/presences_rares_favicon_v2.png">
 
     <!-- Preload background video for instant welcome screen -->
-    <link rel="preload" href="videos/background_mobile.webm" as="video" type="video/webm" fetchpriority="high">
+    <link rel="preload" href="videos/background_mobile.webm" as="fetch" type="video/webm" crossorigin fetchpriority="high">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,7 +25,7 @@
         :root {
             /* ─── Layout Welcome Screen ─── */
             --textLeft: 240px;
-            --textColW: 580px;
+            --textColW: 480px;
             --textTop: 150px;
             --logoSize: 156px;
             --playRight: 80px;
@@ -786,7 +786,7 @@
             top: 50%;
             transform: translateY(-50%);
             width: var(--textColW);
-            max-width: 580px; /* ~60-65 caractères par ligne */
+            max-width: 480px; /* ~50-55 caractères par ligne */
             max-height: calc(100vh - 120px + 2vh);
             max-height: calc(100dvh - 120px + 2vh);
             overflow-y: auto;
@@ -1241,6 +1241,9 @@
             color: rgba(255,255,255,0.28);
             font-style: italic;
             letter-spacing: 0.3px;
+            text-align: center;
+            width: max-content;
+            max-width: 90vw;
         }
 
         /* Pause fullscreen button — fixed top-right, same margin as bottom buttons */
@@ -1343,7 +1346,7 @@
             font-family: var(--font-mono);
             font-size: 12px;
             color: rgba(255,255,255,1.0);
-            font-weight: 700;
+            font-weight: 500;
             white-space: nowrap;
             line-height: 1;
             min-width: 28px;
@@ -1922,6 +1925,9 @@
                 font-size: clamp(28px, 8vw, 42px);
                 letter-spacing: 4px;
             }
+            .welcome-project-name span[style*="vertical-align:super"] {
+                margin-left: 4px !important;
+            }
             .welcome-title {
                 font-size: clamp(14px, 4vw, 18px);
                 margin-bottom: 24px;
@@ -1946,6 +1952,10 @@
                 margin-top: 30px;
                 padding-top: 20px;
                 margin-bottom: 4px;
+            }
+            /* Réduction de 20% du texte crédits sur mobile */
+            .pause-credits {
+                font-size: 8.8px;
             }
 
             /* Bouton play: dans le flux du bloc texte, centré, apparaît au scroll */
@@ -2464,17 +2474,16 @@
         <div class="welcome-content" id="welcome-content">
             <span class="welcome-project-name">DUMBO<span style="font-size:0.35em;font-weight:300;vertical-align:super;letter-spacing:0;margin-left:-10px">*</span></span>
             <h1 class="welcome-title">
-                <span data-fr="Présences aquatiques rares" data-en="Rare Aquatic Presences">Présences aquatiques rares</span><br>
-                <span class="welcome-subtitle-inline" data-fr="Maquette de dispositif d'expérience." data-en="Experience device prototype.">Maquette de dispositif d'expérience.</span>
+                <span data-fr="Présences aquatiques rares" data-en="Rare Aquatic Presences">Présences aquatiques rares</span>
             </h1>
 
-            <p class="welcome-text" data-fr="Les images utilisées ici proviennent de captations sous-marines réelles, tournées en grande profondeur. Elles montrent des organismes rarement observés, dans des conditions de lumière, de turbidité et de distance propres au milieu abyssal." data-en="The images used here come from real underwater captures, filmed at great depth. They show rarely observed organisms, in conditions of light, turbidity and distance specific to the abyssal environment.">Les images utilisées ici proviennent de captations sous-marines réelles, tournées en grande profondeur. Elles montrent des organismes rarement observés, dans des conditions de lumière, de turbidité et de distance propres au milieu abyssal.</p>
+            <p class="welcome-text" data-fr="À grande profondeur, la lumière ne pénètre plus. Ce qui reste, c'est une luminance résiduelle, diffuse, portée par l'eau elle-même. Les organismes qui y vivent n'ont jamais été conçus pour être vus." data-en="At great depth, light no longer penetrates. What remains is a residual luminance, diffuse, carried by the water itself. The organisms that live there were never meant to be seen.">À grande profondeur, la lumière ne pénètre plus. Ce qui reste, c'est une luminance résiduelle, diffuse, portée par l'eau elle-même. Les organismes qui y vivent n'ont jamais été conçus pour être vus.</p>
 
-            <p class="welcome-text" data-fr="Ces images sont traduites en volumes par un protocole fondé sur la luminance. Pas de reconstitution. Pas de fiction. Une tentative de rendre perceptibles des formes de vie qui résistent à l'image." data-en="These images are translated into volumes through a luminance-based protocol. No reconstruction. No fiction. An attempt to make perceptible life forms that resist the image.">Ces images sont traduites en volumes par un protocole fondé sur la luminance. Pas de reconstitution. Pas de fiction. Une tentative de rendre perceptibles des formes de vie qui résistent à l'image.<br><br><i style="font-size:0.88em;line-height:1.275;display:inline-block;letter-spacing:0.16px"><span data-fr="*Dumbo : Grimpoteuthis spp. Opisthoteuthidae. Pieuvres abyssales à nageoires, 1000-7000 m. Parmi les rares organismes des grands fonds à être entrés dans l'imaginaire collectif, leur silhouette en fait une vitrine involontaire d'un milieu qui en a peu." data-en="*Dumbo: Grimpoteuthis spp. Opisthoteuthidae. Abyssal finned octopuses, 1000-7000 m. Among the rare deep-sea organisms to have entered the collective imagination, their silhouette makes them an involuntary showcase of an environment that has few."><span style="font-weight:200">*Dumbo</span><span style="font-weight:100"> : Grimpoteuthis spp. Opisthoteuthidae. Pieuvres abyssales à nageoires, 1000-7000 m. Parmi les rares organismes des grands fonds à être entrés dans l'imaginaire collectif, leur silhouette en fait une vitrine involontaire d'un milieu qui en a peu.</span></span></i></p>
+            <p class="welcome-text" data-fr="Ces captations viennent de là. Des engins téléopérés descendus à des milliers de mètres, dans des conditions de turbidité et de pression où l'image devient un document autant qu'une limite. On y voit des céphalopodes, des poissons cartilagineux, des silhouettes que les projecteurs du submersible tirent brièvement de l'obscurité." data-en="These captures come from there. Remotely operated vehicles descended to thousands of meters, in conditions of turbidity and pressure where the image becomes a document as much as a limit. One sees cephalopods, cartilaginous fish, silhouettes that the submersible's lights briefly pull from the darkness.">Ces captations viennent de là. Des engins téléopérés descendus à des milliers de mètres, dans des conditions de turbidité et de pression où l'image devient un document autant qu'une limite. On y voit des céphalopodes, des poissons cartilagineux, des silhouettes que les projecteurs du submersible tirent brièvement de l'obscurité.</p>
 
-            <div class="welcome-context" data-fr="Projet de recherche par le design, maquette non définitive. Images issues de sources scientifiques réelles. Traductions visuelles réalisées dans un cadre expérimental." data-en="Design research project, non-definitive prototype. Images from real scientific sources. Visual translations produced in an experimental framework.">Projet de recherche par le design, maquette non définitive.<br>
-Images issues de sources scientifiques réelles.<br>
-Traductions visuelles réalisées dans un cadre expérimental.<br></div>
+            <p class="welcome-text" data-fr="Ce projet les traduit en volumes. La luminance de chaque image, porteuse des conditions d'éclairage du milieu, détermine le relief des formes exposées. Pas de reconstitution. Pas de fiction. Une tentative de donner du poids à ce qui résiste à l'image." data-en="This project translates them into volumes. The luminance of each image, carrying the lighting conditions of the environment, determines the relief of the exposed forms. No reconstruction. No fiction. An attempt to give weight to what resists the image.">Ce projet les traduit en volumes. La luminance de chaque image, porteuse des conditions d'éclairage du milieu, détermine le relief des formes exposées. Pas de reconstitution. Pas de fiction. Une tentative de donner du poids à ce qui résiste à l'image.<br><br><i style="font-size:0.88em;line-height:1.275;display:inline-block;letter-spacing:0.16px"><span data-fr="*Dumbo : Grimpoteuthis spp. Pieuvres abyssales à nageoires. 1000–7000 m. Parmi les rares créatures des grands fonds à être entrées dans l'imaginaire collectif." data-en="*Dumbo: Grimpoteuthis spp. Abyssal finned octopuses. 1000–7000 m. Among the rare deep-sea creatures to have entered the collective imagination."><span style="font-weight:200">*Dumbo</span><span style="font-weight:100"> : Grimpoteuthis spp. Pieuvres abyssales à nageoires. 1000–7000 m. Parmi les rares créatures des grands fonds à être entrées dans l'imaginaire collectif.</span></span></i></p>
+
+            <div class="welcome-context" data-fr="Recherche par le design. Images issues de captations scientifiques réelles." data-en="Design research. Images from real scientific captures.">Recherche par le design. Images issues de captations scientifiques réelles.</div>
           </div>
 
         <!-- Bouton Play mobile: déplacé dans welcome-content par JS en portrait -->
@@ -2520,17 +2529,13 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
         </div>
 
         <div class="pause-content" onclick="event.stopPropagation()">
-            <h2 class="pause-title" data-fr="À propos de cette maquette" data-en="About this prototype">À propos de cette maquette</h2>
+            <h2 class="pause-title" data-fr="À propos de ce projet" data-en="About this project">À propos de ce projet</h2>
 
-            <p class="pause-text" data-fr="Cet espace numérique a été conçu comme un outil de simulation perceptive. Les formes présentées sont générées par un protocole de volumétrie fondé sur la luminance : la lumière captée dans le milieu aquatique, reflet direct de ses conditions d'éclairage, détermine le relief des volumes exposés. L'espace permet de tester comment ces formes traduites peuvent être perçues lorsqu'elles sont disposées à une certaine distance du visiteur, dans un contexte d'exposition." data-en="This digital space was designed as a perceptive simulation tool. The forms presented are generated through a luminance-based volumetric protocol: the light captured in the aquatic environment, a direct reflection of its lighting conditions, determines the relief of the exhibited volumes. The space allows testing how these translated forms can be perceived when positioned at a certain distance from the visitor, in an exhibition context.">Cet espace numérique a été conçu comme un outil de simulation perceptive. Les formes présentées sont générées par un protocole de volumétrie fondé sur la luminance : la lumière captée dans le milieu aquatique, reflet direct de ses conditions d'éclairage, détermine le relief des volumes exposés. L'espace permet de tester comment ces formes traduites peuvent être perçues lorsqu'elles sont disposées à une certaine distance du visiteur, dans un contexte d'exposition.</p>
+            <p class="pause-text" data-fr="Ces formes ont été captées à des centaines de mètres de profondeur, dans des conditions lumineuses que l'œil humain ne rencontre jamais directement. Ce que vous observez ici n'est ni une reconstitution fidèle, ni une création fictionnelle : c'est le résultat d'un protocole de traduction où la luminance de l'image, porteuse des conditions d'éclairage du milieu sous-marin, est convertie en volume. La lumière captée dans l'eau détermine le relief. La présence vivante devient forme." data-en="These forms were captured at hundreds of meters depth, in lighting conditions the human eye never directly encounters. What you observe here is neither a faithful reconstruction nor a fictional creation: it is the result of a translation protocol where the luminance of the image, carrying the lighting conditions of the underwater environment, is converted into volume. The light captured in the water determines the relief. The living presence becomes form.">Ces formes ont été captées à des centaines de mètres de profondeur, dans des conditions lumineuses que l'œil humain ne rencontre jamais directement. Ce que vous observez ici n'est ni une reconstitution fidèle, ni une création fictionnelle : c'est le résultat d'un protocole de traduction où la luminance de l'image, porteuse des conditions d'éclairage du milieu sous-marin, est convertie en volume. La lumière captée dans l'eau détermine le relief. La présence vivante devient forme.</p>
 
-            <p class="pause-text" data-fr="Les formes présentées ne sont ni des reconstitutions fidèles, ni des créations fictionnelles. Elles résultent d'un protocole de traduction où la luminance de l'image, portant en elle les conditions lumineuses du milieu sous-marin, est convertie en volume. Ce processus, appliqué à des captations existantes, rend perceptible une présence vivante tout en assumant les limites du réel et de l'image." data-en="The forms presented are neither faithful reconstructions nor fictional creations. They result from a translation protocol where the luminance of the image, carrying within it the lighting conditions of the underwater environment, is converted into volume. This process, applied to existing captures, makes a living presence perceptible while acknowledging the limits of reality and image.">Les formes présentées ne sont ni des reconstitutions fidèles, ni des créations fictionnelles. Elles résultent d'un protocole de traduction où la luminance de l'image, portant en elle les conditions lumineuses du milieu sous-marin, est convertie en volume. Ce processus, appliqué à des captations existantes, rend perceptible une présence vivante tout en assumant les limites du réel et de l'image.</p>
+            <p class="pause-text" data-fr="Cet espace a été conçu comme une épreuve perceptive : tester comment ces volumes traduits se comportent à distance, dans un contexte d'exposition, en jouant sur l'échelle et la durée du regard." data-en="This space was designed as a perceptual test: testing how these translated volumes behave at a distance, in an exhibition context, playing on scale and the duration of the gaze.">Cet espace a été conçu comme une épreuve perceptive : tester comment ces volumes traduits se comportent à distance, dans un contexte d'exposition, en jouant sur l'échelle et la durée du regard.</p>
 
-            <p class="pause-text" data-fr="Le choix d'une maquette web répond à des contraintes de temps et de moyens. Il permet néanmoins d'explorer comment la distance, l'échelle et la durée du regard transforment une image documentaire en présence." data-en="The choice of a web prototype responds to time and resource constraints. It nonetheless allows exploring how distance, scale and the duration of the gaze transform a documentary image into presence.">Le choix d'une maquette web répond à des contraintes de temps et de moyens. Il permet néanmoins d'explorer comment la distance, l'échelle et la durée du regard transforment une image documentaire en présence.</p>
-
-            <p class="pause-text" data-fr="Cette interface ne remplace pas une exposition physique. Elle en constitue une première épreuve, destinée à nourrir la réflexion sur de futurs dispositifs de médiation." data-en="This interface does not replace a physical exhibition. It constitutes a first proof, intended to foster reflection on future mediation devices.">Cette interface ne remplace pas une exposition physique. Elle en constitue une première épreuve, destinée à nourrir la réflexion sur de futurs dispositifs de médiation.</p>
-
-            <div class="pause-meta" data-fr="Navigation libre, déplacement lent recommandé. Les contenus projetés peuvent évoluer au cours du projet." data-en="Free navigation, slow movement recommended. Projected content may evolve during the project.">Navigation libre, déplacement lent recommandé. Les contenus projetés peuvent évoluer au cours du projet.</div>
+            <div class="pause-meta" data-fr="Navigation libre. Déplacement lent recommandé. Les contenus peuvent évoluer au cours du projet." data-en="Free navigation. Slow movement recommended. Content may evolve during the project.">Navigation libre. Déplacement lent recommandé. Les contenus peuvent évoluer au cours du projet.</div>
         </div>
 
         <div class="pause-controls" onclick="event.stopPropagation()">
@@ -5071,7 +5076,9 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
             camera = new THREE.PerspectiveCamera(DEFAULT_FOV, aspectRatio, 0.1, 10000);
             // Position de spawn au centre de la forme 11, à quelques unités au-dessus du sol
             // Sol de la forme 11: y = -111.773, on spawn à fpsCameraHeight
-            camera.position.set(-274.876, fpsSettings.fpsCameraHeight, 112.79);
+            // On mobile, spawn further back to give more perspective
+            const spawnX = isMobile ? -374.876 : -274.876;
+            camera.position.set(spawnX, fpsSettings.fpsCameraHeight, 112.79);
             console.log(`📍 Position caméra: (${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)})`);
 
             // Orienter la caméra vers l'écran 7 puis tourner d'un quart de tour supplémentaire
@@ -8957,18 +8964,18 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                     // OPTIMIZED: Reuse global Vector3 for previous position
                     reusablePrevPosition.copy(camera.position);
 
-                    // Apply movement
-                    if (cameraKeys.forward) {
-                        camera.position.addScaledVector(reusableForward, currentSpeed);
-                    }
-                    if (cameraKeys.backward) {
-                        camera.position.addScaledVector(reusableForward, -currentSpeed);
-                    }
-                    if (cameraKeys.left) {
-                        camera.position.addScaledVector(reusableRight, -currentSpeed);
-                    }
-                    if (cameraKeys.right) {
-                        camera.position.addScaledVector(reusableRight, currentSpeed);
+                    // Apply movement (normalize diagonal to prevent sqrt(2) speed boost)
+                    const moveFwd = (cameraKeys.forward ? 1 : 0) - (cameraKeys.backward ? 1 : 0);
+                    const moveRight = (cameraKeys.right ? 1 : 0) - (cameraKeys.left ? 1 : 0);
+                    const moveMag = Math.sqrt(moveFwd * moveFwd + moveRight * moveRight);
+                    if (moveMag > 0) {
+                        const normalizedSpeed = currentSpeed / moveMag;
+                        if (moveFwd !== 0) {
+                            camera.position.addScaledVector(reusableForward, moveFwd * normalizedSpeed);
+                        }
+                        if (moveRight !== 0) {
+                            camera.position.addScaledVector(reusableRight, moveRight * normalizedSpeed);
+                        }
                     }
 
                     // Check collisions
@@ -10626,6 +10633,24 @@ Traductions visuelles réalisées dans un cadre expérimental.<br></div>
                 panoramicVideo.currentTime = 0;
                 panoramicVideo.play().catch(err => {
                     console.warn('⚠️ Erreur play panorama:', err);
+                });
+                // Auto-recovery: if video stalls/freezes, attempt to resume playback
+                panoramicVideo.addEventListener('stalled', function() {
+                    console.warn('⚠️ Vidéo panoramique stalled, tentative de reprise...');
+                    setTimeout(() => {
+                        if (panoramicVideo.paused || panoramicVideo.readyState < 3) {
+                            panoramicVideo.load();
+                            panoramicVideo.play().catch(() => {});
+                        }
+                    }, 1000);
+                });
+                panoramicVideo.addEventListener('waiting', function() {
+                    console.warn('⚠️ Vidéo panoramique en attente de données...');
+                    setTimeout(() => {
+                        if (panoramicVideo.paused) {
+                            panoramicVideo.play().catch(() => {});
+                        }
+                    }, 2000);
                 });
                 console.log('✅ Vidéo panoramique lancée');
                 return;
