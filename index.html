@@ -1026,8 +1026,7 @@
             opacity: 0;
             pointer-events: none;
             visibility: hidden;
-            transition: opacity 0.5s cubic-bezier(0.23, 1, 0.32, 1), visibility 0.5s ease;
-            will-change: opacity;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
         }
         #pause-screen.active {
             opacity: 1;
@@ -1048,8 +1047,6 @@
             padding: 48px;
             text-align: left;
             pointer-events: all;
-            transform: translateZ(0);
-            will-change: opacity, backdrop-filter;
         }
         .pause-content::-webkit-scrollbar {
             display: none; /* Chrome/Safari */
@@ -9950,7 +9947,23 @@
             lastPauseToggleTime = now;
 
             isPaused = true;
+
+            // Désactiver backdrop-filter pendant la transition pour éviter les saccades
+            const pauseContent = document.querySelector('.pause-content');
+            if (pauseContent) {
+                pauseContent.style.backdropFilter = 'none';
+                pauseContent.style.webkitBackdropFilter = 'none';
+            }
+
             document.getElementById('pause-screen').classList.add('active');
+
+            // Réactiver backdrop-filter après la transition d'opacité
+            if (pauseContent) {
+                setTimeout(() => {
+                    pauseContent.style.backdropFilter = '';
+                    pauseContent.style.webkitBackdropFilter = '';
+                }, 420);
+            }
 
             // Show cursor when info panel is visible
             document.body.classList.remove('fps-cursor-hidden');
@@ -9989,6 +10002,14 @@
             lastPauseToggleTime = performance.now();
 
             isPaused = false;
+
+            // Désactiver backdrop-filter pendant la transition de fermeture
+            const pauseContent = document.querySelector('.pause-content');
+            if (pauseContent) {
+                pauseContent.style.backdropFilter = 'none';
+                pauseContent.style.webkitBackdropFilter = 'none';
+            }
+
             document.getElementById('pause-screen').classList.remove('active');
 
             // Hide cursor when resuming FPS experience
