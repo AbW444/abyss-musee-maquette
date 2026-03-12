@@ -1027,10 +1027,8 @@
             opacity: 1;
             pointer-events: auto;
             visibility: visible;
-        }
-        #pause-screen.active .pause-content {
-            backdrop-filter: blur(32px);
-            -webkit-backdrop-filter: blur(32px);
+            /* Apparition instantanée : pas de transition à l'ouverture */
+            transition: none;
         }
         .pause-content {
             max-width: 700px;
@@ -1039,9 +1037,9 @@
             scrollbar-width: none;
             -ms-overflow-style: none;
             background: rgba(0,0,0,0.55);
-            backdrop-filter: blur(0px);
-            -webkit-backdrop-filter: blur(0px);
-            transition: backdrop-filter 0.4s ease, -webkit-backdrop-filter 0.4s ease;
+            /* Blur toujours actif — visibilité contrôlée par l'opacité du parent */
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
             border: none;
             border-radius: var(--radius-2xl);
             padding: 48px;
