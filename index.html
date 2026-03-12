@@ -1033,6 +1033,10 @@
             pointer-events: auto;
             visibility: visible;
         }
+        #pause-screen.active .pause-content {
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+        }
         .pause-content {
             max-width: 700px;
             max-height: calc(100vh - 120px);
@@ -1040,8 +1044,9 @@
             scrollbar-width: none;
             -ms-overflow-style: none;
             background: rgba(0,0,0,0.55);
-            backdrop-filter: blur(32px);
-            -webkit-backdrop-filter: blur(32px);
+            backdrop-filter: blur(0px);
+            -webkit-backdrop-filter: blur(0px);
+            transition: backdrop-filter 0.4s ease, -webkit-backdrop-filter 0.4s ease;
             border: none;
             border-radius: var(--radius-2xl);
             padding: 48px;
@@ -9948,23 +9953,7 @@
             lastPauseToggleTime = now;
 
             isPaused = true;
-
-            // Désactiver backdrop-filter pendant la transition pour éviter les saccades
-            const pauseContent = document.querySelector('.pause-content');
-            if (pauseContent) {
-                pauseContent.style.backdropFilter = 'none';
-                pauseContent.style.webkitBackdropFilter = 'none';
-            }
-
             document.getElementById('pause-screen').classList.add('active');
-
-            // Réactiver backdrop-filter après la transition d'opacité
-            if (pauseContent) {
-                setTimeout(() => {
-                    pauseContent.style.backdropFilter = '';
-                    pauseContent.style.webkitBackdropFilter = '';
-                }, 420);
-            }
 
             // Show cursor when info panel is visible
             document.body.classList.remove('fps-cursor-hidden');
@@ -10003,14 +9992,6 @@
             lastPauseToggleTime = performance.now();
 
             isPaused = false;
-
-            // Désactiver backdrop-filter pendant la transition de fermeture
-            const pauseContent = document.querySelector('.pause-content');
-            if (pauseContent) {
-                pauseContent.style.backdropFilter = 'none';
-                pauseContent.style.webkitBackdropFilter = 'none';
-            }
-
             document.getElementById('pause-screen').classList.remove('active');
 
             // Hide cursor when resuming FPS experience
