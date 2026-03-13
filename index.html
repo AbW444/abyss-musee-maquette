@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="img/presences_rares_favicon_v2.png">
 
     <!-- Preload background video for instant welcome screen -->
-    <link rel="preload" href="videos/background_mobile.webm" as="fetch" type="video/webm" crossorigin fetchpriority="high">
+    <link rel="preload" href="videos/background_mobile.webm" as="video" type="video/webm" crossorigin fetchpriority="high">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10637,23 +10637,25 @@
                 panoramicVideo.play().catch(err => {
                     console.warn('⚠️ Erreur play panorama:', err);
                 });
-                // Auto-recovery: if video stalls/freezes, attempt to resume playback
+                // Auto-recovery: if video stalls/freezes, attempt to resume playback (throttled)
+                let lastStallRecovery = 0;
                 panoramicVideo.addEventListener('stalled', function() {
+                    const now = Date.now();
+                    if (now - lastStallRecovery < 10000) return; // max 1 recovery per 10s
+                    lastStallRecovery = now;
                     console.warn('⚠️ Vidéo panoramique stalled, tentative de reprise...');
                     setTimeout(() => {
                         if (panoramicVideo.paused || panoramicVideo.readyState < 3) {
-                            panoramicVideo.load();
-                            panoramicVideo.play().catch(() => {});
-                        }
-                    }, 1000);
-                });
-                panoramicVideo.addEventListener('waiting', function() {
-                    console.warn('⚠️ Vidéo panoramique en attente de données...');
-                    setTimeout(() => {
-                        if (panoramicVideo.paused) {
                             panoramicVideo.play().catch(() => {});
                         }
                     }, 2000);
+                });
+                let waitingLogCount = 0;
+                panoramicVideo.addEventListener('waiting', function() {
+                    if (waitingLogCount < 3) {
+                        console.warn('⚠️ Vidéo panoramique en attente de données...');
+                        waitingLogCount++;
+                    }
                 });
                 console.log('✅ Vidéo panoramique lancée');
                 return;
