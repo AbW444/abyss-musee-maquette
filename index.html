@@ -1420,7 +1420,7 @@
             opacity: 0;
             pointer-events: none;
             visibility: hidden;
-            transition: opacity 0.5s ease, visibility 0.5s ease;
+            transition: opacity 0.5s ease;
         }
 
         #loading-screen.active {
@@ -1432,7 +1432,6 @@
         #loading-screen.hidden {
             opacity: 0;
             pointer-events: none;
-            visibility: hidden;
         }
 
         /* Fade-from-black overlay: sits behind loading screen, reveals 3D scene smoothly */
@@ -1449,7 +1448,7 @@
             pointer-events: none;
             visibility: hidden;
             will-change: opacity;
-            transition: opacity 1.2s ease, visibility 1.2s ease;
+            transition: opacity 1.2s ease;
         }
 
         #scene-reveal-overlay.active {
@@ -2451,7 +2450,7 @@
 
     <!-- Welcome Screen -->
     <div id="welcome-screen">
-        <video id="welcome-video-bg" autoplay loop muted playsinline preload="auto">
+        <video id="welcome-video-bg" loop muted playsinline preload="auto">
             <source src="videos/background_mobile.webm" type="video/webm">
         </video>
 
@@ -5416,7 +5415,10 @@
             if (!file || !file.type.startsWith('video/')) return;
 
             const videoElement = document.getElementById('video-source');
+            // Revoke previous blob URL to free memory
+            if (videoElement._blobUrl) URL.revokeObjectURL(videoElement._blobUrl);
             const url = URL.createObjectURL(file);
+            videoElement._blobUrl = url;
 
             videoElement.src = url;
             videoElement.load();
@@ -5425,21 +5427,28 @@
                 const isFirstLoad = (currentVideo === null);
                 currentVideo = videoElement;
 
-                // Clear panoramic video so generate() uses this manually loaded video
+                // Clean up panoramic video before clearing reference
+                if (panoramicVideo) {
+                    panoramicVideo.pause();
+                    panoramicVideo.removeAttribute('src');
+                    panoramicVideo.load();
+                }
                 panoramicVideo = null;
 
                 // Show preview (safe DOM construction)
                 const previewEl = document.getElementById('preview');
-                previewEl.textContent = '';
-                const previewVideo = document.createElement('video');
-                previewVideo.src = url;
-                previewVideo.muted = true;
-                previewVideo.loop = true;
-                previewVideo.playsInline = true;
-                previewVideo.style.cssText = 'max-width:100%;max-height:100%';
-                previewEl.appendChild(previewVideo);
-                previewEl.classList.add('loaded');
-                previewVideo.play();
+                if (previewEl) {
+                    previewEl.textContent = '';
+                    const previewVideo = document.createElement('video');
+                    previewVideo.src = url;
+                    previewVideo.muted = true;
+                    previewVideo.loop = true;
+                    previewVideo.playsInline = true;
+                    previewVideo.style.cssText = 'max-width:100%;max-height:100%';
+                    previewEl.appendChild(previewVideo);
+                    previewEl.classList.add('loaded');
+                    previewVideo.play().catch(function() {});
+                }
 
                 // Show controls ONLY if in Admin mode (not in FPS/Spectator mode)
                 if (!fpsMode) {
@@ -5477,7 +5486,7 @@
                 }
 
                 // Auto-play
-                videoElement.play();
+                videoElement.play().catch(function() {});
 
                 // Apply automatiquement (générer les particules)
                 console.log('🎬 Apply automatique après chargement vidéo...');
@@ -10116,11 +10125,23 @@
                 welcomeVideo.play().catch(function() {});
 
                 // Handle power-saving pause (Chrome pauses muted background videos)
+                // Use AbortController for clean removal when welcome screen hides
+                var welcomeVideoAC = new AbortController();
                 document.addEventListener('visibilitychange', function() {
                     if (!document.hidden && welcomeVideo && welcomeVideo.paused && welcomeVideo.isConnected) {
                         welcomeVideo.play().catch(function() {});
                     }
-                });
+                }, { signal: welcomeVideoAC.signal });
+
+                // Clean up welcome video when experience starts
+                window.addEventListener('scene-revealed', function() {
+                    welcomeVideoAC.abort();
+                    if (welcomeVideo) {
+                        welcomeVideo.pause();
+                        welcomeVideo.removeAttribute('src');
+                        welcomeVideo.load();
+                    }
+                }, { once: true });
 
                 welcomeVideo.addEventListener('error', function() {
                     console.log('⚠️ Vidéo d\'arrière-plan non disponible - fond noir utilisé');
@@ -10301,7 +10322,7 @@
                     setTimeout(onRevealFade, 1400); // fallback
                 };
                 loadingScreen.addEventListener('transitionend', onLoadingFade);
-                setTimeout(onLoadingFade, 650); // fallback
+                setTimeout(onLoadingFade, 550); // fallback (slightly above 500ms CSS transition)
 
                 // Fullscreen is already requested from handlePlayClick (user gesture)
 
@@ -10360,16 +10381,18 @@
                     // Show preview (safe DOM construction)
                     const previewSrc = screenVideos[1].src;
                     const prevEl = document.getElementById('preview');
-                    prevEl.textContent = '';
-                    const pvid = document.createElement('video');
-                    pvid.src = previewSrc;
-                    pvid.muted = true;
-                    pvid.loop = true;
-                    pvid.playsInline = true;
-                    pvid.style.cssText = 'max-width:100%;max-height:100%';
-                    prevEl.appendChild(pvid);
-                    prevEl.classList.add('loaded');
-                    pvid.play();
+                    if (prevEl) {
+                        prevEl.textContent = '';
+                        const pvid = document.createElement('video');
+                        pvid.src = previewSrc;
+                        pvid.muted = true;
+                        pvid.loop = true;
+                        pvid.playsInline = true;
+                        pvid.style.cssText = 'max-width:100%;max-height:100%';
+                        prevEl.appendChild(pvid);
+                        prevEl.classList.add('loaded');
+                        pvid.play().catch(function() {});
+                    }
 
                     // Auto-apply
                     console.log('🎬 Apply automatique après chargement vidéo multi-écrans...');
@@ -10391,6 +10414,8 @@
                 videoElement.load();
 
                 videoElement.onloadeddata = function() {
+                    videoElement.onloadeddata = null;
+                    videoElement.onerror = null;
                     console.log('✅ Vidéo fallback chargée:', videoPath);
                     currentVideo = videoElement;
 
@@ -10403,16 +10428,18 @@
 
                     // Show preview (safe DOM construction)
                     const prevEl2 = document.getElementById('preview');
-                    prevEl2.textContent = '';
-                    const pvid2 = document.createElement('video');
-                    pvid2.src = videoPath;
-                    pvid2.muted = true;
-                    pvid2.loop = true;
-                    pvid2.playsInline = true;
-                    pvid2.style.cssText = 'max-width:100%;max-height:100%';
-                    prevEl2.appendChild(pvid2);
-                    prevEl2.classList.add('loaded');
-                    pvid2.play();
+                    if (prevEl2) {
+                        prevEl2.textContent = '';
+                        const pvid2 = document.createElement('video');
+                        pvid2.src = videoPath;
+                        pvid2.muted = true;
+                        pvid2.loop = true;
+                        pvid2.playsInline = true;
+                        pvid2.style.cssText = 'max-width:100%;max-height:100%';
+                        prevEl2.appendChild(pvid2);
+                        prevEl2.classList.add('loaded');
+                        pvid2.play().catch(function() {});
+                    }
 
                     // Auto-apply after loading
                     console.log('🎬 Apply automatique après chargement vidéo...');
