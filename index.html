@@ -2153,6 +2153,7 @@
     <!-- Welcome Screen -->
     <div id="welcome-screen">
         <video id="welcome-video-bg" autoplay loop muted playsinline>
+            <source src="videos/background_mobile.webm" media="(max-width: 768px)" type="video/webm">
             <source src="videos/background.webm" type="video/webm">
         </video>
 
@@ -9390,6 +9391,9 @@
 
             // Start the auto-load sequence after welcome screen
             setTimeout(() => {
+                // Explicitly pause the background video to free GPU/decoder before 3D init
+                const wvbg = document.getElementById('welcome-video-bg');
+                if (wvbg) { wvbg.pause(); wvbg.src = ''; }
                 welcomeScreen.style.display = 'none';
                 init();
                 setupFPSSettings();
@@ -9583,6 +9587,12 @@
             // Handle background video loading
             const welcomeVideo = document.getElementById('welcome-video-bg');
             if (welcomeVideo) {
+                // Use lightweight mobile version on mobile devices
+                if (isMobile) {
+                    welcomeVideo.src = 'videos/background_mobile.webm';
+                    welcomeVideo.load();
+                }
+
                 if (welcomeVideo.readyState >= 3) {
                     welcomeVideo.classList.add('loaded');
                     console.log('✅ Vidéo d\'arrière-plan déjà prête');
@@ -9933,10 +9943,10 @@
                 videoElement.style.display = 'none';
                 document.body.appendChild(videoElement);
 
-                // On mobile, start with optimized v2; on desktop, start with best quality
+                // Best quality first on all devices; ecran_panorama_v2.webm = highest bitrate available
                 const videoPaths = isMobile
-                    ? ['videos/ecran_panorama_v2_opti.webm', 'videos/panorama_opti.webm', 'videos/ecran_panorama.webm']
-                    : ['videos/ecran_panorama_v2_opti.webm', 'videos/ecran_panorama.webm', 'videos/panorama_opti.webm'];
+                    ? ['videos/ecran_panorama_v2.webm', 'videos/ecran_panorama.webm', 'videos/ecran_panorama_v2_opti.webm', 'videos/panorama_opti.webm']
+                    : ['videos/ecran_panorama_v2.webm', 'videos/ecran_panorama.webm', 'videos/ecran_panorama_v2_opti.webm', 'videos/panorama_opti.webm'];
 
                 function tryLoadVideo(pathIndex) {
                     if (pathIndex >= videoPaths.length) {
