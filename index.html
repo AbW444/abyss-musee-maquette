@@ -9943,10 +9943,10 @@
                 videoElement.style.display = 'none';
                 document.body.appendChild(videoElement);
 
-                // Best quality first on all devices; ecran_panorama_v2.webm = highest bitrate available
+                // Best quality first on all devices; panorama_v5.webm = highest bitrate available
                 const videoPaths = isMobile
-                    ? ['videos/ecran_panorama_v2.webm', 'videos/ecran_panorama.webm', 'videos/ecran_panorama_v2_opti.webm', 'videos/panorama_opti.webm']
-                    : ['videos/ecran_panorama_v2.webm', 'videos/ecran_panorama.webm', 'videos/ecran_panorama_v2_opti.webm', 'videos/panorama_opti.webm'];
+                    ? ['videos/panorama_v5.webm', 'videos/ecran_panorama_v2.webm', 'videos/ecran_panorama.webm', 'videos/ecran_panorama_v2_opti.webm', 'videos/panorama_opti.webm']
+                    : ['videos/panorama_v5.webm', 'videos/ecran_panorama_v2.webm', 'videos/ecran_panorama.webm', 'videos/ecran_panorama_v2_opti.webm', 'videos/panorama_opti.webm'];
 
                 function tryLoadVideo(pathIndex) {
                     if (pathIndex >= videoPaths.length) {
